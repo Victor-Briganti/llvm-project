@@ -342,6 +342,12 @@ __OMP_RTL(__kmpc_dist_for_static_init_8u, false, Void, IdentPtr, Int32, Int32,
 __OMP_RTL(__kmpc_single, false, Int32, IdentPtr, Int32)
 __OMP_RTL(__kmpc_end_single, false, Void, IdentPtr, Int32)
 
+__OMP_RTL(__kmpc_memo, false, Int32, IdentPtr, Int32)
+__OMP_RTL(__kmpc_end_memo, false, Void, IdentPtr, Int32)
+__OMP_RTL(__kmpc_memo_init, false, Void, IdentPtr, Int32, Int32)
+__OMP_RTL(__kmpc_memo_in, false, Void, IdentPtr, Int32, VoidPtr, SizeTy, Int32)
+__OMP_RTL(__kmpc_memo_out, false, Void, IdentPtr, Int32, VoidPtr, SizeTy, Int32)
+
 __OMP_RTL(__kmpc_omp_task_alloc, false, /* kmp_task_t */ VoidPtr, IdentPtr,
           Int32, Int32, SizeTy, SizeTy, TaskRoutineEntryPtr)
 __OMP_RTL(__kmpc_omp_task, false, Int32, IdentPtr, Int32,
@@ -1182,6 +1188,7 @@ __OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, teams)
 __OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, parallel)
 __OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, for)
 __OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, simd)
+__OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, memo)
 
 __OMP_TRAIT_SET(device)
 

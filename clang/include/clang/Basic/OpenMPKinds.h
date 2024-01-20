@@ -349,6 +349,12 @@ void getOpenMPCaptureRegions(
 /// \return true - if the above condition is met for this directive
 /// otherwise - false.
 bool isOpenMPCombinedParallelADirective(OpenMPDirectiveKind DKind);
+
+/// Checks if the specified directive is a approximate construct.
+/// \param DKind Specified directive.
+/// \return true - the directive is a approximate directive like 'omp memo'
+/// otherwise - false.
+bool isOpenMPMemoDirective(OpenMPDirectiveKind DKind);
 }
 
 #endif

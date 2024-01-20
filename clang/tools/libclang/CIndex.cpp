@@ -6008,6 +6008,8 @@ CXString clang_getCursorKindSpelling(enum CXCursorKind Kind) {
     return cxstring::createRef("OMPParallelGenericLoopDirective");
   case CXCursor_OMPTargetParallelGenericLoopDirective:
     return cxstring::createRef("OMPTargetParallelGenericLoopDirective");
+  case CXCursor_OMPMemoDirective:
+    return cxstring::createRef("OMPMemoDirective");
   case CXCursor_OverloadCandidate:
     return cxstring::createRef("OverloadCandidate");
   case CXCursor_TypeAliasTemplateDecl:

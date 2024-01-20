@@ -2435,6 +2435,7 @@ Parser::DeclGroupPtrTy Parser::ParseOpenMPDeclarativeDirectiveWithExtDecl(
   case OMPD_target_teams_loop:
   case OMPD_parallel_loop:
   case OMPD_target_parallel_loop:
+  case OMPD_memo:
     Diag(Tok, diag::err_omp_unexpected_directive)
         << 1 << getOpenMPDirectiveName(DKind);
     break;
@@ -2485,7 +2486,7 @@ Parser::DeclGroupPtrTy Parser::ParseOpenMPDeclarativeDirectiveWithExtDecl(
 ///         parallel for' | 'target teams' | 'target teams distribute' | 'target
 ///         teams distribute parallel for' | 'target teams distribute parallel
 ///         for simd' | 'target teams distribute simd' | 'masked' |
-///         'parallel masked' {clause} annot_pragma_openmp_end
+///         'parallel masked' | 'memo' {clause} annot_pragma_openmp_end
 ///
 StmtResult Parser::ParseOpenMPDeclarativeOrExecutableDirective(
     ParsedStmtContext StmtCtx, bool ReadDirectiveWithinMetadirective) {
@@ -2836,7 +2837,8 @@ StmtResult Parser::ParseOpenMPDeclarativeOrExecutableDirective(
   case OMPD_target_teams_distribute_parallel_for_simd:
   case OMPD_target_teams_distribute_simd:
   case OMPD_dispatch:
-  case OMPD_masked: {
+  case OMPD_masked: 
+  case OMPD_memo: {
     // Special processing for flush and depobj clauses.
     Token ImplicitTok;
     bool ImplicitClauseAllowed = false;

@@ -1395,6 +1395,7 @@ void CodeGenFunction::EmitOMPReductionClauseInit(
     case OMPD_declare_variant:
     case OMPD_begin_declare_variant:
     case OMPD_end_declare_variant:
+    case OMPD_memo:
     case OMPD_unknown:
     default:
       llvm_unreachable("Enexpected directive with task reductions.");
@@ -7112,8 +7113,35 @@ void CodeGenFunction::EmitOMPCancellationPointDirective(
                                                    S.getCancelRegion());
 }
 
+void CodeGenFunction::EmitOMPMemoDirective(const OMPMemoDirective &S) {
+  llvm::SmallVector<const VarDecl *, 8> VarDeclarations;
+
+  for (auto *CS : S.getClausesOfKind<OMPSharedClause>()) {
+    for (auto RefExpr : CS->varlists()) {
+      auto *VD = cast<DeclRefExpr>(RefExpr)->getDecl();
+
+      // All values need to be an scalar to be memoized
+      if (!VD->getType()->isScalarType() || VD->getType()->isAnyPointerType()) {
+        VarDeclarations.clear();
+        break;
+      }
+
+      VarDeclarations.push_back(
+          cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl()));
+    }
+  }
+
+  auto &&CodeGen = [&S](CodeGenFunction &CGF, PrePostActionTy &Action) {
+    Action.Enter(CGF);
+    CGF.EmitStmt(S.getCapturedStmt(OMPD_memo)->getCapturedStmt());
+  };
+
+  CGM.getOpenMPRuntime().emitMemoRegion(*this, CodeGen, S.getBeginLoc(),
+                                        VarDeclarations);
+}
+
 void CodeGenFunction::EmitOMPCancelDirective(const OMPCancelDirective &S) {
-  const Expr *IfCond = nullptr;
+  const Expr *IfCond = nullptr; 
   for (const auto *C : S.getClausesOfKind<OMPIfClause>()) {
     if (C->getNameModifier() == OMPD_unknown ||
         C->getNameModifier() == OMPD_cancel) {

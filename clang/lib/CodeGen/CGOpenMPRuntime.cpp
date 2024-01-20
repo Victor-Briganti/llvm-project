@@ -32,12 +32,14 @@
 #include "llvm/ADT/SmallBitVector.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Bitcode/BitcodeReader.h"
+#include "llvm/Frontend/OpenMP/OMP.h.inc"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/AtomicOrdering.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cassert>
@@ -2586,6 +2588,112 @@ void CGOpenMPRuntime::emitErrorCall(CodeGenFunction &CGF, SourceLocation Loc,
   CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
                           CGM.getModule(), OMPRTL___kmpc_error),
                       Args);
+}
+
+void CGOpenMPRuntime::emitMemoRegion(
+    CodeGenFunction &CGF, const RegionCodeGenTy &MemoOpGen, SourceLocation Loc,
+    ArrayRef<const VarDecl *> DeclarationVars) {
+  if (!CGF.HaveInsertPoint())
+    return;
+
+  if (DeclarationVars.size() == 0) {
+    emitInlinedDirective(CGF, OMPD_memo, MemoOpGen);
+    return;
+  }
+
+  ASTContext &C = CGM.getContext();
+
+  llvm::Value *Ident = emitUpdateLocation(CGF, Loc);
+  llvm::Value *ThreadID = getThreadID(CGF, Loc);
+
+  // int32 id_var = 0;
+  // if(__kmpc_single(ident_t *, gtid)) {
+  //  __kmpc_memo_init(ident_t *, gtid, num_vars)
+  //  __kmpc_memo_in(ident_t *, gtid, void*, size, id_var)
+  //  id_var++
+  //  ...
+  //  __kmpc_end_single(ident_t *, gtid);
+  // }
+  llvm::Value *ArgsSingle[] = {Ident, ThreadID};
+  CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_single),
+                        ArgsSingle,
+                        OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_end_single),
+                        ArgsSingle,
+                        /*Conditional=*/true);
+
+  Address IdVar = Address::invalid();
+  int IdVarIdx = DeclarationVars.size();
+  // int32 id_var = 0;
+  QualType KmpInt32Ty = C.getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1);
+  IdVar = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.id_var");
+  CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
+
+  Action.Enter(CGF);
+  llvm::Value *NumVars = CGF.Builder.CreateLoad(IdVar);
+
+  llvm::Value *ArgsInit[] = {Ident, ThreadID, NumVars};
+  CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                          CGM.getModule(), OMPRTL___kmpc_memo_init),
+                      ArgsInit);
+
+  IdVarIdx = 0;
+  CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
+
+  for (auto DV : DeclarationVars) {
+    Address Addr = CGF.GetAddrOfLocalVar(DV);
+    const VarDecl *CDV = DV->getCanonicalDecl();
+
+    llvm::Value *IdVarVal = CGF.Builder.CreateLoad(IdVar);
+
+    llvm::Value *Args[] = {
+        Ident, ThreadID,
+        CGF.Builder.CreatePointerCast(Addr.getPointer(), CGM.VoidPtrTy),
+        CGF.getTypeSize(CDV->getType()), IdVarVal};
+    CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_memo_in),
+                        Args);
+
+    IdVarIdx++;
+    CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
+  }
+  IdVarIdx = 0;
+  Action.Done(CGF);
+
+  // __kmpc_barrier(loc, thread_id)
+  emitBarrierCall(CGF, Loc, OMPD_unknown, /*EmitChecks=*/false,
+                  /*ForceSimpleCall=*/false);
+
+  auto &&CodeGen = [&](CodeGenFunction &CGF, PrePostActionTy &PPAction) {
+    PPAction.Enter(CGF);
+    if (!CGF.HaveInsertPoint())
+      return;
+    // __kmpc_critical[_with_hint](ident_t *, gtid, Lock[, hint]);
+    // if(__kmpc_memo(ident_t *, gtid)) {
+    //   MemoOpGen();
+    //   __kmpc_end_memo(ident_t *, gtid);
+    // }
+    // __kmpc_end_critical(ident_t *, gtid, Lock);
+    llvm::Value *Args[] = {Ident, ThreadID};
+    CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
+                              CGM.getModule(), OMPRTL___kmpc_memo),
+                          Args,
+                          OMPBuilder.getOrCreateRuntimeFunction(
+                              CGM.getModule(), OMPRTL___kmpc_end_memo),
+                          Args,
+                          /*Conditional=*/true);
+    MemoOpGen.setAction(Action);
+    emitInlinedDirective(CGF, OMPD_memo, MemoOpGen);
+    CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
+    Action.Done(CGF);
+  };
+  emitCriticalRegion(CGF, CGF.CGM.getOpenMPRuntime().getName({"critical_memo"}),
+                     CodeGen, Loc, nullptr);
+
+  // __kmpc_barrier(loc, thread_id)
+  emitBarrierCall(CGF, Loc, OMPD_unknown, /*EmitChecks=*/false,
+                  /*ForceSimpleCall=*/false);
 }
 
 /// Map the OpenMP loop schedule to the runtime enumeration.
@@ -12425,6 +12533,12 @@ void CGOpenMPSIMDRuntime::emitBarrierCall(CodeGenFunction &CGF,
                                           bool EmitChecks,
                                           bool ForceSimpleCall) {
   llvm_unreachable("Not supported in SIMD-only mode");
+}
+
+void CGOpenMPSIMDRuntime::emitMemoRegion(
+    CodeGenFunction &CGF, const RegionCodeGenTy &MemoGen, SourceLocation Loc,
+    ArrayRef<const VarDecl *> DeclarationVars) {
+  llvm_unreachable("No supported in SIMD-only mode");
 }
 
 void CGOpenMPSIMDRuntime::emitForDispatchInit(

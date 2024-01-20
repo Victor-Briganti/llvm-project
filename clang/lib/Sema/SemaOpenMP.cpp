@@ -4183,7 +4183,8 @@ void Sema::ActOnOpenMPRegionStart(OpenMPDirectiveKind DKind, Scope *CurScope) {
   case OMPD_parallel_loop:
   case OMPD_teams:
   case OMPD_teams_distribute:
-  case OMPD_teams_distribute_simd: {
+  case OMPD_teams_distribute_simd: 
+  case OMPD_memo: {
     QualType KmpInt32Ty = Context.getIntTypeForBitwidth(32, 1).withConst();
     QualType KmpInt32PtrTy =
         Context.getPointerType(KmpInt32Ty).withConst().withRestrict();
@@ -5186,6 +5187,11 @@ static bool checkNestingOfRegions(Sema &SemaRef, const DSAStackTy *Stack,
            ParentRegion != OMPD_parallel_for_simd);
       OrphanSeen = ParentRegion == OMPD_unknown;
       Recommend = ShouldBeInLoopSimdRegion;
+    } else if (CurrentRegion == OMPD_memo) {
+      // OpenMP [Approximate computing propose]
+      // Memoizate regions cannot be nested.
+      NestingProhibited = ParentRegion == OMPD_memo;
+      Recommend = NoRecommend;
     }
     if (!NestingProhibited &&
         !isOpenMPTargetExecutionDirective(CurrentRegion) &&
@@ -6657,6 +6663,10 @@ StmtResult Sema::ActOnOpenMPExecutableDirective(
   case OMPD_target_parallel_loop:
     Res = ActOnOpenMPTargetParallelGenericLoopDirective(
         ClausesWithImplicit, AStmt, StartLoc, EndLoc, VarsWithInheritedDSA);
+    break;
+  case OMPD_memo:
+    Res = ActOnOpenMPMemoDirective(ClausesWithImplicit, StartLoc, EndLoc, 
+                                    AStmt);
     break;
   case OMPD_declare_target:
   case OMPD_end_declare_target:
@@ -15174,6 +15184,16 @@ StmtResult Sema::ActOnOpenMPUnrollDirective(ArrayRef<OMPClause *> Clauses,
                                     buildPreInits(Context, PreInits));
 }
 
+StmtResult Sema::ActOnOpenMPMemoDirective(ArrayRef<OMPClause *> Clauses,
+                                          SourceLocation StartLoc,
+                                          SourceLocation EndLoc, 
+                                          Stmt *AStmt) {
+  if (!AStmt)
+    return StmtError();
+
+  return OMPMemoDirective::Create(Context, StartLoc, EndLoc, Clauses, AStmt);
+}
+
 OMPClause *Sema::ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind, Expr *Expr,
                                              SourceLocation StartLoc,
                                              SourceLocation LParenLoc,
@@ -15488,6 +15508,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_teams_distribute:
     case OMPD_requires:
     case OMPD_metadirective:
+    case OMPD_memo: /* TODO: This directive should support if-clause */ 
       llvm_unreachable("Unexpected OpenMP directive with if-clause");
     case OMPD_unknown:
     default:
@@ -15582,6 +15603,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_teams_distribute_simd:
     case OMPD_requires:
     case OMPD_metadirective:
+    case OMPD_memo:
       llvm_unreachable("Unexpected OpenMP directive with num_threads-clause");
     case OMPD_unknown:
     default:
@@ -15674,6 +15696,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_distribute_simd:
     case OMPD_requires:
     case OMPD_metadirective:
+    case OMPD_memo:
       llvm_unreachable("Unexpected OpenMP directive with num_teams-clause");
     case OMPD_unknown:
     default:
@@ -15766,6 +15789,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_distribute_simd:
     case OMPD_requires:
     case OMPD_metadirective:
+    case OMPD_memo:
       llvm_unreachable("Unexpected OpenMP directive with thread_limit-clause");
     case OMPD_unknown:
     default:
@@ -15857,7 +15881,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_distribute_simd:
     case OMPD_target_teams:
     case OMPD_requires:
-    case OMPD_metadirective:
+    case OMPD_memo:
       llvm_unreachable("Unexpected OpenMP directive with schedule clause");
     case OMPD_unknown:
     default:
@@ -15949,7 +15973,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_atomic:
     case OMPD_target_teams:
     case OMPD_requires:
-    case OMPD_metadirective:
+    case OMPD_memo:
       llvm_unreachable("Unexpected OpenMP directive with dist_schedule clause");
     case OMPD_unknown:
     default:
@@ -16064,6 +16088,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_distribute_simd:
     case OMPD_requires:
     case OMPD_metadirective:
+    case OMPD_memo:
       llvm_unreachable("Unexpected OpenMP directive with device-clause");
     case OMPD_unknown:
     default:
@@ -16158,6 +16183,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_distribute_simd:
     case OMPD_requires:
     case OMPD_metadirective:
+    case OMPD_memo:
       llvm_unreachable("Unexpected OpenMP directive with grainsize-clause");
     case OMPD_unknown:
     default:

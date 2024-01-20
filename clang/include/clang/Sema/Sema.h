@@ -11781,6 +11781,13 @@ public:
       ArrayRef<OMPInteropInfo> AppendArgs, SourceLocation AdjustArgsLoc,
       SourceLocation AppendArgsLoc, SourceRange SR);
 
+  /// Called on well-formed '\#pragma omp memo' after parsing
+  /// of the  associated statement.
+  StmtResult ActOnOpenMPMemoDirective(ArrayRef<OMPClause *> Clauses,
+                                      SourceLocation StartLoc,
+                                      SourceLocation EndLoc,
+                                      Stmt *AStmt);
+
   OMPClause *ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind,
                                          Expr *Expr,
                                          SourceLocation StartLoc,

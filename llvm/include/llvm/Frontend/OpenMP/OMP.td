@@ -2110,3 +2110,8 @@ def OMP_Metadirective : Directive<"metadirective"> {
 def OMP_Unknown : Directive<"unknown"> {
   let isDefault = true;
 }
+def OMP_Memo : Directive<"memo"> {
+  let allowedClauses = [ 
+    VersionedClause<OMPC_Shared>
+  ];
+}

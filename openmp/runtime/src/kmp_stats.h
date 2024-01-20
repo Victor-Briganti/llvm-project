@@ -106,6 +106,7 @@ enum stats_state_e {
   macro(OMP_MASTER, 0, arg)                                                    \
   macro(OMP_MASKED, 0, arg)                                                    \
   macro(OMP_TEAMS, 0, arg)                                                     \
+  macro(OMP_MEMO, 0, arg)                                                     \
   macro(OMP_set_lock, 0, arg)                                                  \
   macro(OMP_test_lock, 0, arg)                                                 \
   macro(REDUCE_wait, 0, arg)                                                   \
@@ -181,6 +182,7 @@ enum stats_state_e {
          stats_flags_e::noUnits | stats_flags_e::noTotal, arg)                 \
   macro (OMP_distribute_iterations,                                            \
          stats_flags_e::noUnits | stats_flags_e::noTotal, arg)                 \
+  macro (OMP_single, 0, arg)                                                   \
   KMP_FOREACH_DEVELOPER_TIMER(macro, arg)
 // clang-format on
 

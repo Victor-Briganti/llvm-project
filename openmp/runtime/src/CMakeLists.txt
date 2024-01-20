@@ -77,6 +77,7 @@ else()
     kmp_i18n.cpp
     kmp_io.cpp
     kmp_runtime.cpp
+    kmp_approx.cpp
     kmp_settings.cpp
     kmp_str.cpp
     kmp_tasking.cpp

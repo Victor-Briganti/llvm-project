@@ -865,6 +865,12 @@ public:
                                bool EmitChecks = true,
                                bool ForceSimpleCall = false);
 
+  /// Emit __kmpc_memo call for testing the memo directive
+  virtual void emitMemoRegion(CodeGenFunction &CGF, 
+                              const RegionCodeGenTy &MemoGen,
+                              SourceLocation Loc,
+                              ArrayRef<const VarDecl *> DeclarationVars);
+
   /// Check if the specified \a ScheduleKind is static non-chunked.
   /// This kind of worksharing directive is emitted without outer loop.
   /// \param ScheduleKind Schedule kind specified in the 'schedule' clause.
@@ -1793,6 +1799,12 @@ public:
   void emitBarrierCall(CodeGenFunction &CGF, SourceLocation Loc,
                        OpenMPDirectiveKind Kind, bool EmitChecks = true,
                        bool ForceSimpleCall = false) override;
+
+   /// Emit __kmpc_memo call for testing the memo directive
+  virtual void
+  emitMemoRegion(CodeGenFunction &CGF, const RegionCodeGenTy &MemoGen,
+                 SourceLocation Loc,
+                 ArrayRef<const VarDecl *> DeclarationVars) override;
 
   /// This is used for non static scheduled types and when the ordered
   /// clause is present on the loop construct.

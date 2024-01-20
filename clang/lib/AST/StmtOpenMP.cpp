@@ -2528,3 +2528,19 @@ OMPTargetParallelGenericLoopDirective::CreateEmpty(const ASTContext &C,
       C, NumClauses, /*HasAssociatedStmt=*/true,
       numLoopChildren(CollapsedNum, OMPD_target_parallel_loop), CollapsedNum);
 }
+
+OMPMemoDirective *OMPMemoDirective::Create(
+    const ASTContext &C, SourceLocation StartLoc, SourceLocation EndLoc,
+    ArrayRef<OMPClause *> Clauses, Stmt *AssociatedStmt) {
+  return createDirective<OMPMemoDirective>(C, Clauses, AssociatedStmt,
+                                                   /*NumChildren=*/0, StartLoc,
+                                                   EndLoc);
+}
+
+// TODO: Probably will be necessary to set the NumClauses to a fix number.
+OMPMemoDirective *
+OMPMemoDirective::CreateEmpty(const ASTContext &C, unsigned NumClauses,
+                                      EmptyShell) {
+  return createEmptyDirective<OMPMemoDirective>(
+      C, NumClauses, /*HasAssociatedStmt=*/true);
+}
