@@ -3827,6 +3827,7 @@ OMPClause *Parser::ParseOpenMPSingleExprWithArgClause(OpenMPDirectiveKind DKind,
       ConsumeAnyToken();
     if ((Arg[ScheduleKind] == OMPC_SCHEDULE_static ||
          Arg[ScheduleKind] == OMPC_SCHEDULE_dynamic ||
+         Arg[ScheduleKind] == OMPC_SCHEDULE_perfo ||
          Arg[ScheduleKind] == OMPC_SCHEDULE_guided) &&
         Tok.is(tok::comma))
       DelimLoc = ConsumeAnyToken();

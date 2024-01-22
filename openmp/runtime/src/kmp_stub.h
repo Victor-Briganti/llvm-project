@@ -35,6 +35,7 @@ typedef enum kmp_sched {
   kmp_sched_dynamic = 2, // mapped to kmp_sch_dynamic_chunked          (35)
   kmp_sched_guided = 3, // mapped to kmp_sch_guided_chunked           (36)
   kmp_sched_auto = 4, // mapped to kmp_sch_auto                     (38)
+  kmp_sched_perfo = 5, // mapped to kmp_sch_perfo_chunked              (48)
   kmp_sched_default = kmp_sched_static // default scheduling
 } kmp_sched_t;
 #endif

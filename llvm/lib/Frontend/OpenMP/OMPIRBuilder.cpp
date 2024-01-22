@@ -154,6 +154,8 @@ getOpenMPBaseScheduleType(llvm::omp::ScheduleKind ClauseKind, bool HasChunks,
   case OMP_SCHEDULE_Runtime:
     return HasSimdModifier ? OMPScheduleType::BaseRuntimeSimd
                            : OMPScheduleType::BaseRuntime;
+  case OMP_SCHEDULE_Perfo:
+    return llvm::omp::OMPScheduleType::BasePerfoChunked;
   }
   llvm_unreachable("unhandled schedule clause argument");
 }
@@ -2426,6 +2428,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::applyWorkshareLoop(
   case OMPScheduleType::BaseGuidedIterativeChunked:
   case OMPScheduleType::BaseGuidedAnalyticalChunked:
   case OMPScheduleType::BaseStaticBalancedChunked:
+  case OMPScheduleType::BasePerfoChunked:
     return applyDynamicWorkshareLoop(DL, CLI, AllocaIP, EffectiveScheduleType,
                                      NeedsBarrier, ChunkSize);
 

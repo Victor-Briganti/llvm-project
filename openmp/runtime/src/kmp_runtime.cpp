@@ -3003,6 +3003,9 @@ void __kmp_get_schedule(int gtid, kmp_sched_t *kind, int *chunk) {
   case kmp_sch_trapezoidal:
     *kind = kmp_sched_trapezoidal;
     break;
+  case kmp_sch_perfo_chunked:
+    *kind = kmp_sched_perfo;
+    break;
 #if KMP_STATIC_STEAL_ENABLED
   case kmp_sch_static_steal:
     *kind = kmp_sched_static_steal;

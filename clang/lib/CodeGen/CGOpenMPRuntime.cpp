@@ -556,6 +556,7 @@ enum OpenMPSchedType {
   OMP_sch_auto = 38,
   /// static with chunk adjustment (e.g., simd)
   OMP_sch_static_balanced_chunked = 45,
+  OMP_sch_perfo = 48,
   /// Lower bound for 'ordered' versions.
   OMP_ord_lower = 64,
   OMP_ord_static_chunked = 65,
@@ -2711,6 +2712,8 @@ static OpenMPSchedType getRuntimeSchedule(OpenMPScheduleClauseKind ScheduleKind,
     return Ordered ? OMP_ord_runtime : OMP_sch_runtime;
   case OMPC_SCHEDULE_auto:
     return Ordered ? OMP_ord_auto : OMP_sch_auto;
+  case OMPC_SCHEDULE_perfo:
+    return OMP_sch_perfo;
   case OMPC_SCHEDULE_unknown:
     assert(!Chunked && "chunk was specified but schedule kind not known");
     return Ordered ? OMP_ord_static : OMP_sch_static;

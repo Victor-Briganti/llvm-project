@@ -780,6 +780,9 @@ static ompd_rc_t ompd_get_run_schedule(
   case kmp_sch_static_steal:
     strcat(run_sched_var_string, "static_steal");
     break;
+  case kmp_sch_perfo_chunked:
+    strcat(run_sched_var_string, "perfo");
+    break;
   default:
     ret = callbacks->free_memory((void *)(run_sched_var_string));
     if (ret != ompd_rc_ok) {

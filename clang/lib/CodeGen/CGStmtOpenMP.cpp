@@ -3860,6 +3860,7 @@ static bool isSupportedByOpenMPIRBuilder(const OMPForDirective &S) {
       case OMPC_SCHEDULE_runtime:
       case OMPC_SCHEDULE_guided:
       case OMPC_SCHEDULE_static:
+      case OMPC_SCHEDULE_perfo:
         continue;
       case OMPC_SCHEDULE_unknown:
         return false;
@@ -3887,6 +3888,8 @@ convertClauseKindToSchedKind(OpenMPScheduleClauseKind ScheduleClauseKind) {
     return llvm::omp::OMP_SCHEDULE_Runtime;
   case OMPC_SCHEDULE_static:
     return llvm::omp::OMP_SCHEDULE_Static;
+  case OMPC_SCHEDULE_perfo:
+    return llvm::omp::OMP_SCHEDULE_Perfo;
   }
   llvm_unreachable("Unhandled schedule kind");
 }

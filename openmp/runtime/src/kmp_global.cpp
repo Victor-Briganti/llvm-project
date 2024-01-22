@@ -235,6 +235,7 @@ enum sched_type __kmp_sch_map[kmp_sched_upper - kmp_sched_lower_ext +
     kmp_sch_dynamic_chunked, // ==> kmp_sched_dynamic           = 2
     kmp_sch_guided_chunked, // ==> kmp_sched_guided            = 3
     kmp_sch_auto, // ==> kmp_sched_auto              = 4
+    kmp_sch_perfo_chunked, // ==> kmp_sched_perfo              = 6
     kmp_sch_trapezoidal // ==> kmp_sched_trapezoidal       = 101
     // will likely not be used, introduced here just to debug the code
     // of public intel extension schedules

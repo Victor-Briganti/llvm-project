@@ -339,6 +339,7 @@ typedef enum kmp_sched {
   kmp_sched_guided = 3, // mapped to kmp_sch_guided_chunked           (36)
   kmp_sched_auto = 4, // mapped to kmp_sch_auto                     (38)
   kmp_sched_upper_std = 5, // upper bound for standard schedules
+  kmp_sched_perfo = 6, // mapped to kmp_sch_perfo                     (48)
   kmp_sched_lower_ext = 100, // lower bound of Intel extension schedules
   kmp_sched_trapezoidal = 101, // mapped to kmp_sch_trapezoidal (39)
 #if KMP_STATIC_STEAL_ENABLED
@@ -377,6 +378,8 @@ enum sched_type : kmp_int32 {
   kmp_sch_static_balanced_chunked = 45,
   kmp_sch_guided_simd = 46, /**< guided with chunk adjustment */
   kmp_sch_runtime_simd = 47, /**< runtime with chunk adjustment */
+
+  kmp_sch_perfo_chunked = 48, /**< runtime with chunk adjustment */
 
   /* accessible only through KMP_SCHEDULE environment variable */
   kmp_sch_upper, /**< upper bound for unordered values */

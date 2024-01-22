@@ -666,6 +666,7 @@ void __kmp_dispatch_init_algorithm(ident_t *loc, int gtid,
          gtid));
     pr->u.p.parm1 = (nproc > 1) ? (tc + nproc - 1) / nproc : tc;
     break;
+  case kmp_sch_perfo_chunked:
   case kmp_sch_static_chunked:
   case kmp_sch_dynamic_chunked:
   dynamic_init:
@@ -682,6 +683,7 @@ void __kmp_dispatch_init_algorithm(ident_t *loc, int gtid,
                    "kmp_sch_static_chunked/kmp_sch_dynamic_chunked cases\n",
                    gtid));
     break;
+  
   case kmp_sch_trapezoidal: {
     /* TSS: trapezoid self-scheduling, minimum chunk_size = parm1 */
 
@@ -953,6 +955,7 @@ __kmp_dispatch_init(ident_t *loc, int gtid, enum sched_type schedule, T lb,
       case kmp_sch_static_greedy:
         cur_chunk = pr->u.p.parm1;
         break;
+      case kmp_sch_perfo_chunked:
       case kmp_sch_dynamic_chunked:
         schedtype = 1;
         break;
@@ -1866,6 +1869,57 @@ int __kmp_dispatch_next_algorithm(int gtid,
       if (p_st != NULL)
         *p_st = 0;
     }
+  } // case
+  break;
+
+  case kmp_sch_perfo_chunked: {
+    UT chunk_number;
+    UT chunk_size = pr->u.p.parm1;
+    UT nchunks = pr->u.p.parm2;
+
+    KD_TRACE(
+        100,
+        ("__kmp_dispatch_next_algorithm: T#%d kmp_sch_perfo_chunked case\n",
+         gtid));
+
+    chunk_number = test_then_inc_acq<ST>((volatile ST *)&sh->u.s.iteration);
+    status = (chunk_number < nchunks);
+    if (!status) {
+      *p_lb = 0;
+      *p_ub = 0;
+      if (p_st != NULL)
+        *p_st = 0;
+    } else {
+      init = chunk_size * chunk_number;
+      trip = pr->u.p.tc - 1;
+      start = pr->u.p.lb;
+      incr = pr->u.p.st;
+
+      if ((last = (trip - init < (UT)chunk_size)))
+        limit = trip;
+      else {
+        if (chunk_size == KMP_DEFAULT_CHUNK)
+          limit = init % 2 ? init : 0;
+        else
+          limit = (chunk_size / 2) + init;
+      }
+
+      if (p_st != NULL)
+        *p_st = incr;
+
+      if (incr == 1) {
+        *p_lb = start + init;
+        *p_ub = start + limit;
+      } else {
+        *p_lb = start + init * incr;
+        *p_ub = start + limit * incr;
+      }
+
+      if (pr->flags.ordered) {
+        pr->u.p.ordered_lower = init;
+        pr->u.p.ordered_upper = limit;
+      } // if
+    } // if
   } // case
   break;
 

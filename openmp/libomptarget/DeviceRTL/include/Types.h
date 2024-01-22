@@ -60,6 +60,7 @@ enum omp_sched_t {
   omp_sched_dynamic = 2, /* chunkSize >0 */
   omp_sched_guided = 3,  /* chunkSize >0 */
   omp_sched_auto = 4,    /* no chunkSize */
+  omp_sched_perfo = 6,  /* chunkSize >0 */
 };
 
 enum kmp_sched_t {
@@ -71,6 +72,8 @@ enum kmp_sched_t {
   kmp_sched_auto = 38,
 
   kmp_sched_static_balanced_chunk = 45,
+
+  kmp_sched_perfo = 48,
 
   kmp_sched_static_ordered = 65,
   kmp_sched_static_nochunk_ordered = 66,

@@ -87,6 +87,7 @@ OPENMP_SCHEDULE_KIND(dynamic)
 OPENMP_SCHEDULE_KIND(guided)
 OPENMP_SCHEDULE_KIND(auto)
 OPENMP_SCHEDULE_KIND(runtime)
+OPENMP_SCHEDULE_KIND(perfo)
 
 // Modifiers for 'schedule' clause.
 OPENMP_SCHEDULE_MODIFIER(monotonic)

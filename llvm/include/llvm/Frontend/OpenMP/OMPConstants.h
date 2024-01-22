@@ -97,6 +97,9 @@ enum class OMPScheduleType {
   BaseGuidedSimd = 14,
   BaseRuntimeSimd = 15,
 
+  // approximatted algorithms
+  BasePerfoChunked = 16,
+
   // static schedules algorithims for distribute
   BaseDistributeChunked = 27,
   BaseDistribute = 28,

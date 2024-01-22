@@ -4134,6 +4134,8 @@ static const char *__kmp_parse_single_omp_schedule(const char *name,
     sched = kmp_sch_trapezoidal;
   else if (!__kmp_strcasecmp_with_sentinel("static", ptr, *delim))
     sched = kmp_sch_static;
+  else if (!__kmp_strcasecmp_with_sentinel("perfo", ptr, *delim))
+    sched = kmp_sch_perfo_chunked;
 #if KMP_STATIC_STEAL_ENABLED
   else if (!__kmp_strcasecmp_with_sentinel("static_steal", ptr, *delim)) {
     // replace static_steal with dynamic to better cope with ordered loops
@@ -4278,6 +4280,9 @@ static void __kmp_stg_print_omp_schedule(kmp_str_buf_t *buffer,
     case kmp_sch_auto:
       __kmp_str_buf_print(buffer, "%s,%d'\n", "auto", __kmp_chunk);
       break;
+    case kmp_sch_perfo_chunked:
+      __kmp_str_buf_print(buffer, "%s,%d'\n", "perfo", __kmp_chunk);
+      break;
     }
   } else {
     switch (sched) {
@@ -4302,6 +4307,9 @@ static void __kmp_stg_print_omp_schedule(kmp_str_buf_t *buffer,
       break;
     case kmp_sch_auto:
       __kmp_str_buf_print(buffer, "%s'\n", "auto");
+      break;
+    case kmp_sch_perfo_chunked:
+      __kmp_str_buf_print(buffer, "%s'\n", "perfo");
       break;
     }
   }

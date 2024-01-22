@@ -137,6 +137,7 @@ def OMP_SCHEDULE_Dynamic : ClauseVal<"dynamic", 3, 1> {}
 def OMP_SCHEDULE_Guided : ClauseVal<"guided", 4, 1> {}
 def OMP_SCHEDULE_Auto : ClauseVal<"auto", 5, 1> {}
 def OMP_SCHEDULE_Runtime : ClauseVal<"runtime", 6, 1> {}
+def OMP_SCHEDULE_Perfo : ClauseVal<"perfo", 8, 1> {}
 def OMP_SCHEDULE_Default : ClauseVal<"default", 7, 0> { let isDefault = 1; }
 
 def OMPC_Schedule : Clause<"schedule"> {
@@ -149,6 +150,7 @@ def OMPC_Schedule : Clause<"schedule"> {
     OMP_SCHEDULE_Guided,
     OMP_SCHEDULE_Auto,
     OMP_SCHEDULE_Runtime,
+    OMP_SCHEDULE_Perfo,
     OMP_SCHEDULE_Default
   ];
 }
