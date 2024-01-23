@@ -920,6 +920,11 @@ void OMPClauseProfiler::VisitOMPXDynCGroupMemClause(
   if (Expr *Size = C->getSize())
     Profiler->VisitStmt(Size);
 }
+void OMPClauseProfiler::VisitOMPThresholdClause(const OMPThresholdClause *C) {
+  VistOMPClauseWithPreInit(C);
+  if (C->getThreshold())
+    Profiler->VisitStmt(C->getThreshold());
+}
 } // namespace
 
 void

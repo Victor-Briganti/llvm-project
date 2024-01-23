@@ -869,7 +869,8 @@ public:
   virtual void emitMemoRegion(CodeGenFunction &CGF, 
                               const RegionCodeGenTy &MemoGen,
                               SourceLocation Loc,
-                              ArrayRef<const VarDecl *> DeclarationVars);
+                              ArrayRef<const VarDecl *> DeclarationVars,
+                              llvm::Value *Threshold);
 
   /// Check if the specified \a ScheduleKind is static non-chunked.
   /// This kind of worksharing directive is emitted without outer loop.
@@ -1804,7 +1805,8 @@ public:
   virtual void
   emitMemoRegion(CodeGenFunction &CGF, const RegionCodeGenTy &MemoGen,
                  SourceLocation Loc,
-                 ArrayRef<const VarDecl *> DeclarationVars) override;
+                 ArrayRef<const VarDecl *> DeclarationVars,
+                 llvm::Value *Threshold) override;
 
   /// This is used for non static scheduled types and when the ordered
   /// clause is present on the loop construct.

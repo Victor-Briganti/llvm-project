@@ -344,7 +344,7 @@ __OMP_RTL(__kmpc_end_single, false, Void, IdentPtr, Int32)
 
 __OMP_RTL(__kmpc_memo, false, Int32, IdentPtr, Int32)
 __OMP_RTL(__kmpc_end_memo, false, Void, IdentPtr, Int32)
-__OMP_RTL(__kmpc_memo_init, false, Void, IdentPtr, Int32, Int32)
+__OMP_RTL(__kmpc_memo_init, false, Void, IdentPtr, Int32, Int32, Int32)
 __OMP_RTL(__kmpc_memo_in, false, Void, IdentPtr, Int32, VoidPtr, SizeTy, Int32)
 __OMP_RTL(__kmpc_memo_out, false, Void, IdentPtr, Int32, VoidPtr, SizeTy, Int32)
 

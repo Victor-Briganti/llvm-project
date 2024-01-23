@@ -7139,8 +7139,13 @@ void CodeGenFunction::EmitOMPMemoDirective(const OMPMemoDirective &S) {
     CGF.EmitStmt(S.getCapturedStmt(OMPD_memo)->getCapturedStmt());
   };
 
+  llvm::Value *Threshold = nullptr;
+  if (const auto *ThresholdClause = S.getSingleClause<OMPThresholdClause>()) 
+    Threshold = EmitScalarExpr(ThresholdClause->getThreshold(),
+                                    /*IgnoreResultAssign=*/true);
+
   CGM.getOpenMPRuntime().emitMemoRegion(*this, CodeGen, S.getBeginLoc(),
-                                        VarDeclarations);
+                                        VarDeclarations, Threshold);
 }
 
 void CodeGenFunction::EmitOMPCancelDirective(const OMPCancelDirective &S) {

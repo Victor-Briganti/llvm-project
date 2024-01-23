@@ -7139,6 +7139,12 @@ void OMPClauseWriter::VisitOMPXDynCGroupMemClause(OMPXDynCGroupMemClause *C) {
   Record.AddSourceLocation(C->getLParenLoc());
 }
 
+void OMPClauseWriter::VisitOMPThresholdClause(OMPThresholdClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  Record.AddStmt(C->getThreshold());
+  Record.AddSourceLocation(C->getLParenLoc());
+}
+
 void ASTRecordWriter::writeOMPTraitInfo(const OMPTraitInfo *TI) {
   writeUInt32(TI->Sets.size());
   for (const auto &Set : TI->Sets) {

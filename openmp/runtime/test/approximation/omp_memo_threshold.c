@@ -24,22 +24,22 @@ int test_omp_memo() {
 
 #pragma omp parallel
   {
-    for (int i = 0; i < 1000; i++) {
-#pragma omp memo shared(a, b, c, d, e, f, g, h, m, n, o, p)
+    for (int i = 0; i < LOOPCOUNT; i++) {
+#pragma omp memo shared(a, b, c, d, e, f, g, h, m, n, o, p) threshold(35)
       { a++, b++, c++, d++, e++, f++, g++, h++, m++, n++, o++, p++; }
     }
 
-    for (int i = 0; i < 1000; i++) {
-#pragma omp memo shared(x, y, z)
+    for (int i = 0; i < LOOPCOUNT; i++) {
+#pragma omp memo shared(x, y, z) threshold(35)
       { x++, y++, z++; }
     }
   }
 
-  if (a != saved[0] + 1 && b != saved[1] + 1 && c != saved[2] + 1 &&
-      d != saved[3] + 1 && e != saved[4] + 1 && f != saved[5] + 1 &&
-      g != saved[6] + 1 && h != saved[7] + 1 && m != saved[8] + 1 &&
-      n != saved[9] + 1 && o != saved[10] + 1 && p != saved[11] + 1 &&
-      x != saved[12] + 1 && y != saved[13] + 1 && z != saved[14] + 1)
+  if (a != saved[0] + 2 && b != saved[1] + 2 && c != saved[2] + 2 &&
+      d != saved[3] + 2 && e != saved[4] + 2 && f != saved[5] + 2 &&
+      g != saved[6] + 2 && h != saved[7] + 2 && m != saved[8] + 2 &&
+      n != saved[9] + 2 && o != saved[10] + 2 && p != saved[11] + 2 &&
+      x != saved[12] + 2 && y != saved[13] + 2 && z != saved[14] + 2)
     return 0;
 
   return 1;

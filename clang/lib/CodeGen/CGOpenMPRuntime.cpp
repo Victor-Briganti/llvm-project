@@ -2591,9 +2591,11 @@ void CGOpenMPRuntime::emitErrorCall(CodeGenFunction &CGF, SourceLocation Loc,
                       Args);
 }
 
-void CGOpenMPRuntime::emitMemoRegion(
-    CodeGenFunction &CGF, const RegionCodeGenTy &MemoOpGen, SourceLocation Loc,
-    ArrayRef<const VarDecl *> DeclarationVars) {
+void CGOpenMPRuntime::emitMemoRegion(CodeGenFunction &CGF,
+                                     const RegionCodeGenTy &MemoOpGen,
+                                     SourceLocation Loc,
+                                     ArrayRef<const VarDecl *> DeclarationVars,
+                                     llvm::Value *Threshold) {
   if (!CGF.HaveInsertPoint())
     return;
 
@@ -2634,7 +2636,20 @@ void CGOpenMPRuntime::emitMemoRegion(
   Action.Enter(CGF);
   llvm::Value *NumVars = CGF.Builder.CreateLoad(IdVar);
 
-  llvm::Value *ArgsInit[] = {Ident, ThreadID, NumVars};
+  llvm::Value *Thresh = nullptr;
+  if (!Threshold) {
+    Address TRH = Address::invalid();
+    // int32 id_var = 0;
+    QualType KmpInt32Ty =
+        C.getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1);
+    TRH = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.tresh");
+    CGF.Builder.CreateStore(CGF.Builder.getInt32(0), TRH);
+    Thresh = CGF.Builder.CreateLoad(TRH);
+  } else
+    Thresh =
+        CGF.Builder.CreateIntCast(Threshold, CGF.Int32Ty, /*isSigned*/ true);
+
+  llvm::Value *ArgsInit[] = {Ident, ThreadID, NumVars, Thresh};
   CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
                           CGM.getModule(), OMPRTL___kmpc_memo_init),
                       ArgsInit);
@@ -12540,7 +12555,8 @@ void CGOpenMPSIMDRuntime::emitBarrierCall(CodeGenFunction &CGF,
 
 void CGOpenMPSIMDRuntime::emitMemoRegion(
     CodeGenFunction &CGF, const RegionCodeGenTy &MemoGen, SourceLocation Loc,
-    ArrayRef<const VarDecl *> DeclarationVars) {
+    ArrayRef<const VarDecl *> DeclarationVars,
+    llvm::Value *Threshold) {
   llvm_unreachable("No supported in SIMD-only mode");
 }
 

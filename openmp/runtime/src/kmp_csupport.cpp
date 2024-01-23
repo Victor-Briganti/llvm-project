@@ -1912,12 +1912,13 @@ void __kmpc_end_memo(ident_t *loc, kmp_int32 gtid) {
   __kmp_memo_compare(gtid, loc);
 }
 
-void __kmpc_memo_init(ident_t *loc, kmp_int32 gtid, kmp_int32 num_vars) {
+void __kmpc_memo_init(ident_t *loc, kmp_int32 gtid, kmp_int32 num_vars,
+                      kmp_int32 thresh) {
   __kmp_assert_valid_gtid(gtid);
-  __kmp_memo_create_cache(gtid, loc, num_vars);
+  __kmp_memo_create_cache(gtid, loc, num_vars, thresh);
 }
 
-void __kmpc_memo_in(ident_t *loc, kmp_int32 gtid, void *data_ptr, 
+void __kmpc_memo_in(ident_t *loc, kmp_int32 gtid, void *data_ptr,
                     size_t data_size, kmp_int32 id_var) {
   __kmp_assert_valid_gtid(gtid);
   __kmp_memo_copy_in(gtid, loc, data_ptr, data_size, id_var);

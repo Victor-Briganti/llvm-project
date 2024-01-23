@@ -9046,6 +9046,48 @@ public:
   Expr *getSize() const { return getStmtAs<Expr>(); }
 };
 
+/// This represents 'threshold' clause in the '#pragma omp memo'
+/// directive.
+///
+/// \code
+/// #pragma omp memo threshold(5)
+/// \endcode
+/// In this example directive '#pragma omp memo' has simple 'threshold'
+/// clause with the threshold limit of '5'%.
+class OMPThresholdClause final
+    : public OMPOneStmtClause<llvm::omp::OMPC_threshold, OMPClause>,
+      public OMPClauseWithPreInit {
+  friend class OMPClauseReader;
+
+  /// Set condition.
+  void setThreshold(Expr *NThresh) { setStmt(NThresh); }
+
+public:
+  /// Build 'threshold' clause with condition \a Thresh.
+  ///
+  /// \param Thresh Threshold for the construct.
+  /// \param HelperThresh Helper Thresh for the construct.
+  /// \param CaptureRegion Innermost OpenMP region where expressions in this
+  /// clause must be captured.
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param EndLoc Ending location of the clause.
+  OMPThresholdClause(Expr *Thresh, Stmt *HelperThresh,
+                      OpenMPDirectiveKind CaptureRegion,
+                      SourceLocation StartLoc, SourceLocation LParenLoc,
+                      SourceLocation EndLoc)
+      : OMPOneStmtClause(Thresh, StartLoc, LParenLoc, EndLoc),
+        OMPClauseWithPreInit(this) {
+    setPreInitStmt(HelperThresh, CaptureRegion);
+  }
+
+  /// Build an empty clause.
+  OMPThresholdClause() : OMPOneStmtClause(), OMPClauseWithPreInit(this) {}
+
+  /// Returns threshold limit.
+  Expr *getThreshold() const { return getStmtAs<Expr>(); }
+};
+
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_OPENMPCLAUSE_H
