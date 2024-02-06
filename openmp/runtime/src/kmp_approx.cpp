@@ -13,6 +13,8 @@
 #include "kmp_approx.h"
 #include <math.h>
 
+// TODO: Enable read/write locks on the structure. Following:
+// https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock#Using_two_mutexes
 kmp_memo_map kmap;
 
 void kmp_memo_cache::construct(const char *location, kmp_int32 num_vars,
@@ -23,8 +25,8 @@ void kmp_memo_cache::construct(const char *location, kmp_int32 num_vars,
   sizes = (size_t *)kmpc_malloc(sizeof(size_t) * num_vars);
   datas = (void **)kmpc_malloc(sizeof(void *) * num_vars);
   addresses = (void **)kmpc_malloc(sizeof(void *) * num_vars);
-  thresh = threshold;
-  valid = UNINITIALIZED;
+  thresh = threshold <= 0 ? 0 : threshold;
+  valid = threshold <= 0 ? INVALID : UNINITIALIZED;
 }
 
 void kmp_memo_cache::insert(kmp_int32 idx, void *var, size_t size) {
@@ -175,13 +177,14 @@ static void compare(kmp_memo_cache *cache) {
 
 /*----------------------------------------------------------------------------*/
 
-void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 num_vars) {
+void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 num_vars,
+                             kmp_int32 tresh) {
   kmp_memo_cache *cache = kmap.search(loc->psource);
   if (cache != NULL)
     return;
 
   cache = (kmp_memo_cache *)kmpc_malloc(sizeof(kmp_memo_cache));
-  cache->construct(loc->psource, num_vars, 35.132);
+  cache->construct(loc->psource, num_vars, tresh);
   kmap.insert(cache);
 }
 
@@ -195,11 +198,11 @@ void __kmp_memo_copy_in(kmp_int32 gtid, ident_t *loc, void *data, size_t size,
 kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc) {
   kmp_memo_cache *cache = kmap.search(loc->psource);
   switch (cache->valid) {
-    case UNINITIALIZED:
-    case INVALID:
-      return 1;
-    case VALID:
-      cache->update_address();
+  case UNINITIALIZED:
+  case INVALID:
+    return 1;
+  case VALID:
+    cache->update_address();
   }
   return 0;
 }
@@ -212,9 +215,14 @@ void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc) {
     return;
   }
 
-  if (cache->valid == INVALID) {
+  if (cache->valid == INVALID && cache->thresh) {
     compare(cache);
     if (cache->valid == VALID)
       cache->update_cache();
+  }
+
+  if (cache->valid == INVALID && !cache->thresh) {
+    cache->update_cache();
+    cache->valid = VALID;
   }
 }

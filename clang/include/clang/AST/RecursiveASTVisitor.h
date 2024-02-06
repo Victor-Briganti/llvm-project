@@ -3869,6 +3869,14 @@ bool RecursiveASTVisitor<Derived>::VisitOMPMemoClause(
   return true;
 }
 
+template <typename Derived>
+bool
+RecursiveASTVisitor<Derived>::VisitOMPThresholdClause(OMPThresholdClause *C) {
+  TRY_TO(VisitOMPClauseWithPreInit(C));
+  TRY_TO(TraverseStmt(C->getThreshold()));
+  return true;
+}
+
 // FIXME: look at the following tricky-seeming exprs to see if we
 // need to recurse on anything.  These are ones that have methods
 // returning decls or qualtypes or nestednamespecifier -- though I'm

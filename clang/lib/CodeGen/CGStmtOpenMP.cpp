@@ -7149,8 +7149,13 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
     CGF.EmitStmt(S.getCapturedStmt(OMPD_approx)->getCapturedStmt());
   };
 
+  llvm::Value *Threshold = nullptr;
+  if (const auto *ThresholdClause = S.getSingleClause<OMPThresholdClause>()) 
+    Threshold = EmitScalarExpr(ThresholdClause->getThreshold(),
+                                    /*IgnoreResultAssign=*/true);
+
   CGM.getOpenMPRuntime().emitApproxRegion(*this, CodeGen, S.getBeginLoc(),
-                                        VarDeclarations);
+                                        VarDeclarations, Threshold);
 }
 
 

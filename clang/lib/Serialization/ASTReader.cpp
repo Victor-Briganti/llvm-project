@@ -10359,6 +10359,9 @@ OMPClause *OMPClauseReader::readClause() {
   case llvm::omp::OMPC_memo:
     C = new (Context) OMPMemoClause();
     break;
+  case llvm::omp::OMPC_threshold:
+    C = new (Context) OMPThresholdClause();
+    break;
 #define OMP_CLAUSE_NO_CLASS(Enum, Str)                                         \
   case llvm::omp::Enum:                                                        \
     break;
@@ -11432,6 +11435,12 @@ void OMPClauseReader::VisitOMPAlignClause(OMPAlignClause *C) {
 void OMPClauseReader::VisitOMPXDynCGroupMemClause(OMPXDynCGroupMemClause *C) {
   VisitOMPClauseWithPreInit(C);
   C->setSize(Record.readSubExpr());
+  C->setLParenLoc(Record.readSourceLocation());
+}
+
+void OMPClauseReader::VisitOMPThresholdClause(OMPThresholdClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  C->setThreshold(Record.readSubExpr());
   C->setLParenLoc(Record.readSourceLocation());
 }
 

@@ -2377,6 +2377,18 @@ public:
                                                     EndLoc);
   }
 
+  /// Build a new OpenMP 'threshold' clause.
+  ///
+  /// By default, performs semantic analysis to build the new OpenMP clause.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPThresholdClause(Expr *Thresh,
+                                        SourceLocation StartLoc,
+                                        SourceLocation LParenLoc,
+                                        SourceLocation EndLoc) {
+    return getSema().ActOnOpenMPThresholdClause(Thresh, StartLoc,
+                                                 LParenLoc, EndLoc);
+  }
+
   /// Build a new OpenMP 'align' clause.
   ///
   /// By default, performs semantic analysis to build the new OpenMP clause.
@@ -10725,6 +10737,16 @@ template <typename Derived>
 OMPClause *
 TreeTransform<Derived>::TransformOMPMemoClause(OMPMemoClause *C) {
   llvm_unreachable("memo clause cannot appear in dependent context");
+}
+
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPThresholdClause(OMPThresholdClause *C) {
+  ExprResult Threshold = getDerived().TransformExpr(C->getThreshold());
+  if (Threshold.isInvalid())
+    return nullptr;
+  return getDerived().RebuildOMPThresholdClause(
+      Threshold.get(), C->getBeginLoc(), C->getLParenLoc(), C->getEndLoc());
 }
 
 //===----------------------------------------------------------------------===//
