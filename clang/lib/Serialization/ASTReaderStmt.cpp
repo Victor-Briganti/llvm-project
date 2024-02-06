@@ -2726,6 +2726,12 @@ void ASTStmtReader::VisitOMPTargetParallelGenericLoopDirective(
   VisitOMPLoopDirective(D);
 }
 
+void ASTStmtReader::VisitOMPApproxDirective(
+    OMPApproxDirective *D) {
+  VisitStmt(D);
+  VisitOMPExecutableDirective(D);
+}
+
 //===----------------------------------------------------------------------===//
 // ASTReader Implementation
 //===----------------------------------------------------------------------===//
@@ -3755,6 +3761,11 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
           Context, NumClauses, CollapsedNum, Empty);
       break;
     }
+
+    case STMT_OMP_APPROX_DIRECTIVE:
+      S = OMPApproxDirective::CreateEmpty(
+          Context, Record[ASTStmtReader::NumStmtFields], Empty);
+      break;
 
     case EXPR_CXX_OPERATOR_CALL:
       S = CXXOperatorCallExpr::CreateEmpty(

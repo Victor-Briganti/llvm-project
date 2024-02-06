@@ -349,6 +349,11 @@ void getOpenMPCaptureRegions(
 /// \return true - if the above condition is met for this directive
 /// otherwise - false.
 bool isOpenMPCombinedParallelADirective(OpenMPDirectiveKind DKind);
+
+/// Checks if the specified directive is a approx directive.
+/// \param DKind Specified directive.
+/// \return True iff the directive is a approx.
+bool isOpenMPApproxDirective(OpenMPDirectiveKind DKind);
 }
 
 #endif

@@ -1285,6 +1285,10 @@ void StmtProfiler::VisitOMPTargetParallelGenericLoopDirective(
   VisitOMPLoopDirective(S);
 }
 
+void StmtProfiler::VisitOMPApproxDirective(const OMPApproxDirective *S) {
+  VisitOMPExecutableDirective(S);
+}
+
 void StmtProfiler::VisitExpr(const Expr *S) {
   VisitStmt(S);
 }

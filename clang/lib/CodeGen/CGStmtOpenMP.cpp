@@ -1395,6 +1395,7 @@ void CodeGenFunction::EmitOMPReductionClauseInit(
     case OMPD_declare_variant:
     case OMPD_begin_declare_variant:
     case OMPD_end_declare_variant:
+    case OMPD_approx:
     case OMPD_unknown:
     default:
       llvm_unreachable("Enexpected directive with task reductions.");
@@ -7105,6 +7106,34 @@ void CodeGenFunction::EmitOMPTargetTeamsDistributeParallelForSimdDirective(
   };
   emitCommonOMPTargetDirective(*this, S, CodeGen);
 }
+
+void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
+  llvm::SmallVector<const VarDecl *, 8> VarDeclarations;
+
+  for (auto *CS : S.getClausesOfKind<OMPSharedClause>()) {
+    for (auto RefExpr : CS->varlists()) {
+      auto *VD = cast<DeclRefExpr>(RefExpr)->getDecl();
+
+      // All values need to be an scalar to be memoized
+      if (!VD->getType()->isScalarType() || VD->getType()->isAnyPointerType()) {
+        VarDeclarations.clear();
+        break;
+      }
+
+      VarDeclarations.push_back(
+          cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl()));
+    }
+  }
+
+  auto &&CodeGen = [&S](CodeGenFunction &CGF, PrePostActionTy &Action) {
+    Action.Enter(CGF);
+    CGF.EmitStmt(S.getCapturedStmt(OMPD_approx)->getCapturedStmt());
+  };
+
+  CGM.getOpenMPRuntime().emitApproxRegion(*this, CodeGen, S.getBeginLoc(),
+                                        VarDeclarations);
+}
+
 
 void CodeGenFunction::EmitOMPCancellationPointDirective(
     const OMPCancellationPointDirective &S) {

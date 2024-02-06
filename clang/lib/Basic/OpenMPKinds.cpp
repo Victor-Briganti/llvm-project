@@ -729,6 +729,10 @@ bool clang::isOpenMPCombinedParallelADirective(OpenMPDirectiveKind DKind) {
          DKind == OMPD_parallel_sections;
 }
 
+bool clang::isOpenMPApproxDirective(OpenMPDirectiveKind DKind) {
+  return DKind == OMPD_approx;
+}
+
 void clang::getOpenMPCaptureRegions(
     SmallVectorImpl<OpenMPDirectiveKind> &CaptureRegions,
     OpenMPDirectiveKind DKind) {
@@ -812,6 +816,9 @@ void clang::getOpenMPCaptureRegions(
     break;
   case OMPD_nothing:
     CaptureRegions.push_back(OMPD_nothing);
+    break;
+  case OMPD_approx:
+    CaptureRegions.push_back(OMPD_approx);
     break;
   case OMPD_loop:
     // TODO: 'loop' may require different capture regions depending on the bind

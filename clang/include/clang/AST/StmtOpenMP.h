@@ -6266,6 +6266,59 @@ public:
     return T->getStmtClass() == OMPErrorDirectiveClass;
   }
 };
+
+/// This represents '#pragma omp approx' directive.
+///
+/// \code
+/// #pragma omp approx
+/// \endcode
+///
+class OMPApproxDirective : public OMPExecutableDirective {
+  friend class ASTStmtReader;
+  friend class OMPExecutableDirective;
+  /// Build directive with the given start and end location.
+  ///
+  /// \param StartLoc Starting location of the directive kind.
+  /// \param EndLoc Ending Location of the directive.
+  ///
+  OMPApproxDirective(SourceLocation StartLoc, SourceLocation EndLoc)
+      : OMPExecutableDirective(OMPApproxDirectiveClass,
+                               llvm::omp::OMPD_approx, StartLoc,
+                               EndLoc) {}
+
+  /// Build an empty directive.
+  ///
+  explicit OMPApproxDirective()
+      : OMPExecutableDirective(OMPApproxDirectiveClass,
+                               llvm::omp::OMPD_approx, SourceLocation(),
+                               SourceLocation()) {}
+
+public:
+  /// Creates directive with a list of \a Clauses.
+  ///
+  /// \param C AST context.
+  /// \param StartLoc Starting location of the directive kind.
+  /// \param EndLoc Ending Location of the directive.
+  /// \param Clauses List of clauses.
+  /// \param AssociatedStmt Statement, associated with the directive.
+  ///
+  static OMPApproxDirective *
+  Create(const ASTContext &C, SourceLocation StartLoc, SourceLocation EndLoc,
+         ArrayRef<OMPClause *> Clauses, Stmt *AssociatedStmt);
+
+  /// Creates an empty directive with the place for \a NumClauses
+  /// clauses.
+  ///
+  /// \param C AST context.
+  /// \param NumClauses The number of clauses.
+  ///
+  static OMPApproxDirective *CreateEmpty(const ASTContext &C,
+                                               unsigned NumClauses, EmptyShell);
+
+  static bool classof(const Stmt *T) {
+    return T->getStmtClass() == OMPApproxDirectiveClass;
+  }
+};
 } // end namespace clang
 
 #endif

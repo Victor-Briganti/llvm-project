@@ -2528,3 +2528,19 @@ OMPTargetParallelGenericLoopDirective::CreateEmpty(const ASTContext &C,
       C, NumClauses, /*HasAssociatedStmt=*/true,
       numLoopChildren(CollapsedNum, OMPD_target_parallel_loop), CollapsedNum);
 }
+
+
+OMPApproxDirective *OMPApproxDirective::Create(
+    const ASTContext &C, SourceLocation StartLoc, SourceLocation EndLoc,
+    ArrayRef<OMPClause *> Clauses, Stmt *AssociatedStmt) {
+  return createDirective<OMPApproxDirective>(C, Clauses, AssociatedStmt,
+                                                   /*NumChildren=*/0, StartLoc,
+                                                   EndLoc);
+}
+
+OMPApproxDirective *
+OMPApproxDirective::CreateEmpty(const ASTContext &C, unsigned NumClauses,
+                                      EmptyShell) {
+  return createEmptyDirective<OMPApproxDirective>(
+      C, NumClauses, /*HasAssociatedStmt=*/true);
+}
