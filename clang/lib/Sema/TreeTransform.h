@@ -10721,6 +10721,12 @@ OMPClause *TreeTransform<Derived>::TransformOMPXDynCGroupMemClause(
       Size.get(), C->getBeginLoc(), C->getLParenLoc(), C->getEndLoc());
 }
 
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPMemoClause(OMPMemoClause *C) {
+  llvm_unreachable("memo clause cannot appear in dependent context");
+}
+
 //===----------------------------------------------------------------------===//
 // Expression transformation
 //===----------------------------------------------------------------------===//

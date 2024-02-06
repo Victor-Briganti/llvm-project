@@ -25,21 +25,21 @@ int test_omp_memo() {
 #pragma omp parallel
   {
     for (int i = 0; i < 1000; i++) {
-#pragma omp approx shared(a, b, c, d, e, f, g, h, m, n, o, p)
+#pragma omp approx memo shared(a, b, c, d, e, f, g, h, m, n, o, p)
       { a++, b++, c++, d++, e++, f++, g++, h++, m++, n++, o++, p++; }
     }
 
     for (int i = 0; i < 1000; i++) {
-#pragma omp approx shared(x, y, z)
+#pragma omp approx memo shared(x, y, z)
       { x++, y++, z++; }
     }
   }
 
-  if (a != saved[0] + 2 && b != saved[1] + 2 && c != saved[2] + 2 &&
-      d != saved[3] + 2 && e != saved[4] + 2 && f != saved[5] + 2 &&
-      g != saved[6] + 2 && h != saved[7] + 2 && m != saved[8] + 2 &&
-      n != saved[9] + 2 && o != saved[10] + 2 && p != saved[11] + 2 &&
-      x != saved[12] + 2 && y != saved[13] + 2 && z != saved[14] + 2)
+  if (a == (saved[0] + 2) && b == (saved[1] + 2) && c == (saved[2] + 2) &&
+      d == (saved[3] + 2) && e == (saved[4] + 2) && f == (saved[5] + 2) &&
+      g == (saved[6] + 2) && h == (saved[7] + 2) && m == (saved[8] + 2) &&
+      n == (saved[9] + 2) && o == (saved[10] + 2) && p == (saved[11] + 2) &&
+      x == (saved[12] + 2) && y == (saved[13] + 2) && z == (saved[14] + 2))
     return 0;
 
   return 1;

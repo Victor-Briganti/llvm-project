@@ -170,6 +170,7 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_bind:
+  case OMPC_memo:
     break;
   default:
     break;
@@ -274,6 +275,7 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_bind:
+  case OMPC_memo:
     break;
   default:
     break;
@@ -2462,6 +2464,10 @@ void OMPClausePrinter::VisitOMPXDynCGroupMemClause(
   OS << "ompx_dyn_cgroup_mem(";
   Node->getSize()->printPretty(OS, nullptr, Policy, 0);
   OS << ")";
+}
+
+void OMPClausePrinter::VisitOMPMemoClause(OMPMemoClause *) {
+  OS << "memo";
 }
 
 void OMPTraitInfo::getAsVariantMatchInfo(ASTContext &ASTCtx,

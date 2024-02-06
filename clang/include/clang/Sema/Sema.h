@@ -12267,6 +12267,10 @@ public:
                                             SourceLocation LParenLoc,
                                             SourceLocation EndLoc);
 
+  /// Called on well-formed 'memo' clause.
+  OMPClause *ActOnOpenMPMemoClause(SourceLocation StartLoc,
+                                   SourceLocation EndLoc);
+
   /// The kind of conversion being performed.
   enum CheckedConversionKind {
     /// An implicit conversion.

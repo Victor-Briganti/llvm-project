@@ -10356,6 +10356,9 @@ OMPClause *OMPClauseReader::readClause() {
   case llvm::omp::OMPC_ompx_dyn_cgroup_mem:
     C = new (Context) OMPXDynCGroupMemClause();
     break;
+  case llvm::omp::OMPC_memo:
+    C = new (Context) OMPMemoClause();
+    break;
 #define OMP_CLAUSE_NO_CLASS(Enum, Str)                                         \
   case llvm::omp::Enum:                                                        \
     break;
@@ -11431,6 +11434,8 @@ void OMPClauseReader::VisitOMPXDynCGroupMemClause(OMPXDynCGroupMemClause *C) {
   C->setSize(Record.readSubExpr());
   C->setLParenLoc(Record.readSourceLocation());
 }
+
+void OMPClauseReader::VisitOMPMemoClause(OMPMemoClause *) {}
 
 OMPTraitInfo *ASTRecordReader::readOMPTraitInfo() {
   OMPTraitInfo &TI = getContext().getNewOMPTraitInfo();

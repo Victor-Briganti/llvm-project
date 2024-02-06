@@ -7110,6 +7110,16 @@ void CodeGenFunction::EmitOMPTargetTeamsDistributeParallelForSimdDirective(
 void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
   llvm::SmallVector<const VarDecl *, 8> VarDeclarations;
 
+  auto *C = S.getSingleClause<OMPMemoClause>();
+  if (!C) {
+    unsigned DiagID = CGM.getDiags().getCustomDiagID(
+        DiagnosticsEngine::Error,
+        "No clause defined alongside the 'approx' directive.");
+    this->CGM.getDiags().Report(DiagID);
+    return;
+  }
+
+  bool HasShared = false;
   for (auto *CS : S.getClausesOfKind<OMPSharedClause>()) {
     for (auto RefExpr : CS->varlists()) {
       auto *VD = cast<DeclRefExpr>(RefExpr)->getDecl();
@@ -7123,6 +7133,15 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
       VarDeclarations.push_back(
           cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl()));
     }
+    HasShared = true;
+  }
+
+  if (!HasShared) {
+    unsigned DiagID = CGM.getDiags().getCustomDiagID(
+        DiagnosticsEngine::Error,
+        "'memo' clause needs to be used alongside 'shared' clause.");
+    this->CGM.getDiags().Report(DiagID);
+    return;
   }
 
   auto &&CodeGen = [&S](CodeGenFunction &CGF, PrePostActionTy &Action) {

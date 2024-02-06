@@ -3310,6 +3310,7 @@ OMPClause *Parser::ParseOpenMPClause(OpenMPDirectiveKind DKind,
   case OMPC_reverse_offload:
   case OMPC_dynamic_allocators:
   case OMPC_full:
+  case OMPC_memo:
     // OpenMP [2.7.1, Restrictions, p. 9]
     //  Only one ordered clause can appear on a loop directive.
     // OpenMP [2.7.1, Restrictions, C/C++, p. 4]

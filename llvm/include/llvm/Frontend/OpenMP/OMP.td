@@ -444,6 +444,10 @@ def OMPC_OMPX_DynCGroupMem : Clause<"ompx_dyn_cgroup_mem"> {
   let flangClass = "ScalarIntExpr";
 }
 
+def OMPC_Memo : Clause<"memo"> {
+  let clangClass = "OMPMemoClause";
+}
+
 //===----------------------------------------------------------------------===//
 // Definition of OpenMP directives
 //===----------------------------------------------------------------------===//
@@ -2111,6 +2115,9 @@ def OMP_Unknown : Directive<"unknown"> {
   let isDefault = true;
 }
 def OMP_Approx : Directive<"approx"> {
+  let allowedOnceClauses = [
+    VersionedClause<OMPC_Memo>
+  ];
   let allowedClauses = [
     VersionedClause<OMPC_Shared>
   ];

@@ -2713,7 +2713,7 @@ void OMPClauseEnqueue::VisitOMPXDynCGroupMemClause(
   VisitOMPClauseWithPreInit(C);
   Visitor->AddStmt(C->getSize());
 }
-
+void OMPClauseEnqueue::VisitOMPMemoClause(const OMPMemoClause *) {}
 } // namespace
 
 void EnqueueVisitor::EnqueueChildren(const OMPClause *S) {

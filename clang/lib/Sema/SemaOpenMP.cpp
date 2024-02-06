@@ -6775,6 +6775,7 @@ StmtResult Sema::ActOnOpenMPExecutableDirective(
       case OMPC_affinity:
       case OMPC_bind:
       case OMPC_filter:
+      case OMPC_memo:
         continue;
       case OMPC_allocator:
       case OMPC_flush:
@@ -15322,6 +15323,7 @@ OMPClause *Sema::ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind, Expr *Expr,
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_bind:
+  case OMPC_memo:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -16278,6 +16280,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
   case OMPC_uses_allocators:
   case OMPC_affinity:
   case OMPC_bind:
+  case OMPC_memo:
   default:
     llvm_unreachable("Unexpected OpenMP clause.");
   }
@@ -17359,6 +17362,9 @@ OMPClause *Sema::ActOnOpenMPClause(OpenMPClauseKind Kind,
     break;
   case OMPC_partial:
     Res = ActOnOpenMPPartialClause(nullptr, StartLoc, /*LParenLoc=*/{}, EndLoc);
+    break;
+  case OMPC_memo:
+    Res = ActOnOpenMPMemoClause(StartLoc, EndLoc);
     break;
   case OMPC_if:
   case OMPC_final:
@@ -23919,4 +23925,9 @@ OMPClause *Sema::ActOnOpenMPXDynCGroupMemClause(Expr *Size,
 
   return new (Context) OMPXDynCGroupMemClause(
       ValExpr, HelperValStmt, CaptureRegion, StartLoc, LParenLoc, EndLoc);
+}
+
+OMPClause *Sema::ActOnOpenMPMemoClause(SourceLocation StartLoc,
+                                            SourceLocation EndLoc) {
+  return new (Context) OMPMemoClause(StartLoc, EndLoc);
 }

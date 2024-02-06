@@ -9046,6 +9046,28 @@ public:
   Expr *getSize() const { return getStmtAs<Expr>(); }
 };
 
+/// This represents 'memo' clause in the '#pragma omp approx' directive.
+///
+/// \code
+/// #pragma omp approx memo
+/// \endcode
+/// In this example directive '#pragma omp approx' has simple 'memo'
+/// clause.
+class OMPMemoClause final
+    : public OMPNoChildClause<llvm::omp::OMPC_memo> {
+public:
+  friend class OMPClauseReader;
+  /// Build 'memo' clause.
+  ///
+  /// \param StartLoc Starting location of the clause.
+  /// \param EndLoc Ending location of the clause.
+  OMPMemoClause(SourceLocation StartLoc, SourceLocation EndLoc)
+      : OMPNoChildClause(StartLoc, EndLoc) {}
+
+  /// Build an empty clause.
+  OMPMemoClause() : OMPNoChildClause() {}
+};
+
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_OPENMPCLAUSE_H
