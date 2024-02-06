@@ -3859,17 +3859,19 @@ extern void __kmp_free_team(kmp_root_t *,
                             kmp_team_t *USE_NESTED_HOT_ARG(kmp_info_t *));
 extern kmp_team_t *__kmp_reap_team(kmp_team_t *);
 
-extern void __kmp_memo_create_cache(int gtid, ident_t *loc, kmp_int32 num_vars,
-                                    kmp_int32 thresh);
-extern void __kmp_memo_copy_in(int gtid, ident_t *loc, void *data, size_t size,
-                               kmp_int32 id_var);
-extern kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc);
-extern void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc);
+extern void __kmp_memo_create_cache(int gtid, ident_t *loc, kmp_int32 hash_loc, 
+                                    kmp_int32 num_vars, kmp_int32 thresh);
+extern void __kmp_memo_copy_in(int gtid, ident_t *loc, kmp_int32 hash_loc, 
+                               void *data, size_t size, kmp_int32 id_var);
+extern kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc, 
+                                   kmp_int32 hash_loc);
+extern void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc, 
+                               kmp_int32 hash_loc);
 
 /* ------------------------------------------------------------------------ */
 
-extern int __kmp_memo_find(int gtid, ident_t *id_ref, void **data,
-                           ssize_t size);
+extern int __kmp_memo_find(int gtid, ident_t *id_ref, kmp_int32 hash_loc, 
+                           void **data, ssize_t size);
 
 /* ------------------------------------------------------------------------ */
 
@@ -4200,11 +4202,15 @@ KMP_EXPORT void __kmpc_init_lock_with_hint(ident_t *loc, kmp_int32 gtid,
 KMP_EXPORT void __kmpc_init_nest_lock_with_hint(ident_t *loc, kmp_int32 gtid,
                                                 void **user_lock,
                                                 uintptr_t hint);
-KMP_EXPORT kmp_int32 __kmpc_memo(ident_t *, kmp_int32 global_tid);
-KMP_EXPORT void __kmpc_end_memo(ident_t *, kmp_int32 global_tid);
+KMP_EXPORT kmp_int32 __kmpc_memo(ident_t *, kmp_int32 global_tid, 
+                                 kmp_int32 hash_loc);
+KMP_EXPORT void __kmpc_end_memo(ident_t *, kmp_int32 global_tid, 
+                                kmp_int32 hash_loc);
 KMP_EXPORT void __kmpc_memo_init(ident_t *, kmp_int32 global_tid, 
-                               kmp_int32 num_vars, kmp_int32 thresh);
-KMP_EXPORT void __kmpc_memo_in(ident_t *, kmp_int32 global_tid, void *data_in,
+                                 kmp_int32 hash_loc, kmp_int32 num_vars, 
+                                 kmp_int32 thresh);
+KMP_EXPORT void __kmpc_memo_in(ident_t *, kmp_int32 global_tid, 
+                               kmp_int32 hash_loc, void *data_in,
                                size_t data_size, kmp_int32 id_var);
 
 #if OMPX_TASKGRAPH
