@@ -12277,6 +12277,10 @@ public:
                                          SourceLocation LParenLoc,
                                          SourceLocation EndLoc);
 
+  /// Called on well-formed 'fastmath' clause.
+  OMPClause *ActOnOpenMPFastMathClause(SourceLocation StartLoc,
+                                   SourceLocation EndLoc);
+
   /// The kind of conversion being performed.
   enum CheckedConversionKind {
     /// An implicit conversion.

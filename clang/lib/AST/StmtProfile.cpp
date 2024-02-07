@@ -926,6 +926,7 @@ void OMPClauseProfiler::VisitOMPThresholdClause(const OMPThresholdClause *C) {
   if (C->getThreshold())
     Profiler->VisitStmt(C->getThreshold());
 }
+void OMPClauseProfiler::VisitOMPFastMathClause(const OMPFastMathClause *) {}
 } // namespace
 
 void

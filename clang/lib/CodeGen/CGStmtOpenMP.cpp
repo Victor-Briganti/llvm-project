@@ -1169,10 +1169,10 @@ void CodeGenFunction::EmitOMPLastprivateClauseFinal(
         // Get the address of the private variable.
         Address PrivateAddr = GetAddrOfLocalVar(PrivateVD);
         if (const auto *RefTy = PrivateVD->getType()->getAs<ReferenceType>())
-          PrivateAddr = Address(
-              Builder.CreateLoad(PrivateAddr),
-              CGM.getTypes().ConvertTypeForMem(RefTy->getPointeeType()),
-              CGM.getNaturalTypeAlignment(RefTy->getPointeeType()));
+          PrivateAddr =
+              Address(Builder.CreateLoad(PrivateAddr),
+                      CGM.getTypes().ConvertTypeForMem(RefTy->getPointeeType()),
+                      CGM.getNaturalTypeAlignment(RefTy->getPointeeType()));
         // Store the last value to the private copy in the last iteration.
         if (C->getKind() == OMPC_LASTPRIVATE_conditional)
           CGM.getOpenMPRuntime().emitLastprivateConditionalFinalUpdate(
@@ -4413,7 +4413,8 @@ void CodeGenFunction::EmitOMPParallelForDirective(
       OMPLoopScope LoopScope(CGF, S);
       return CGF.EmitScalarExpr(S.getNumIterations());
     };
-    bool IsInscan = llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
+    bool IsInscan =
+        llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
                      [](const OMPReductionClause *C) {
                        return C->getModifier() == OMPC_REDUCTION_inscan;
                      });
@@ -4447,7 +4448,8 @@ void CodeGenFunction::EmitOMPParallelForSimdDirective(
       OMPLoopScope LoopScope(CGF, S);
       return CGF.EmitScalarExpr(S.getNumIterations());
     };
-    bool IsInscan = llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
+    bool IsInscan =
+        llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
                      [](const OMPReductionClause *C) {
                        return C->getModifier() == OMPC_REDUCTION_inscan;
                      });
@@ -7107,11 +7109,25 @@ void CodeGenFunction::EmitOMPTargetTeamsDistributeParallelForSimdDirective(
   emitCommonOMPTargetDirective(*this, S, CodeGen);
 }
 
+static llvm::Function *emitOutlinedApproxFunction(CodeGenModule &CGM,
+                                                   const CapturedStmt *S,
+                                                   SourceLocation Loc) {
+  CodeGenFunction CGF(CGM, /*suppressNewContext=*/true);
+  CodeGenFunction::CGCapturedStmtInfo CapStmtInfo;
+  CGF.CapturedStmtInfo = &CapStmtInfo;
+  llvm::Function *Fn = CGF.GenerateOpenMPCapturedStmtFunction(*S, Loc);
+  Fn->setDoesNotRecurse();
+  Fn->removeFnAttr(llvm::Attribute::AlwaysInline);
+  Fn->addFnAttr(llvm::Attribute::NoInline);
+  return Fn;
+}
+
 void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
   llvm::SmallVector<const VarDecl *, 8> VarDeclarations;
 
-  auto *C = S.getSingleClause<OMPMemoClause>();
-  if (!C) {
+  auto *Memo = S.getSingleClause<OMPMemoClause>();
+  auto *Fast = S.getSingleClause<OMPFastMathClause>();
+  if (!Memo && !Fast) {
     unsigned DiagID = CGM.getDiags().getCustomDiagID(
         DiagnosticsEngine::Error,
         "No clause defined alongside the 'approx' directive.");
@@ -7119,45 +7135,91 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
     return;
   }
 
-  bool HasShared = false;
-  for (auto *CS : S.getClausesOfKind<OMPSharedClause>()) {
-    for (auto RefExpr : CS->varlists()) {
-      auto *VD = cast<DeclRefExpr>(RefExpr)->getDecl();
-
-      // All values need to be an scalar to be memoized
-      if (!VD->getType()->isScalarType() || VD->getType()->isAnyPointerType()) {
-        VarDeclarations.clear();
-        break;
-      }
-
-      VarDeclarations.push_back(
-          cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl()));
-    }
-    HasShared = true;
-  }
-
-  if (!HasShared) {
+  if (Memo && Fast) {
     unsigned DiagID = CGM.getDiags().getCustomDiagID(
         DiagnosticsEngine::Error,
-        "'memo' clause needs to be used alongside 'shared' clause.");
+        "Only one approximat clause can be used alongside 'approx' directive.");
     this->CGM.getDiags().Report(DiagID);
     return;
   }
 
-  auto &&CodeGen = [&S](CodeGenFunction &CGF, PrePostActionTy &Action) {
-    Action.Enter(CGF);
-    CGF.EmitStmt(S.getCapturedStmt(OMPD_approx)->getCapturedStmt());
-  };
+  if (Memo) {
+    bool HasShared = false;
+    for (auto *CS : S.getClausesOfKind<OMPSharedClause>()) {
+      for (auto RefExpr : CS->varlists()) {
+        auto *VD = cast<DeclRefExpr>(RefExpr)->getDecl();
 
-  llvm::Value *Threshold = nullptr;
-  if (const auto *ThresholdClause = S.getSingleClause<OMPThresholdClause>()) 
-    Threshold = EmitScalarExpr(ThresholdClause->getThreshold(),
-                                    /*IgnoreResultAssign=*/true);
+        // All values need to be an scalar to be memoized
+        if (!VD->getType()->isScalarType() ||
+            VD->getType()->isAnyPointerType()) {
+          VarDeclarations.clear();
+          break;
+        }
 
-  CGM.getOpenMPRuntime().emitApproxRegion(*this, CodeGen, S.getBeginLoc(),
-                                        VarDeclarations, Threshold);
+        VarDeclarations.push_back(
+            cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl()));
+      }
+      HasShared = true;
+    }
+
+    if (!HasShared) {
+      unsigned DiagID = CGM.getDiags().getCustomDiagID(
+          DiagnosticsEngine::Error,
+          "'memo' clause needs to be used alongside 'shared' clause.");
+      this->CGM.getDiags().Report(DiagID);
+      return;
+    }
+
+    auto &&CodeGen = [&S](CodeGenFunction &CGF, PrePostActionTy &Action) {
+      Action.Enter(CGF);
+      CGF.EmitStmt(S.getCapturedStmt(OMPD_approx)->getCapturedStmt());
+    };
+
+    llvm::Value *Threshold = nullptr;
+    if (const auto *ThresholdClause = S.getSingleClause<OMPThresholdClause>())
+      Threshold = EmitScalarExpr(ThresholdClause->getThreshold(),
+                                 /*IgnoreResultAssign=*/true);
+
+    CGM.getOpenMPRuntime().emitApproxMemoRegion(*this, CodeGen, S.getBeginLoc(),
+                                                VarDeclarations, Threshold);
+  }
+
+  if (Fast) {
+    auto &&CodeGen = [&S, this](CodeGenFunction &CGF, PrePostActionTy &Action) {
+      const CapturedStmt *CS = S.getCapturedStmt(OMPD_approx);
+      llvm::SmallVector<llvm::Value *, 16> CapturedVars;
+      CGF.GenerateOpenMPCapturedVars(*CS, CapturedVars);
+      llvm::Function *OutlinedFn =
+          emitOutlinedApproxFunction(CGM, CS, S.getBeginLoc());
+
+      CGOpenMPRuntime &RT = CGF.CGM.getOpenMPRuntime();
+      // OutlinedFn(&GTid, &zero_bound, CapturedStruct);
+      Address ZeroAddrBound =
+          CGF.CreateDefaultAlignTempAlloca(CGF.Int32Ty,
+                                         /*Name=*/".fastmath.zero.addr");
+      llvm::SmallVector<llvm::Value *, 16> OutlinedFnArgs;
+      // ThreadId for serialized parallels is 0.
+      OutlinedFnArgs.push_back(ZeroAddrBound.getPointer());
+      OutlinedFnArgs.push_back(ZeroAddrBound.getPointer());
+      OutlinedFnArgs.append(CapturedVars.begin(), CapturedVars.end());
+
+      static const char *FPAttributes[] = {
+        "approx-func-fp-math", "no-infs-fp-math", "no-nans-fp-math",
+        "no-signed-zeros-fp-math", "unsafe-fp-math"};
+
+      for (const char *Attr : FPAttributes) {
+        if (!OutlinedFn->hasFnAttribute(Attr)) {
+          OutlinedFn->addFnAttr(Attr, "true");
+        }
+      }
+
+      RT.emitOutlinedFunctionCall(CGF, S.getBeginLoc(), OutlinedFn,
+                                  OutlinedFnArgs);
+    };
+
+    CGM.getOpenMPRuntime().emitApproxFastMathRegion(*this, CodeGen);
+  }
 }
-
 
 void CodeGenFunction::EmitOMPCancellationPointDirective(
     const OMPCancellationPointDirective &S) {
@@ -7309,8 +7371,8 @@ void CodeGenFunction::EmitOMPUseDeviceAddrClause(
     // correct mapping, since the pointer to the data was passed to the runtime.
     if (isa<DeclRefExpr>(Ref->IgnoreParenImpCasts()) ||
         MatchingVD->getType()->isArrayType()) {
-      QualType PtrTy = getContext().getPointerType(
-          OrigVD->getType().getNonReferenceType());
+      QualType PtrTy =
+          getContext().getPointerType(OrigVD->getType().getNonReferenceType());
       PrivAddr = EmitLoadOfPointer(
           Builder.CreateElementBitCast(PrivAddr, ConvertTypeForMem(PtrTy)),
           PtrTy->castAs<PointerType>());

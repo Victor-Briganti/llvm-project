@@ -452,6 +452,10 @@ def OMPC_Threshold : Clause<"threshold"> {
   let clangClass = "OMPThresholdClause";
 }
 
+def OMPC_FastMath : Clause<"fastmath"> {
+  let clangClass = "OMPFastMathClause";
+}
+
 //===----------------------------------------------------------------------===//
 // Definition of OpenMP directives
 //===----------------------------------------------------------------------===//
@@ -2121,7 +2125,8 @@ def OMP_Unknown : Directive<"unknown"> {
 def OMP_Approx : Directive<"approx"> {
   let allowedOnceClauses = [
     VersionedClause<OMPC_Memo>,
-    VersionedClause<OMPC_Threshold>
+    VersionedClause<OMPC_Threshold>,
+    VersionedClause<OMPC_FastMath>
   ];
   let allowedClauses = [
     VersionedClause<OMPC_Shared>

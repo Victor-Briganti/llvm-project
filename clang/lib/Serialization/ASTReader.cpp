@@ -11438,13 +11438,15 @@ void OMPClauseReader::VisitOMPXDynCGroupMemClause(OMPXDynCGroupMemClause *C) {
   C->setLParenLoc(Record.readSourceLocation());
 }
 
+void OMPClauseReader::VisitOMPMemoClause(OMPMemoClause *) {}
+
 void OMPClauseReader::VisitOMPThresholdClause(OMPThresholdClause *C) {
   VisitOMPClauseWithPreInit(C);
   C->setThreshold(Record.readSubExpr());
   C->setLParenLoc(Record.readSourceLocation());
 }
 
-void OMPClauseReader::VisitOMPMemoClause(OMPMemoClause *) {}
+void OMPClauseReader::VisitOMPFastMathClause(OMPFastMathClause *) {}
 
 OMPTraitInfo *ASTRecordReader::readOMPTraitInfo() {
   OMPTraitInfo &TI = getContext().getNewOMPTraitInfo();

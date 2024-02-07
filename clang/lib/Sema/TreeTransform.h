@@ -10749,6 +10749,12 @@ TreeTransform<Derived>::TransformOMPThresholdClause(OMPThresholdClause *C) {
       Threshold.get(), C->getBeginLoc(), C->getLParenLoc(), C->getEndLoc());
 }
 
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPFastMathClause(OMPFastMathClause *C) {
+  llvm_unreachable("fastmath clause cannot appear in dependent context");
+}
+
 //===----------------------------------------------------------------------===//
 // Expression transformation
 //===----------------------------------------------------------------------===//

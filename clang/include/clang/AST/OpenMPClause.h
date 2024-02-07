@@ -9099,6 +9099,27 @@ public:
   Expr *getThreshold() const { return getStmtAs<Expr>(); }
 };
 
+/// This represents 'fastmath' clause in the '#pragma omp approx' directive.
+///
+/// \code
+/// #pragma omp approx fastmath
+/// \endcode
+/// In this example directive '#pragma omp approx' has simple 'fastmath'
+/// clause.
+class OMPFastMathClause final : public OMPNoChildClause<llvm::omp::OMPC_fastmath> {
+public:
+  friend class OMPClauseReader;
+  /// Build 'fastmath' clause.
+  ///
+  /// \param StartLoc Starting location of the clause.
+  /// \param EndLoc Ending location of the clause.
+  OMPFastMathClause(SourceLocation StartLoc, SourceLocation EndLoc)
+      : OMPNoChildClause(StartLoc, EndLoc) {}
+
+  /// Build an empty clause.
+  OMPFastMathClause() : OMPNoChildClause() {}
+};
+
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_OPENMPCLAUSE_H

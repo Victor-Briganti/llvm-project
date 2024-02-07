@@ -7147,6 +7147,8 @@ void OMPClauseWriter::VisitOMPThresholdClause(OMPThresholdClause *C) {
   Record.AddSourceLocation(C->getLParenLoc());
 }
 
+void OMPClauseWriter::VisitOMPFastMathClause(OMPFastMathClause *) {}
+
 void ASTRecordWriter::writeOMPTraitInfo(const OMPTraitInfo *TI) {
   writeUInt32(TI->Sets.size());
   for (const auto &Set : TI->Sets) {

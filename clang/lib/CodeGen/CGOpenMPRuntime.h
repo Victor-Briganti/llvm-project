@@ -866,11 +866,17 @@ public:
                                bool ForceSimpleCall = false);
 
   /// Emit approximatted region
-    virtual void emitApproxRegion(CodeGenFunction &CGF, 
+    virtual void emitApproxMemoRegion(CodeGenFunction &CGF, 
                                   const RegionCodeGenTy &ApproxGen,
                                   SourceLocation Loc,
                                   ArrayRef<const VarDecl *> DeclarationVars,
                                   llvm::Value *Threshold);
+
+  /// Emit an approximatted fastmath region.
+  /// \param OrderedOpGen Generator for the statement associated with the given
+  /// approx region.
+  virtual void emitApproxFastMathRegion(CodeGenFunction &CGF,
+                                 const RegionCodeGenTy &OrderedOpGen);
 
   /// Check if the specified \a ScheduleKind is static non-chunked.
   /// This kind of worksharing directive is emitted without outer loop.
@@ -1803,11 +1809,16 @@ public:
 
   /// Emit approx directive
   virtual void
-  emitApproxRegion(CodeGenFunction &CGF, const RegionCodeGenTy &ApproxGen,
+  emitApproxMemoRegion(CodeGenFunction &CGF, const RegionCodeGenTy &ApproxGen,
                  SourceLocation Loc,
                  ArrayRef<const VarDecl *> DeclarationVars,
                  llvm::Value *Threshold) override;
 
+  /// Emit an approx region.
+  /// \param OrderedOpGen Generator for the statement associated with the given
+  /// approx region.
+  void emitApproxFastMathRegion(CodeGenFunction &CGF,
+                         const RegionCodeGenTy &OrderedOpGen) override;
 
   /// This is used for non static scheduled types and when the ordered
   /// clause is present on the loop construct.

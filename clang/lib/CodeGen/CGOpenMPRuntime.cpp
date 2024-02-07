@@ -2588,7 +2588,7 @@ void CGOpenMPRuntime::emitErrorCall(CodeGenFunction &CGF, SourceLocation Loc,
                       Args);
 }
 
-void CGOpenMPRuntime::emitApproxRegion(CodeGenFunction &CGF,
+void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
                                      const RegionCodeGenTy &ApproxOpGen,
                                      SourceLocation Loc,
                                      ArrayRef<const VarDecl *> DeclarationVars,
@@ -2714,6 +2714,14 @@ void CGOpenMPRuntime::emitApproxRegion(CodeGenFunction &CGF,
                   /*ForceSimpleCall=*/false);
 }
 
+void CGOpenMPRuntime::emitApproxFastMathRegion(CodeGenFunction &CGF,
+                                        const RegionCodeGenTy &FastMathOpGen) {
+  if (!CGF.HaveInsertPoint())
+    return;
+
+  // OrderedOpGen();
+  emitInlinedDirective(CGF, OMPD_approx, FastMathOpGen);
+}
 
 /// Map the OpenMP loop schedule to the runtime enumeration.
 static OpenMPSchedType getRuntimeSchedule(OpenMPScheduleClauseKind ScheduleKind,
@@ -12554,11 +12562,17 @@ void CGOpenMPSIMDRuntime::emitBarrierCall(CodeGenFunction &CGF,
   llvm_unreachable("Not supported in SIMD-only mode");
 }
 
-void CGOpenMPSIMDRuntime::emitApproxRegion(
+void CGOpenMPSIMDRuntime::emitApproxMemoRegion(
     CodeGenFunction &CGF, const RegionCodeGenTy &ApproxGen, SourceLocation Loc,
     ArrayRef<const VarDecl *> DeclarationVars,
     llvm::Value *Threshold) {
   llvm_unreachable("No supported in SIMD-only mode");
+}
+
+void CGOpenMPSIMDRuntime::emitApproxFastMathRegion(CodeGenFunction &CGF,
+                                            const RegionCodeGenTy &OrderedOpGen)
+{
+  llvm_unreachable("Not supported in SIMD-only mode");
 }
 
 void CGOpenMPSIMDRuntime::emitForDispatchInit(

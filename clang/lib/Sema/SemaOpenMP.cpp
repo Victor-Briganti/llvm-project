@@ -6777,6 +6777,7 @@ StmtResult Sema::ActOnOpenMPExecutableDirective(
       case OMPC_filter:
       case OMPC_memo:
       case OMPC_threshold:
+      case OMPC_fastmath:
         continue;
       case OMPC_allocator:
       case OMPC_flush:
@@ -15328,6 +15329,7 @@ OMPClause *Sema::ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind, Expr *Expr,
   case OMPC_when:
   case OMPC_bind:
   case OMPC_memo:
+  case OMPC_fastmath:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -16292,6 +16294,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
   case OMPC_affinity:
   case OMPC_bind:
   case OMPC_memo:
+  case OMPC_fastmath:
   default:
     llvm_unreachable("Unexpected OpenMP clause.");
   }
@@ -17376,6 +17379,9 @@ OMPClause *Sema::ActOnOpenMPClause(OpenMPClauseKind Kind,
     break;
   case OMPC_memo:
     Res = ActOnOpenMPMemoClause(StartLoc, EndLoc);
+    break;
+  case OMPC_fastmath:
+    Res = ActOnOpenMPFastMathClause(StartLoc, EndLoc);
     break;
   case OMPC_if:
   case OMPC_final:
@@ -23968,4 +23974,9 @@ OMPClause *Sema::ActOnOpenMPThresholdClause(Expr *Threshold,
 
   return new (Context) OMPThresholdClause(
       ValExpr, HelperValStmt, CaptureRegion, StartLoc, LParenLoc, EndLoc);
+}
+
+OMPClause *Sema::ActOnOpenMPFastMathClause(SourceLocation StartLoc,
+                                            SourceLocation EndLoc) {
+  return new (Context) OMPFastMathClause(StartLoc, EndLoc);
 }

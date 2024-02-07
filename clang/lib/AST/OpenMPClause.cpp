@@ -173,6 +173,7 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
   case OMPC_when:
   case OMPC_bind:
   case OMPC_memo:
+  case OMPC_fastmath:
     break;
   default:
     break;
@@ -279,6 +280,7 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_bind:
   case OMPC_memo:
   case OMPC_threshold:
+  case OMPC_fastmath:
     break;
   default:
     break;
@@ -2477,6 +2479,10 @@ void OMPClausePrinter::VisitOMPThresholdClause(OMPThresholdClause *Node) {
   OS << "threshold(";
   Node->getThreshold()->printPretty(OS, nullptr, Policy, 0);
   OS << ")";
+}
+
+void OMPClausePrinter::VisitOMPFastMathClause(OMPFastMathClause *) {
+  OS << "fastmath";
 }
 
 void OMPTraitInfo::getAsVariantMatchInfo(ASTContext &ASTCtx,
