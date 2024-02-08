@@ -2705,6 +2705,12 @@ void ASTStmtWriter::VisitOMPApproxDirective(OMPApproxDirective *D) {
   Code = serialization::STMT_OMP_APPROX_DIRECTIVE;
 }
 
+void ASTStmtWriter::VisitOMPApproxForDirective(OMPApproxForDirective *D) {
+  VisitOMPLoopDirective(D);
+  Record.writeBool(D->hasCancel());
+  Code = serialization::STMT_OMP_APPROX_FOR_DIRECTIVE;
+}
+
 //===----------------------------------------------------------------------===//
 // ASTWriter Implementation
 //===----------------------------------------------------------------------===//

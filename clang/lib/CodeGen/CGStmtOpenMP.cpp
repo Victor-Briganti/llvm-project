@@ -7122,6 +7122,28 @@ static llvm::Function *emitOutlinedApproxFunction(CodeGenModule &CGM,
   return Fn;
 }
 
+void CodeGenFunction::EmitOMPApproxForDirective(
+    const OMPApproxForDirective &S) {
+  bool HasLastprivates = false;
+  auto &&CodeGen = [this, &S, &HasLastprivates](CodeGenFunction &CGF, PrePostActionTy &) {
+    HasLastprivates = emitWorksharingDirective(CGF, S, S.hasCancel());
+  };
+
+  {
+    auto LPCRegion =
+        CGOpenMPRuntime::LastprivateConditionalRAII::disable(*this, S);
+    OMPLexicalScope Scope(*this, S, OMPD_approx);
+    CGM.getOpenMPRuntime().emitInlinedDirective(*this, OMPD_for, CodeGen,
+                                                S.hasCancel());
+  }
+
+  // Emit an implicit barrier at the end.
+  if (!S.getSingleClause<OMPNowaitClause>() || HasLastprivates)
+    CGM.getOpenMPRuntime().emitBarrierCall(*this, S.getBeginLoc(), OMPD_for);
+  // Check for outer lastprivate conditional update.
+  checkForLastprivateConditionalUpdate(*this, S);
+}
+
 void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
   llvm::SmallVector<const VarDecl *, 8> VarDeclarations;
 

@@ -3586,6 +3586,7 @@ public:
   void EmitOMPInteropDirective(const OMPInteropDirective &S);
   void EmitOMPParallelMaskedDirective(const OMPParallelMaskedDirective &S);
   void EmitOMPApproxDirective(const OMPApproxDirective &S);
+  void EmitOMPApproxForDirective(const OMPApproxForDirective &S);
 
   /// Emit device code for the target directive.
   static void EmitOMPTargetDeviceFunction(CodeGenModule &CGM,

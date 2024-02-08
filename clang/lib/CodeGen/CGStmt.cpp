@@ -433,6 +433,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   case Stmt::OMPApproxDirectiveClass:
     EmitOMPApproxDirective(cast<OMPApproxDirective>(*S));
     break;
+  case Stmt::OMPApproxForDirectiveClass:
+    EmitOMPApproxForDirective(cast<OMPApproxForDirective>(*S));
+    break;
   }
 }
 

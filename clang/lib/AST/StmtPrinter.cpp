@@ -1132,6 +1132,10 @@ void StmtPrinter::VisitOMPApproxDirective(OMPApproxDirective *Node) {
   PrintOMPExecutableDirective(Node);
 }
 
+void StmtPrinter::VisitOMPApproxForDirective(OMPApproxForDirective *Node) {
+  Indent() << "#pragma omp approx for";
+  PrintOMPExecutableDirective(Node);
+}
 
 //===----------------------------------------------------------------------===//
 //  Expr printing methods.

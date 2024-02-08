@@ -1296,6 +1296,11 @@ void StmtProfiler::VisitOMPApproxDirective(const OMPApproxDirective *S) {
   VisitOMPExecutableDirective(S);
 }
 
+void
+StmtProfiler::VisitOMPApproxForDirective(const OMPApproxForDirective *S) {
+  VisitOMPLoopDirective(S);
+}
+
 void StmtProfiler::VisitExpr(const Expr *S) {
   VisitStmt(S);
 }

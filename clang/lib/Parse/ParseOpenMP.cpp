@@ -124,6 +124,7 @@ static OpenMPDirectiveKindExWrapper parseOpenMPDirectiveKind(Parser &P) {
   // E.g.: OMPD_for OMPD_simd ===> OMPD_for_simd
   // TODO: add other combined directives in topological order.
   static const OpenMPDirectiveKindExWrapper F[][3] = {
+      {OMPD_approx, OMPD_for, OMPD_approx_for},
       {OMPD_begin, OMPD_declare, OMPD_begin_declare},
       {OMPD_begin, OMPD_assumes, OMPD_begin_assumes},
       {OMPD_end, OMPD_declare, OMPD_end_declare},
@@ -2436,6 +2437,7 @@ Parser::DeclGroupPtrTy Parser::ParseOpenMPDeclarativeDirectiveWithExtDecl(
   case OMPD_parallel_loop:
   case OMPD_target_parallel_loop:
   case OMPD_approx:
+  case OMPD_approx_for:
     Diag(Tok, diag::err_omp_unexpected_directive)
         << 1 << getOpenMPDirectiveName(DKind);
     break;
@@ -2486,7 +2488,8 @@ Parser::DeclGroupPtrTy Parser::ParseOpenMPDeclarativeDirectiveWithExtDecl(
 ///         parallel for' | 'target teams' | 'target teams distribute' | 'target
 ///         teams distribute parallel for' | 'target teams distribute parallel
 ///         for simd' | 'target teams distribute simd' | 'masked' |
-///         'parallel masked' | 'approx' {clause} annot_pragma_openmp_end
+///         'parallel masked' | 'approx' | 'parallel for' {clause} 
+///         annot_pragma_openmp_end
 ///
 StmtResult Parser::ParseOpenMPDeclarativeOrExecutableDirective(
     ParsedStmtContext StmtCtx, bool ReadDirectiveWithinMetadirective) {
@@ -2838,6 +2841,7 @@ StmtResult Parser::ParseOpenMPDeclarativeOrExecutableDirective(
   case OMPD_target_teams_distribute_simd:
   case OMPD_dispatch:
   case OMPD_approx:
+  case OMPD_approx_for:
   case OMPD_masked: {
     // Special processing for flush and depobj clauses.
     Token ImplicitTok;

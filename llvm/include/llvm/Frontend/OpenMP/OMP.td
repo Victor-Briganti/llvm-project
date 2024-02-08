@@ -2132,3 +2132,18 @@ def OMP_Approx : Directive<"approx"> {
     VersionedClause<OMPC_Shared>
   ];
 }
+def OMP_ApproxFor : Directive<"approx for"> {
+  let allowedClauses = [
+    VersionedClause<OMPC_Private>,
+    VersionedClause<OMPC_LastPrivate>,
+    VersionedClause<OMPC_FirstPrivate>,
+    VersionedClause<OMPC_Reduction>,
+    VersionedClause<OMPC_Collapse>,
+    VersionedClause<OMPC_Schedule>,
+    VersionedClause<OMPC_Ordered>,
+    VersionedClause<OMPC_NoWait>,
+    VersionedClause<OMPC_Linear>,
+    VersionedClause<OMPC_Allocate>,
+    VersionedClause<OMPC_Order, 50>
+  ];
+}

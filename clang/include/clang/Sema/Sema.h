@@ -11787,7 +11787,11 @@ public:
                                       SourceLocation StartLoc,
                                       SourceLocation EndLoc,
                                       Stmt *AStmt);
-
+  /// Called on well-formed '\#pragma omp approx for' after parsing
+  /// of the  associated statement.
+  StmtResult ActOnOpenMPApproxForDirective(
+      ArrayRef<OMPClause *> Clauses, Stmt *AStmt, SourceLocation StartLoc,
+      SourceLocation EndLoc, VarsWithInheritedDSAType &VarsWithImplicitDSA);
 
   OMPClause *ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind,
                                          Expr *Expr,
