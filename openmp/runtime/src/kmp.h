@@ -3875,6 +3875,18 @@ extern int __kmp_memo_find(int gtid, ident_t *id_ref, kmp_int32 hash_loc,
 
 /* ------------------------------------------------------------------------ */
 
+typedef enum perfo_t {
+  perfo_undefined = -1,
+  perfo_small = 0,
+  perfo_large = 1,
+  perfo_init = 2,
+  perfo_fini = 3,
+} perfo_t;
+
+extern int __kmp_perforation(int gtid, ident_t *id_ref, void* inc_var, 
+                              perfo_t perfo_type, kmp_int32 induction,
+                              kmp_int32 lb, kmp_int32 ub);
+
 extern void __kmp_initialize_bget(kmp_info_t *th);
 extern void __kmp_finalize_bget(kmp_info_t *th);
 
@@ -4212,6 +4224,12 @@ KMP_EXPORT void __kmpc_memo_init(ident_t *, kmp_int32 global_tid,
 KMP_EXPORT void __kmpc_memo_in(ident_t *, kmp_int32 global_tid, 
                                kmp_int32 hash_loc, void *data_in,
                                size_t data_size, kmp_int32 id_var);
+
+KMP_EXPORT int __kmpc_perfo(ident_t *, kmp_int32 global_tid, 
+                             void* inc_var, kmp_int32 perfo_type,
+                             kmp_int32 induction, void *lb, 
+                             void *ub);
+KMP_EXPORT void __kmpc_end_perfo(ident_t *, kmp_int32 global_tid);
 
 #if OMPX_TASKGRAPH
 // Taskgraph's Record & Replay mechanism

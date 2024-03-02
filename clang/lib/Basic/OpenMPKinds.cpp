@@ -170,6 +170,12 @@ unsigned clang::getOpenMPSimpleClauseType(OpenMPClauseKind Kind, StringRef Str,
       return OMPC_NUMTASKS_unknown;
     return Type;
   }
+  case OMPC_perfo: {
+    return llvm::StringSwitch<unsigned>(Str)
+#define OPENMP_PERFO_KIND(Name) .Case(#Name, OMPC_PERFO_##Name)
+#include "clang/Basic/OpenMPKinds.def"
+        .Default(OMPC_PERFO_unknown);
+  }
   case OMPC_unknown:
   case OMPC_threadprivate:
   case OMPC_if:

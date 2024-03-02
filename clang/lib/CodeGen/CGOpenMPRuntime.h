@@ -878,6 +878,13 @@ public:
   virtual void emitApproxFastMathRegion(CodeGenFunction &CGF,
                                  const RegionCodeGenTy &OrderedOpGen);
 
+  /// Emit approximatted region
+  virtual void emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
+                               VarDecl *IncVar, OpenMPPerfoTy PerfoKind,
+                               llvm::Value *Induction,
+                               llvm::SmallVector<Address, 8>LoopAddrs,
+                               const Expr *IncExpr);
+
   /// Check if the specified \a ScheduleKind is static non-chunked.
   /// This kind of worksharing directive is emitted without outer loop.
   /// \param ScheduleKind Schedule kind specified in the 'schedule' clause.
@@ -1819,6 +1826,14 @@ public:
   /// approx region.
   void emitApproxFastMathRegion(CodeGenFunction &CGF,
                          const RegionCodeGenTy &OrderedOpGen) override;
+
+    /// Emit approx directive
+  virtual void emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
+                               VarDecl *IncVar,
+                               OpenMPPerfoTy PerfoKind,
+                               llvm::Value *Induction,
+                               llvm::SmallVector<Address, 8>LoopAddrs,
+                               const Expr *IncExpr) override;
 
   /// This is used for non static scheduled types and when the ordered
   /// clause is present on the loop construct.

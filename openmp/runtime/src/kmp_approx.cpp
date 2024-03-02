@@ -11,7 +11,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "kmp_approx.h"
+#include "kmp.h"
 #include <math.h>
+
+/* ------------------------------------------------------------------------ */
+/* Memoization                                                              */
+/* ------------------------------------------------------------------------ */
 
 // TODO: Enable read/write locks on the structure. Following:
 // https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock#Using_two_mutexes
@@ -80,7 +85,7 @@ kmp_memo_map::~kmp_memo_map() {
 // https://github.com/davidar/sdbm/blob/29d5ed2b5297e51125ee45f6efc5541851aab0fb/hash.c#L18-L47
 kmp_int32 kmp_memo_map::bucket_index(kmp_int32 loc) {
   kmp_int32 hash = 0;
-  const char *key = (const char*)&loc;
+  const char *key = (const char *)&loc;
   int c;
 
   while ((c = *(unsigned char *)(key++)))
@@ -176,8 +181,8 @@ static void compare(kmp_memo_cache *cache) {
 
 /*----------------------------------------------------------------------------*/
 
-void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc, kmp_int32 num_vars,
-                             kmp_int32 tresh) {
+void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
+                             kmp_int32 num_vars, kmp_int32 tresh) {
   kmp_memo_cache *cache = kmap.search(hash_loc);
   if (cache != NULL)
     return;
@@ -187,8 +192,8 @@ void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc, k
   kmap.insert(cache);
 }
 
-void __kmp_memo_copy_in(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc, void *data, size_t size,
-                        kmp_int32 id_var) {
+void __kmp_memo_copy_in(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
+                        void *data, size_t size, kmp_int32 id_var) {
   kmp_memo_cache *cache = kmap.search(hash_loc);
   if (cache->valid == UNINITIALIZED)
     cache->insert(id_var, data, size);
@@ -224,4 +229,37 @@ void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
     cache->update_cache();
     cache->valid = VALID;
   }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Perforation                                                              */
+/* ------------------------------------------------------------------------ */
+
+int __kmp_perforation(int gtid, ident_t *id_ref, void *inc_var,
+                       perfo_t perfo_type, kmp_int32 induction, kmp_int32 lb,
+                       kmp_int32 ub) {
+  switch(perfo_type) {
+    case perfo_fini: {
+      if (*(kmp_int32*)inc_var + induction > ub)
+        *(kmp_int32*)inc_var += induction;
+
+      return 0;
+    }
+    case perfo_init: {
+      *(kmp_int32*)inc_var = lb + induction;
+      return 0;
+    }
+    case perfo_small: {
+      kmp_int32 k = (rand() % (ub - lb) + ub) % induction;
+      return (*(kmp_int32*)inc_var % induction == k ? 1 : 0);
+    }
+    case perfo_large: {
+      *(kmp_int32*)inc_var += induction;
+      return 0;
+    }
+    case perfo_undefined:
+    default:
+        KMP_ASSERT2(perfo_type >= 0, "undefined perforation type");
+  }
+  return 0;
 }

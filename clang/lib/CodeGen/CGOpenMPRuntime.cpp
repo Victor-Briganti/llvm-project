@@ -2588,6 +2588,96 @@ void CGOpenMPRuntime::emitErrorCall(CodeGenFunction &CGF, SourceLocation Loc,
                       Args);
 }
 
+/// Perforation types for 'omp approx for' loops (these enumerators are taken 
+/// from the enum perfo_type in kmp.h).
+enum OpenMPPerfoType {
+  OMP_perfo_undefined = -1,
+  OMP_perfo_small = 0,
+  OMP_perfo_large = 1,
+  OMP_perfo_init = 2,
+  OMP_perfo_fini = 3,
+};
+
+/// Map the OpenMP loop perforation to the runtime enumeration.
+static OpenMPPerfoType getRuntimePerfo(OpenMPPerfoClauseKind PerfoKind) {
+  switch (PerfoKind) {
+  case OMPC_PERFO_small:
+    return OMP_perfo_small;
+  case OMPC_PERFO_large:
+    return OMP_perfo_large;
+  case OMPC_PERFO_init:
+    return OMP_perfo_init;
+  case OMPC_PERFO_fini:
+    return OMP_perfo_fini;
+  case OMPC_PERFO_unknown:
+    return OMP_perfo_undefined;
+  }
+  llvm_unreachable("Unexpected runtime perforation");
+}
+
+void CGOpenMPRuntime::emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
+                                      VarDecl *IncVar, OpenMPPerfoTy PerfoKind,
+                                      llvm::Value *Induction,
+                                      llvm::SmallVector<Address, 8> LoopAddrs,
+                                      const Expr *IncExpr) {
+  if (!CGF.HaveInsertPoint())
+    return;
+
+  llvm::Value *Ident = emitUpdateLocation(CGF, Loc);
+  llvm::Value *ThreadID = getThreadID(CGF, Loc);
+  Address IncAddr = CGF.GetAddrOfLocalVar(IncVar);
+  OpenMPPerfoType Perforation = getRuntimePerfo(PerfoKind.Perforation);
+
+  llvm::Value *Args[] = {
+      Ident,
+      ThreadID,
+      CGF.Builder.CreatePointerCast(IncAddr.getPointer(), CGM.VoidPtrTy),
+      CGF.Builder.getInt32(Perforation),
+      Induction,
+      CGF.Builder.CreatePointerCast(LoopAddrs[0].getPointer(),
+                                    CGM.VoidPtrTy), // LB
+      CGF.Builder.CreatePointerCast(LoopAddrs[1].getPointer(),
+                                    CGM.VoidPtrTy), // UB
+  };
+
+  switch (Perforation) {
+  case OMP_perfo_small: {
+  llvm::Value *ArgsEnd[] = {Ident, ThreadID};
+  CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_perfo),
+                        Args,
+                        OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_end_perfo),
+                        ArgsEnd,
+                        /*Conditional=*/true);
+    Action.Enter(CGF);
+    CGF.EmitIgnoredExpr(IncExpr);
+    Action.Done(CGF);
+    CGF.EmitIgnoredExpr(IncExpr);
+    break;
+  }
+  case OMP_perfo_large:
+    CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_perfo),
+                        Args);
+    break;
+  case OMP_perfo_fini:
+    CGF.EmitIgnoredExpr(IncExpr);
+    CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_perfo),
+                        Args);
+    break;
+  case OMP_perfo_init:
+    CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_perfo),
+                        Args);
+    return;
+  case OMP_perfo_undefined:
+  default:
+    CGF.EmitIgnoredExpr(IncExpr);
+  }
+}
+
 void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
                                      const RegionCodeGenTy &ApproxOpGen,
                                      SourceLocation Loc,
@@ -12560,6 +12650,14 @@ void CGOpenMPSIMDRuntime::emitBarrierCall(CodeGenFunction &CGF,
                                           bool EmitChecks,
                                           bool ForceSimpleCall) {
   llvm_unreachable("Not supported in SIMD-only mode");
+}
+
+void CGOpenMPSIMDRuntime::emitApproxPerfo(
+    CodeGenFunction &CGF, SourceLocation Loc,
+    VarDecl *IncVar, OpenMPPerfoTy PerfoKind,
+    llvm::Value *Induction,  llvm::SmallVector<Address, 8>LoopAddrs,
+    const Expr *IncExpr) {
+  llvm_unreachable("No supported in SIMD-only mode");
 }
 
 void CGOpenMPSIMDRuntime::emitApproxMemoRegion(

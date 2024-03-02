@@ -1900,6 +1900,16 @@ void __kmpc_end_single(ident_t *loc, kmp_int32 global_tid) {
 #endif
 }
 
+int __kmpc_perfo(ident_t *loc, kmp_int32 gtid, 
+                   void* inc_var, kmp_int32 perfo_type, kmp_int32 induction,
+                   void *lb, void *ub) {
+  return __kmp_perforation(gtid, loc, inc_var, (perfo_t)perfo_type, induction, *(kmp_int32*)lb, *(kmp_int32*)ub);
+}
+
+void __kmpc_end_perfo(ident_t *loc, kmp_int32 gtid) {
+  return;
+}
+
 int __kmpc_memo(ident_t *loc, kmp_int32 gtid, kmp_int32 hash_loc) {
   __kmp_assert_valid_gtid(gtid);
   return __kmp_memo_verify(gtid, loc, hash_loc);

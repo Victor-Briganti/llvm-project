@@ -7149,6 +7149,15 @@ void OMPClauseWriter::VisitOMPThresholdClause(OMPThresholdClause *C) {
 
 void OMPClauseWriter::VisitOMPFastMathClause(OMPFastMathClause *) {}
 
+void OMPClauseWriter::VisitOMPPerfoClause(OMPPerfoClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  Record.push_back(C->getPerfoKind());
+  Record.AddStmt(C->getInductionSize());
+  Record.AddSourceLocation(C->getLParenLoc());
+  Record.AddSourceLocation(C->getPerfoKindLoc());
+  Record.AddSourceLocation(C->getCommaLoc());
+}
+
 void ASTRecordWriter::writeOMPTraitInfo(const OMPTraitInfo *TI) {
   writeUInt32(TI->Sets.size());
   for (const auto &Set : TI->Sets) {

@@ -10362,6 +10362,9 @@ OMPClause *OMPClauseReader::readClause() {
   case llvm::omp::OMPC_threshold:
     C = new (Context) OMPThresholdClause();
     break;
+  case llvm::omp::OMPC_perfo:
+    C = new (Context) OMPPerfoClause();
+    break;
 #define OMP_CLAUSE_NO_CLASS(Enum, Str)                                         \
   case llvm::omp::Enum:                                                        \
     break;
@@ -11465,6 +11468,16 @@ OMPTraitInfo *ASTRecordReader::readOMPTraitInfo() {
     }
   }
   return &TI;
+}
+
+void OMPClauseReader::VisitOMPPerfoClause(OMPPerfoClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  C->setPerfoKind(
+       static_cast<OpenMPPerfoClauseKind>(Record.readInt()));
+  C->setInductionSize(Record.readSubExpr());
+  C->setLParenLoc(Record.readSourceLocation());
+  C->setPerfoKindLoc(Record.readSourceLocation());
+  C->setCommaLoc(Record.readSourceLocation());
 }
 
 void ASTRecordReader::readOMPChildren(OMPChildren *Data) {

@@ -9120,6 +9120,123 @@ public:
   OMPFastMathClause() : OMPNoChildClause() {}
 };
 
+/// This represents 'perfo' clause in the '#pragma omp approx perfo' directive.
+///
+/// \code
+/// #pragma omp approx for perfo(large, 10)
+/// \endcode
+/// In this example directive '#pragma omp for' has 'perfo' clause with
+/// arguments 'large' and '3'.
+class OMPPerfoClause : public OMPClause, public OMPClauseWithPreInit {
+  friend class OMPClauseReader;
+
+  /// Location of '('.
+  SourceLocation LParenLoc;
+
+  /// A kind of the 'perfo' clause.
+  OpenMPPerfoClauseKind Kind = OMPC_PERFO_unknown;
+
+  /// Start location of the perfo ind in source code.
+  SourceLocation KindLoc;
+
+  /// Location of ',' (if any).
+  SourceLocation CommaLoc;
+
+  /// Induction size.
+  Expr *InductionSize = nullptr;
+
+  /// Set perfo kind.
+  ///
+  /// \param K perfo kind.
+  void setPerfoKind(OpenMPPerfoClauseKind K) { Kind = K; }
+
+  /// Sets the location of '('.
+  ///
+  /// \param Loc Location of '('.
+  void setLParenLoc(SourceLocation Loc) { LParenLoc = Loc; }
+
+  /// Set perfo kind start location.
+  ///
+  /// \param KLoc Perfo kind location.
+  void setPerfoKindLoc(SourceLocation KLoc) { KindLoc = KLoc; }
+
+  /// Set location of ','.
+  ///
+  /// \param Loc Location of ','.
+  void setCommaLoc(SourceLocation Loc) { CommaLoc = Loc; }
+
+  /// Set induction size.
+  ///
+  /// \param E Induction size.
+  void setInductionSize(Expr *E) { InductionSize = E; }
+
+public:
+  /// Build 'perfo' clause with perfo kind \a Kind and induction size
+  /// expression \a InductionSize.
+  ///
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param KLoc Starting location of the argument.
+  /// \param CommaLoc Location of ','.
+  /// \param EndLoc Ending location of the clause.
+  /// \param Kind Perfo kind.
+  /// \param InductionSize Induction size.
+  /// \param HelperInductionSize Helper Induction size for combined directives.
+  OMPPerfoClause(SourceLocation StartLoc, SourceLocation LParenLoc,
+                  SourceLocation KLoc, SourceLocation CommaLoc,
+                  SourceLocation EndLoc, OpenMPPerfoClauseKind Kind,
+                  Expr *InductionSize, Stmt *HelperInductionSize)
+      : OMPClause(llvm::omp::OMPC_perfo, StartLoc, EndLoc),
+        OMPClauseWithPreInit(this), LParenLoc(LParenLoc), Kind(Kind),
+        KindLoc(KLoc), CommaLoc(CommaLoc), InductionSize(InductionSize) {
+    setPreInitStmt(HelperInductionSize);
+    }
+
+  /// Build an empty clause.
+  explicit OMPPerfoClause()
+      : OMPClause(llvm::omp::OMPC_perfo, SourceLocation(), SourceLocation()),
+        OMPClauseWithPreInit(this) {}
+
+  /// Get kind of the clause.
+  OpenMPPerfoClauseKind getPerfoKind() const { return Kind; }
+
+  /// Get location of '('.
+  SourceLocation getLParenLoc() { return LParenLoc; }
+
+  /// Get kind location.
+  SourceLocation getPerfoKindLoc() { return KindLoc; }
+
+  /// Get location of ','.
+  SourceLocation getCommaLoc() { return CommaLoc; }
+
+  /// Get induction size.
+  Expr *getInductionSize() { return InductionSize; }
+
+  /// Get induction size.
+  const Expr *getInductionSize() const { return InductionSize; }
+
+  child_range children() {
+    return child_range(reinterpret_cast<Stmt **>(&InductionSize),
+                       reinterpret_cast<Stmt **>(&InductionSize) + 1);
+  }
+
+  const_child_range children() const {
+    auto Children = const_cast<OMPPerfoClause *>(this)->children();
+    return const_child_range(Children.begin(), Children.end());
+  }
+
+  child_range used_children() {
+    return child_range(child_iterator(), child_iterator());
+  }
+  const_child_range used_children() const {
+    return const_child_range(const_child_iterator(), const_child_iterator());
+  }
+
+  static bool classof(const OMPClause *T) {
+    return T->getClauseKind() == llvm::omp::OMPC_perfo;
+  }
+};
+
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_OPENMPCLAUSE_H

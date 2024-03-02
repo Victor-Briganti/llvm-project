@@ -12285,6 +12285,12 @@ public:
   OMPClause *ActOnOpenMPFastMathClause(SourceLocation StartLoc,
                                    SourceLocation EndLoc);
 
+  /// Called on well-formed 'perfo' clause.
+  OMPClause *ActOnOpenMPPerfoClause(
+      OpenMPPerfoClauseKind Kind, Expr *InductionSize, SourceLocation StartLoc,
+      SourceLocation LParenLoc, SourceLocation KindLoc, 
+      SourceLocation CommaLoc, SourceLocation EndLoc);
+
   /// The kind of conversion being performed.
   enum CheckedConversionKind {
     /// An implicit conversion.

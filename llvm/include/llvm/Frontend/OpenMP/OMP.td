@@ -456,6 +456,22 @@ def OMPC_FastMath : Clause<"fastmath"> {
   let clangClass = "OMPFastMathClause";
 }
 
+def OMP_PERFO_Small : ClauseVal<"small", 1, 1> {}
+def OMP_PERFO_Large : ClauseVal<"large", 2, 1> {}
+def OMP_PERFO_Init : ClauseVal<"init", 3, 1> {}
+def OMP_PERFO_Finish : ClauseVal<"finish", 4, 1> {}
+
+def OMPC_Perfo : Clause<"perfo"> {
+  let clangClass = "OMPPerfoClause";
+  let enumClauseValue = "PerfoKind";
+  let allowedClauseValues = [
+    OMP_PERFO_Small,
+    OMP_PERFO_Large,
+    OMP_PERFO_Init,
+    OMP_PERFO_Finish,
+  ];
+}
+
 //===----------------------------------------------------------------------===//
 // Definition of OpenMP directives
 //===----------------------------------------------------------------------===//
@@ -2145,5 +2161,8 @@ def OMP_ApproxFor : Directive<"approx for"> {
     VersionedClause<OMPC_Linear>,
     VersionedClause<OMPC_Allocate>,
     VersionedClause<OMPC_Order, 50>
+  ];
+  let allowedOnceClauses = [
+    VersionedClause<OMPC_Perfo>
   ];
 }

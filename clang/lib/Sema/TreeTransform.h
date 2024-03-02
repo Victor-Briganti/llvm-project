@@ -2434,6 +2434,19 @@ public:
     return getSema().ActOnOpenMPMessageClause(MS, StartLoc, LParenLoc, EndLoc);
   }
 
+  /// Build a new OpenMP 'perfo' clause.
+  ///
+  /// By default, performs semantic analysis to build the new OpenMP clause.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPPerfoClause(
+      OpenMPPerfoClauseKind Kind, Expr *InductionSize, SourceLocation StartLoc,
+      SourceLocation LParenLoc, SourceLocation KindLoc,
+      SourceLocation CommaLoc, SourceLocation EndLoc) {
+    return getSema().ActOnOpenMPPerfoClause(
+        Kind, InductionSize, StartLoc, LParenLoc, KindLoc, CommaLoc, EndLoc);
+  }
+
+
   /// Rebuild the operand to an Objective-C \@synchronized statement.
   ///
   /// By default, performs semantic analysis to build the new statement.
@@ -10764,6 +10777,17 @@ template <typename Derived>
 OMPClause *
 TreeTransform<Derived>::TransformOMPFastMathClause(OMPFastMathClause *C) {
   llvm_unreachable("fastmath clause cannot appear in dependent context");
+}
+
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPPerfoClause(OMPPerfoClause *C) {
+  ExprResult E = getDerived().TransformExpr(C->getInductionSize());
+  if (E.isInvalid())
+    return nullptr;
+  return getDerived().RebuildOMPPerfoClause(
+      C->getPerfoKind(), E.get(), C->getBeginLoc(), C->getLParenLoc(),
+      C->getPerfoKindLoc(), C->getCommaLoc(), C->getEndLoc());
 }
 
 //===----------------------------------------------------------------------===//

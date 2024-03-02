@@ -2719,6 +2719,10 @@ void OMPClauseEnqueue::VisitOMPThresholdClause(const OMPThresholdClause *C) {
   Visitor->AddStmt(C->getThreshold());
 }
 void OMPClauseEnqueue::VisitOMPFastMathClause(const OMPFastMathClause *) {}
+void OMPClauseEnqueue::VisitOMPPerfoClause(const OMPPerfoClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  Visitor->AddStmt(C->getInductionSize());
+}
 } // namespace
 
 void EnqueueVisitor::EnqueueChildren(const OMPClause *S) {

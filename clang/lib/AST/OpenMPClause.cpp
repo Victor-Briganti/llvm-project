@@ -107,6 +107,8 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
     return static_cast<const OMPXDynCGroupMemClause *>(C);
   case OMPC_threshold:
     return static_cast<const OMPThresholdClause *>(C);
+  case OMPC_perfo:
+    return static_cast<const OMPPerfoClause *>(C);
   case OMPC_default:
   case OMPC_proc_bind:
   case OMPC_safelen:
@@ -281,6 +283,7 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_memo:
   case OMPC_threshold:
   case OMPC_fastmath:
+  case OMPC_perfo:
     break;
   default:
     break;
@@ -2483,6 +2486,16 @@ void OMPClausePrinter::VisitOMPThresholdClause(OMPThresholdClause *Node) {
 
 void OMPClausePrinter::VisitOMPFastMathClause(OMPFastMathClause *) {
   OS << "fastmath";
+}
+
+void OMPClausePrinter::VisitOMPPerfoClause(OMPPerfoClause *Node) {
+  OS << "perfo(";
+  OS << getOpenMPSimpleClauseTypeName(OMPC_perfo, Node->getPerfoKind());
+  if (auto *E = Node->getInductionSize()) {
+    OS << ", ";
+    E->printPretty(OS, nullptr, Policy);
+  }
+  OS << ")";
 }
 
 void OMPTraitInfo::getAsVariantMatchInfo(ASTContext &ASTCtx,

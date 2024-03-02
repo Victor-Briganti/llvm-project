@@ -6713,6 +6713,7 @@ StmtResult Sema::ActOnOpenMPExecutableDirective(
         continue;
       case OMPC_schedule:
       case OMPC_detach:
+      case OMPC_perfo:
         break;
       case OMPC_grainsize:
       case OMPC_num_tasks:
@@ -15380,6 +15381,7 @@ OMPClause *Sema::ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind, Expr *Expr,
   case OMPC_bind:
   case OMPC_memo:
   case OMPC_fastmath:
+  case OMPC_perfo:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -16284,6 +16286,13 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
       llvm_unreachable("Unexpected OpenMP directive with threshold clause");
   }
   break;
+  case OMPC_perfo: {
+    if (DKind == OMPD_approx_for)
+      CaptureRegion = OMPD_approx_for;
+    else
+      llvm_unreachable("Unexpected OpenMP directive with perfo clause");
+  }
+  break;
   case OMPC_firstprivate:
   case OMPC_lastprivate:
   case OMPC_reduction:
@@ -16843,6 +16852,7 @@ OMPClause *Sema::ActOnOpenMPSimpleClause(
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_message:
+  case OMPC_perfo:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -17164,6 +17174,13 @@ OMPClause *Sema::ActOnOpenMPSingleExprWithArgClause(
     Res = ActOnOpenMPNumTasksClause(
         static_cast<OpenMPNumTasksClauseModifier>(Argument.back()), Expr,
         StartLoc, LParenLoc, ArgumentLoc.back(), EndLoc);
+    break;
+    case OMPC_perfo:
+    assert(Argument.size() == 1 && ArgumentLoc.size() == 1 &&
+          "Modifier for num_tasks clause and its location are expected.");
+    Res = ActOnOpenMPPerfoClause(
+        static_cast<OpenMPPerfoClauseKind>(Argument.back()), Expr,
+        StartLoc, LParenLoc, ArgumentLoc.back(), DelimLoc, EndLoc);
     break;
   case OMPC_final:
   case OMPC_num_threads:
@@ -17505,6 +17522,7 @@ OMPClause *Sema::ActOnOpenMPClause(OpenMPClauseKind Kind,
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_ompx_dyn_cgroup_mem:
+  case OMPC_perfo:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -18068,6 +18086,7 @@ OMPClause *Sema::ActOnOpenMPVarListClause(OpenMPClauseKind Kind,
   case OMPC_uses_allocators:
   case OMPC_when:
   case OMPC_bind:
+  case OMPC_perfo:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -24040,4 +24059,51 @@ OMPClause *Sema::ActOnOpenMPThresholdClause(Expr *Threshold,
 OMPClause *Sema::ActOnOpenMPFastMathClause(SourceLocation StartLoc,
                                             SourceLocation EndLoc) {
   return new (Context) OMPFastMathClause(StartLoc, EndLoc);
+}
+
+OMPClause *
+Sema::ActOnOpenMPPerfoClause(OpenMPPerfoClauseKind Kind, Expr *InductionSize,
+                            SourceLocation StartLoc, SourceLocation LParenLoc,
+                            SourceLocation KindLoc, SourceLocation CommaLoc,
+                            SourceLocation EndLoc) {
+
+  if (Kind == OMPC_PERFO_unknown) {
+    std::string Values;
+    Values = getListOfPossibleValues(OMPC_perfo, /*First=*/0,
+                                     /*Last=*/OMPC_PERFO_unknown);
+    Diag(KindLoc, diag::err_omp_unexpected_clause_value)
+        << Values << getOpenMPClauseName(OMPC_perfo);
+    return nullptr;
+  }
+
+  Expr *ValExpr = InductionSize;
+  Stmt *HelperValStmt = nullptr;
+  if (InductionSize) {
+    if (!InductionSize->isValueDependent() &&
+        !InductionSize->isTypeDependent() &&
+        !InductionSize->isInstantiationDependent() &&
+        !InductionSize->containsUnexpandedParameterPack()) {
+      SourceLocation InductionSizeLoc = InductionSize->getBeginLoc();
+      ExprResult Val = PerformOpenMPImplicitIntegerConversion(InductionSizeLoc,
+                                                              InductionSize);
+      if (Val.isInvalid())
+        return nullptr;
+
+      ValExpr = Val.get();
+
+      if (getOpenMPCaptureRegionForClause(DSAStack->getCurrentDirective(),
+                                          OMPC_perfo,
+                                          LangOpts.OpenMP) != OMPD_unknown &&
+          !CurContext->isDependentContext()) {
+        ValExpr = MakeFullExpr(ValExpr).get();
+        llvm::MapVector<const Expr *, DeclRefExpr *> Captures;
+        ValExpr = tryBuildCapture(*this, ValExpr, Captures).get();
+        HelperValStmt = buildPreInits(Context, Captures);
+      }
+    }
+  }
+
+  return new (Context)
+      OMPPerfoClause(StartLoc, LParenLoc, KindLoc, CommaLoc, EndLoc, Kind,
+                        ValExpr, HelperValStmt);
 }
