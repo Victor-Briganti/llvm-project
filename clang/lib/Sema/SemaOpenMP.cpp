@@ -4342,7 +4342,8 @@ void Sema::ActOnOpenMPRegionStart(OpenMPDirectiveKind DKind, Scope *CurScope) {
   case OMPD_master_taskloop:
   case OMPD_masked_taskloop:
   case OMPD_masked_taskloop_simd:
-  case OMPD_master_taskloop_simd: {
+  case OMPD_master_taskloop_simd: 
+  case OMPD_approx_taskloop: {
     QualType KmpInt32Ty =
         Context.getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1)
             .withConst();
@@ -5087,7 +5088,8 @@ static bool checkNestingOfRegions(Sema &SemaRef, const DSAStackTy *Stack,
                 ParentRegion == OMPD_master_taskloop ||
                 ParentRegion == OMPD_masked_taskloop ||
                 ParentRegion == OMPD_parallel_masked_taskloop ||
-                ParentRegion == OMPD_parallel_master_taskloop)))) ||
+                ParentRegion == OMPD_parallel_master_taskloop ||
+                ParentRegion == OMPD_approx_taskloop)))) ||
             (CancelRegion == OMPD_sections &&
              (ParentRegion == OMPD_section || ParentRegion == OMPD_sections ||
               ParentRegion == OMPD_parallel_sections)));
@@ -6668,6 +6670,12 @@ StmtResult Sema::ActOnOpenMPExecutableDirective(
     Res = ActOnOpenMPApproxForDirective(ClausesWithImplicit, AStmt, StartLoc,
                                           EndLoc, VarsWithInheritedDSA);
     AllowedNameModifiers.push_back(OMPD_approx);
+    break;
+  case OMPD_approx_taskloop:
+    Res = ActOnOpenMPApproxTaskLoopDirective(ClausesWithImplicit, AStmt, 
+                                             StartLoc, EndLoc, 
+                                             VarsWithInheritedDSA);
+    AllowedNameModifiers.push_back(OMPD_approx_taskloop);
     break;
   case OMPD_declare_target:
   case OMPD_end_declare_target:
@@ -15243,6 +15251,44 @@ StmtResult Sema::ActOnOpenMPApproxForDirective(
       DSAStack->getTaskgroupReductionRef(), DSAStack->isCancelRegion());
 }
 
+StmtResult Sema::ActOnOpenMPApproxTaskLoopDirective(
+    ArrayRef<OMPClause *> Clauses, Stmt *AStmt, SourceLocation StartLoc,
+    SourceLocation EndLoc, VarsWithInheritedDSAType &VarsWithImplicitDSA) {
+  if (!AStmt)
+    return StmtError();
+
+  assert(isa<CapturedStmt>(AStmt) && "Captured statement expected");
+  OMPLoopBasedDirective::HelperExprs B;
+  // In presence of clause 'collapse' or 'ordered' with number of loops, it will
+  // define the nested loops number.
+  unsigned NestedLoopCount =
+      checkOpenMPLoop(OMPD_taskloop, getCollapseNumberExpr(Clauses),
+                      /*OrderedLoopCountExpr=*/nullptr, AStmt, *this, *DSAStack,
+                      VarsWithImplicitDSA, B);
+  if (NestedLoopCount == 0)
+    return StmtError();
+
+  assert((CurContext->isDependentContext() || B.builtAll()) &&
+         "omp for loop exprs were not built");
+
+  // OpenMP, [2.9.2 taskloop Construct, Restrictions]
+  // The grainsize clause and num_tasks clause are mutually exclusive and may
+  // not appear on the same taskloop directive.
+  if (checkMutuallyExclusiveClauses(*this, Clauses,
+                                    {OMPC_grainsize, OMPC_num_tasks}))
+    return StmtError();
+  // OpenMP, [2.9.2 taskloop Construct, Restrictions]
+  // If a reduction clause is present on the taskloop directive, the nogroup
+  // clause must not be specified.
+  if (checkReductionClauseWithNogroup(*this, Clauses))
+    return StmtError();
+
+  setFunctionHasBranchProtectedScope();
+  return OMPApproxTaskLoopDirective::Create(Context, StartLoc, EndLoc,
+                                      NestedLoopCount, Clauses, AStmt, B,
+                                      DSAStack->isCancelRegion());
+}
+
 OMPClause *Sema::ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind, Expr *Expr,
                                              SourceLocation StartLoc,
                                              SourceLocation LParenLoc,
@@ -15520,6 +15566,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_taskloop:
     case OMPD_master_taskloop:
     case OMPD_masked_taskloop:
+    case OMPD_approx_taskloop:
     case OMPD_target_data:
     case OMPD_simd:
     case OMPD_for_simd:
@@ -15618,6 +15665,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_masked_taskloop:
     case OMPD_master_taskloop_simd:
     case OMPD_masked_taskloop_simd:
+    case OMPD_approx_taskloop:
     case OMPD_threadprivate:
     case OMPD_allocate:
     case OMPD_taskyield:
@@ -15698,6 +15746,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_parallel_masked_taskloop:
     case OMPD_parallel_master_taskloop_simd:
     case OMPD_parallel_masked_taskloop_simd:
+    case OMPD_approx_taskloop:
     case OMPD_target_data:
     case OMPD_target_enter_data:
     case OMPD_target_exit_data:
@@ -15793,6 +15842,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_parallel_masked_taskloop:
     case OMPD_parallel_master_taskloop_simd:
     case OMPD_parallel_masked_taskloop_simd:
+    case OMPD_approx_taskloop:
     case OMPD_target_data:
     case OMPD_target_enter_data:
     case OMPD_target_exit_data:
@@ -15887,6 +15937,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_parallel_masked_taskloop:
     case OMPD_parallel_master_taskloop_simd:
     case OMPD_parallel_masked_taskloop_simd:
+    case OMPD_approx_taskloop:
     case OMPD_target_data:
     case OMPD_target_enter_data:
     case OMPD_target_exit_data:
@@ -15984,6 +16035,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_parallel_masked_taskloop:
     case OMPD_parallel_master_taskloop_simd:
     case OMPD_parallel_masked_taskloop_simd:
+    case OMPD_approx_taskloop:
     case OMPD_target_data:
     case OMPD_target_enter_data:
     case OMPD_target_exit_data:
@@ -16107,6 +16159,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_parallel_masked_taskloop:
     case OMPD_parallel_master_taskloop_simd:
     case OMPD_parallel_masked_taskloop_simd:
+    case OMPD_approx_taskloop:
     case OMPD_cancel:
     case OMPD_parallel:
     case OMPD_parallel_master:
@@ -16173,6 +16226,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_masked_taskloop:
     case OMPD_master_taskloop_simd:
     case OMPD_masked_taskloop_simd:
+    case OMPD_approx_taskloop:
       break;
     case OMPD_parallel_masked_taskloop:
     case OMPD_parallel_masked_taskloop_simd:

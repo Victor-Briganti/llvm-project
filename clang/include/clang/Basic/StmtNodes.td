@@ -296,3 +296,4 @@ def OMPTargetParallelGenericLoopDirective : StmtNode<OMPLoopDirective>;
 def OMPErrorDirective : StmtNode<OMPExecutableDirective>;
 def OMPApproxDirective : StmtNode<OMPExecutableDirective>;
 def OMPApproxForDirective : StmtNode<OMPLoopDirective>;
+def OMPApproxTaskLoopDirective : StmtNode<OMPLoopDirective>;

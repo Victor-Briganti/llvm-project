@@ -7421,6 +7421,13 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
   }
 }
 
+void CodeGenFunction::EmitOMPApproxTaskLoopDirective(
+    const OMPApproxTaskLoopDirective &S) {
+  auto LPCRegion =
+      CGOpenMPRuntime::LastprivateConditionalRAII::disable(*this, S);
+  EmitOMPTaskLoopBasedDirective(S);
+}
+
 void CodeGenFunction::EmitOMPCancellationPointDirective(
     const OMPCancellationPointDirective &S) {
   CGM.getOpenMPRuntime().emitCancellationPointCall(*this, S.getBeginLoc(),

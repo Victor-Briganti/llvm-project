@@ -2737,6 +2737,12 @@ void ASTStmtReader::VisitOMPApproxForDirective(OMPApproxForDirective *D) {
   D->setHasCancel(Record.readBool());
 }
 
+void ASTStmtReader::VisitOMPApproxTaskLoopDirective(
+    OMPApproxTaskLoopDirective *D) {
+  VisitOMPLoopDirective(D);
+  D->setHasCancel(Record.readBool());
+}
+
 //===----------------------------------------------------------------------===//
 // ASTReader Implementation
 //===----------------------------------------------------------------------===//
@@ -3777,6 +3783,14 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPApproxForDirective::CreateEmpty(Context, NumClauses,
                                                CollapsedNum, Empty);
+      break;
+    }
+
+    case STMT_OMP_APPROX_TASKLOOP_DIRECTIVE: {
+      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      S = OMPApproxTaskLoopDirective::CreateEmpty(Context, NumClauses, 
+                                                  CollapsedNum, Empty);
       break;
     }
 

@@ -1806,6 +1806,7 @@ void ExprEngine::Visit(const Stmt *S, ExplodedNode *Pred,
     case Stmt::OMPTargetParallelGenericLoopDirectiveClass:
     case Stmt::OMPApproxDirectiveClass:
     case Stmt::OMPApproxForDirectiveClass:
+    case Stmt::OMPApproxTaskLoopDirectiveClass:
     case Stmt::CapturedStmtClass:
     case Stmt::OMPUnrollDirectiveClass:
     case Stmt::OMPMetaDirectiveClass: {

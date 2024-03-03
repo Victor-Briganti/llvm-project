@@ -124,6 +124,7 @@ static OpenMPDirectiveKindExWrapper parseOpenMPDirectiveKind(Parser &P) {
   // E.g.: OMPD_for OMPD_simd ===> OMPD_for_simd
   // TODO: add other combined directives in topological order.
   static const OpenMPDirectiveKindExWrapper F[][3] = {
+      {OMPD_approx, OMPD_taskloop, OMPD_approx_taskloop},
       {OMPD_approx, OMPD_for, OMPD_approx_for},
       {OMPD_begin, OMPD_declare, OMPD_begin_declare},
       {OMPD_begin, OMPD_assumes, OMPD_begin_assumes},
@@ -2413,6 +2414,7 @@ Parser::DeclGroupPtrTy Parser::ParseOpenMPDeclarativeDirectiveWithExtDecl(
   case OMPD_parallel_masked_taskloop:
   case OMPD_parallel_masked_taskloop_simd:
   case OMPD_distribute:
+  case OMPD_approx_taskloop:
   case OMPD_target_update:
   case OMPD_distribute_parallel_for:
   case OMPD_distribute_parallel_for_simd:
@@ -2824,6 +2826,7 @@ StmtResult Parser::ParseOpenMPDeclarativeOrExecutableDirective(
   case OMPD_parallel_masked_taskloop:
   case OMPD_parallel_master_taskloop_simd:
   case OMPD_parallel_masked_taskloop_simd:
+  case OMPD_approx_taskloop:
   case OMPD_distribute:
   case OMPD_distribute_parallel_for:
   case OMPD_distribute_parallel_for_simd:

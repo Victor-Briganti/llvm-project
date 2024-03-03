@@ -580,7 +580,7 @@ bool clang::isOpenMPLoopDirective(OpenMPDirectiveKind DKind) {
          DKind == OMPD_unroll || DKind == OMPD_loop ||
          DKind == OMPD_teams_loop || DKind == OMPD_target_teams_loop ||
          DKind == OMPD_parallel_loop || DKind == OMPD_target_parallel_loop ||
-         DKind == OMPD_approx_for;
+         DKind == OMPD_approx_for || DKind == OMPD_approx_taskloop;
 }
 
 bool clang::isOpenMPWorksharingDirective(OpenMPDirectiveKind DKind) {
@@ -606,7 +606,8 @@ bool clang::isOpenMPTaskLoopDirective(OpenMPDirectiveKind DKind) {
          DKind == OMPD_masked_taskloop || DKind == OMPD_masked_taskloop_simd ||
          DKind == OMPD_parallel_masked_taskloop ||
          DKind == OMPD_parallel_masked_taskloop_simd ||
-         DKind == OMPD_parallel_master_taskloop_simd;
+         DKind == OMPD_parallel_master_taskloop_simd || 
+         DKind == OMPD_approx_taskloop;
 }
 
 bool clang::isOpenMPParallelDirective(OpenMPDirectiveKind DKind) {
@@ -738,7 +739,8 @@ bool clang::isOpenMPCombinedParallelADirective(OpenMPDirectiveKind DKind) {
 }
 
 bool clang::isOpenMPApproxDirective(OpenMPDirectiveKind DKind) {
-  return DKind == OMPD_approx || DKind == OMPD_approx_for;
+  return DKind == OMPD_approx || DKind == OMPD_approx_for || 
+         DKind == OMPD_approx_taskloop;
 }
 
 void clang::getOpenMPCaptureRegions(
@@ -803,6 +805,7 @@ void clang::getOpenMPCaptureRegions(
   case OMPD_master_taskloop_simd:
   case OMPD_masked_taskloop:
   case OMPD_masked_taskloop_simd:
+  case OMPD_approx_taskloop:
     CaptureRegions.push_back(OMPD_taskloop);
     break;
   case OMPD_parallel_masked_taskloop:

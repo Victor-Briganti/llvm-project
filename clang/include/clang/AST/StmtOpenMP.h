@@ -1555,7 +1555,8 @@ public:
                OMPTargetTeamsDistributeParallelForSimdDirectiveClass ||
            T->getStmtClass() == OMPTargetTeamsDistributeDirectiveClass ||
            T->getStmtClass() == OMPTargetTeamsDistributeSimdDirectiveClass ||
-           T->getStmtClass() == OMPApproxForDirectiveClass;
+           T->getStmtClass() == OMPApproxForDirectiveClass || 
+           T->getStmtClass() == OMPApproxTaskLoopDirectiveClass;
   }
 };
 
@@ -6414,6 +6415,79 @@ public:
 
   static bool classof(const Stmt *T) {
     return T->getStmtClass() == OMPApproxForDirectiveClass;
+  }
+};
+
+/// This represents '#pragma omp approx taskloop' directive.
+///
+/// \code
+/// #pragma omp approx taskloop private(a,b) grainsize(val) num_tasks(num)
+/// \endcode
+/// In this example directive '#pragma omp approx taskloop' has clauses 'private'
+/// with the variables 'a' and 'b', 'grainsize' with expression 'val' and
+/// 'num_tasks' with expression 'num'.
+///
+class OMPApproxTaskLoopDirective : public OMPLoopDirective {
+  friend class ASTStmtReader;
+  friend class OMPExecutableDirective;
+  /// true if the construct has inner cancel directive.
+  bool HasCancel = false;
+
+  /// Build directive with the given start and end location.
+  ///
+  /// \param StartLoc Starting location of the directive kind.
+  /// \param EndLoc Ending location of the directive.
+  /// \param CollapsedNum Number of collapsed nested loops.
+  ///
+  OMPApproxTaskLoopDirective(SourceLocation StartLoc, SourceLocation EndLoc,
+                       unsigned CollapsedNum)
+      : OMPLoopDirective(OMPApproxTaskLoopDirectiveClass, llvm::omp::OMPD_approx_taskloop,
+                         StartLoc, EndLoc, CollapsedNum) {}
+
+  /// Build an empty directive.
+  ///
+  /// \param CollapsedNum Number of collapsed nested loops.
+  ///
+  explicit OMPApproxTaskLoopDirective(unsigned CollapsedNum)
+      : OMPLoopDirective(OMPApproxTaskLoopDirectiveClass, llvm::omp::OMPD_approx_taskloop,
+                         SourceLocation(), SourceLocation(), CollapsedNum) {}
+
+  /// Set cancel state.
+  void setHasCancel(bool Has) { HasCancel = Has; }
+
+public:
+  /// Creates directive with a list of \a Clauses.
+  ///
+  /// \param C AST context.
+  /// \param StartLoc Starting location of the directive kind.
+  /// \param EndLoc Ending Location of the directive.
+  /// \param CollapsedNum Number of collapsed loops.
+  /// \param Clauses List of clauses.
+  /// \param AssociatedStmt Statement, associated with the directive.
+  /// \param Exprs Helper expressions for CodeGen.
+  /// \param HasCancel true if this directive has inner cancel directive.
+  ///
+  static OMPApproxTaskLoopDirective *
+  Create(const ASTContext &C, SourceLocation StartLoc, SourceLocation EndLoc,
+         unsigned CollapsedNum, ArrayRef<OMPClause *> Clauses,
+         Stmt *AssociatedStmt, const HelperExprs &Exprs, bool HasCancel);
+
+  /// Creates an empty directive with the place
+  /// for \a NumClauses clauses.
+  ///
+  /// \param C AST context.
+  /// \param CollapsedNum Number of collapsed nested loops.
+  /// \param NumClauses Number of clauses.
+  ///
+  static OMPApproxTaskLoopDirective *CreateEmpty(const ASTContext &C,
+                                           unsigned NumClauses,
+                                           unsigned CollapsedNum, EmptyShell);
+
+  /// Return true if current directive has inner cancel directive.
+  bool hasCancel() const { return HasCancel; }
+
+  static bool classof(const Stmt *T) {
+    return T->getStmtClass() == OMPApproxTaskLoopDirectiveClass;
   }
 };
 } // end namespace clang

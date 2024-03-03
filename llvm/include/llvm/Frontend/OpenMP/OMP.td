@@ -457,7 +457,7 @@ def OMPC_FastMath : Clause<"fastmath"> {
 }
 
 def OMP_PERFO_Small : ClauseVal<"small", 1, 1> {}
-def OMP_PERFO_Large : ClauseVal<"large", 2, 1> {}
+def OMP_PERFO_Large : ClauseVal<"large", 2, 1> { let isDefault = 1; }
 def OMP_PERFO_Init : ClauseVal<"init", 3, 1> {}
 def OMP_PERFO_Finish : ClauseVal<"finish", 4, 1> {}
 
@@ -2164,5 +2164,30 @@ def OMP_ApproxFor : Directive<"approx for"> {
   ];
   let allowedOnceClauses = [
     VersionedClause<OMPC_Perfo>
+  ];
+}
+def OMP_ApproxTaskLoop : Directive<"approx taskloop"> {
+  let allowedClauses = [
+    VersionedClause<OMPC_Shared>,
+    VersionedClause<OMPC_Private>,
+    VersionedClause<OMPC_FirstPrivate>,
+    VersionedClause<OMPC_LastPrivate>,
+    VersionedClause<OMPC_Untied>,
+    VersionedClause<OMPC_Mergeable>,
+    VersionedClause<OMPC_NoGroup>,
+    VersionedClause<OMPC_Reduction>,
+    VersionedClause<OMPC_InReduction>,
+    VersionedClause<OMPC_Allocate>
+  ];
+  let allowedOnceClauses = [
+    VersionedClause<OMPC_Default>,
+    VersionedClause<OMPC_If>,
+    VersionedClause<OMPC_Collapse>,
+    VersionedClause<OMPC_Final>,
+    VersionedClause<OMPC_Priority>,
+  ];
+  let allowedExclusiveClauses = [
+    VersionedClause<OMPC_GrainSize>,
+    VersionedClause<OMPC_NumTasks>
   ];
 }
