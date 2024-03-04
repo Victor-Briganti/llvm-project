@@ -12299,6 +12299,12 @@ public:
       SourceLocation LParenLoc, SourceLocation KindLoc, 
       SourceLocation CommaLoc, SourceLocation EndLoc);
 
+  /// Called on well-formed 'drop' clause.
+  OMPClause *ActOnOpenMPDropClause(Expr *Drop,
+                                   SourceLocation StartLoc,
+                                   SourceLocation LParenLoc,
+                                   SourceLocation EndLoc);
+
   /// The kind of conversion being performed.
   enum CheckedConversionKind {
     /// An implicit conversion.

@@ -2389,6 +2389,18 @@ public:
                                                  LParenLoc, EndLoc);
   }
 
+  /// Build a new OpenMP 'drop' clause.
+  ///
+  /// By default, performs semantic analysis to build the new OpenMP clause.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPDropClause(Expr *Dropping,
+                                  SourceLocation StartLoc,
+                                  SourceLocation LParenLoc,
+                                  SourceLocation EndLoc) {
+    return getSema().ActOnOpenMPDropClause(Dropping, StartLoc,
+                                           LParenLoc, EndLoc);
+  }
+
   /// Build a new OpenMP 'align' clause.
   ///
   /// By default, performs semantic analysis to build the new OpenMP clause.
@@ -10799,6 +10811,16 @@ TreeTransform<Derived>::TransformOMPPerfoClause(OMPPerfoClause *C) {
   return getDerived().RebuildOMPPerfoClause(
       C->getPerfoKind(), E.get(), C->getBeginLoc(), C->getLParenLoc(),
       C->getPerfoKindLoc(), C->getCommaLoc(), C->getEndLoc());
+}
+
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPDropClause(OMPDropClause *C) {
+  ExprResult Drop = getDerived().TransformExpr(C->getDrop());
+  if (Drop.isInvalid())
+    return nullptr;
+  return getDerived().RebuildOMPDropClause(
+      Drop.get(), C->getBeginLoc(), C->getLParenLoc(), C->getEndLoc());
 }
 
 //===----------------------------------------------------------------------===//

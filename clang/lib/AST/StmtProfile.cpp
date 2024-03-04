@@ -932,6 +932,11 @@ void OMPClauseProfiler::VisitOMPPerfoClause(const OMPPerfoClause *C) {
   if (auto *S = C->getInductionSize())
     Profiler->VisitStmt(S);
 }
+void OMPClauseProfiler::VisitOMPDropClause(const OMPDropClause *C) {
+  VistOMPClauseWithPreInit(C);
+  if (C->getDrop())
+    Profiler->VisitStmt(C->getDrop());
+}
 } // namespace
 
 void

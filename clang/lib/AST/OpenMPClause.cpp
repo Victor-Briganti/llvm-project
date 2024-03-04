@@ -109,6 +109,8 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
     return static_cast<const OMPThresholdClause *>(C);
   case OMPC_perfo:
     return static_cast<const OMPPerfoClause *>(C);
+  case OMPC_drop:
+    return static_cast<const OMPDropClause *>(C);
   case OMPC_default:
   case OMPC_proc_bind:
   case OMPC_safelen:
@@ -284,6 +286,7 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_threshold:
   case OMPC_fastmath:
   case OMPC_perfo:
+  case OMPC_drop:
     break;
   default:
     break;
@@ -2495,6 +2498,12 @@ void OMPClausePrinter::VisitOMPPerfoClause(OMPPerfoClause *Node) {
     OS << ", ";
     E->printPretty(OS, nullptr, Policy);
   }
+  OS << ")";
+}
+
+void OMPClausePrinter::VisitOMPDropClause(OMPDropClause *Node) {
+  OS << "drop(";
+  Node->getDrop()->printPretty(OS, nullptr, Policy, 0);
   OS << ")";
 }
 

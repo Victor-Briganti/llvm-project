@@ -472,6 +472,10 @@ def OMPC_Perfo : Clause<"perfo"> {
   ];
 }
 
+def OMPC_Drop : Clause<"drop"> {
+  let clangClass = "OMPDropClause";
+}
+
 //===----------------------------------------------------------------------===//
 // Definition of OpenMP directives
 //===----------------------------------------------------------------------===//
@@ -2168,6 +2172,7 @@ def OMP_ApproxFor : Directive<"approx for"> {
 }
 def OMP_ApproxTaskLoop : Directive<"approx taskloop"> {
   let allowedClauses = [
+    VersionedClause<OMPC_Drop>,
     VersionedClause<OMPC_Shared>,
     VersionedClause<OMPC_Private>,
     VersionedClause<OMPC_FirstPrivate>,

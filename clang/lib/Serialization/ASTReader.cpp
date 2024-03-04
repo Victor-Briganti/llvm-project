@@ -10365,6 +10365,9 @@ OMPClause *OMPClauseReader::readClause() {
   case llvm::omp::OMPC_perfo:
     C = new (Context) OMPPerfoClause();
     break;
+  case llvm::omp::OMPC_drop:
+    C = new (Context) OMPDropClause();
+    break;
 #define OMP_CLAUSE_NO_CLASS(Enum, Str)                                         \
   case llvm::omp::Enum:                                                        \
     break;
@@ -11450,6 +11453,12 @@ void OMPClauseReader::VisitOMPThresholdClause(OMPThresholdClause *C) {
 }
 
 void OMPClauseReader::VisitOMPFastMathClause(OMPFastMathClause *) {}
+
+void OMPClauseReader::VisitOMPDropClause(OMPDropClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  C->setDrop(Record.readSubExpr());
+  C->setLParenLoc(Record.readSourceLocation());
+}
 
 OMPTraitInfo *ASTRecordReader::readOMPTraitInfo() {
   OMPTraitInfo &TI = getContext().getNewOMPTraitInfo();

@@ -3,7 +3,7 @@
 int main() {
   int x = 0;
 #pragma omp parallel
-#pragma omp approx taskloop
+#pragma omp approx taskloop drop(5)
   {
     for (int i = 0; i < 1000; i++)
       x++;

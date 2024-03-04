@@ -7423,6 +7423,15 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
 
 void CodeGenFunction::EmitOMPApproxTaskLoopDirective(
     const OMPApproxTaskLoopDirective &S) {
+  auto *Drop = S.getSingleClause<OMPDropClause>();
+  if (!Drop) {
+    unsigned DiagID = CGM.getDiags().getCustomDiagID(
+        DiagnosticsEngine::Error,
+        "'approx taskloop' directive needs to be used alongside 'drop' clause.");
+    this->CGM.getDiags().Report(DiagID);
+    return;
+  }  
+
   auto LPCRegion =
       CGOpenMPRuntime::LastprivateConditionalRAII::disable(*this, S);
   EmitOMPTaskLoopBasedDirective(S);

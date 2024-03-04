@@ -2726,6 +2726,10 @@ void OMPClauseEnqueue::VisitOMPPerfoClause(const OMPPerfoClause *C) {
   VisitOMPClauseWithPreInit(C);
   Visitor->AddStmt(C->getInductionSize());
 }
+void OMPClauseEnqueue::VisitOMPDropClause(const OMPDropClause *C) {
+  VisitOMPClauseList(C);
+  Visitor->AddStmt(C->getDrop());
+}
 } // namespace
 
 void EnqueueVisitor::EnqueueChildren(const OMPClause *S) {

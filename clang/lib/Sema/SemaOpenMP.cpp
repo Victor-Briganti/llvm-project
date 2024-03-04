@@ -15358,6 +15358,9 @@ OMPClause *Sema::ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind, Expr *Expr,
   case OMPC_threshold:
     Res = ActOnOpenMPThresholdClause(Expr, StartLoc, LParenLoc, EndLoc);
     break;
+  case OMPC_drop:
+    Res = ActOnOpenMPDropClause(Expr, StartLoc, LParenLoc, EndLoc);
+    break;
   case OMPC_grainsize:
   case OMPC_num_tasks:
   case OMPC_device:
@@ -16345,6 +16348,13 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
       CaptureRegion = OMPD_approx_for;
     else
       llvm_unreachable("Unexpected OpenMP directive with perfo clause");
+  }
+  break;
+  case OMPC_drop: {
+    if (DKind == OMPD_approx_taskloop)
+      CaptureRegion = OMPD_approx_taskloop;
+    else
+      llvm_unreachable("Unexpected OpenMP directive with drop clause");
   }
   break;
   case OMPC_firstprivate:
@@ -24160,4 +24170,31 @@ Sema::ActOnOpenMPPerfoClause(OpenMPPerfoClauseKind Kind, Expr *InductionSize,
   return new (Context)
       OMPPerfoClause(StartLoc, LParenLoc, KindLoc, CommaLoc, EndLoc, Kind,
                         ValExpr, HelperValStmt);
+}
+
+OMPClause *Sema::ActOnOpenMPDropClause(Expr *Drop,
+                                       SourceLocation StartLoc,
+                                       SourceLocation LParenLoc,
+                                       SourceLocation EndLoc) {
+  Expr *ValExpr = Drop;
+  Stmt *HelperValStmt = nullptr;
+
+  // OpenMP [2.5, Restrictions]
+  // The drop expression must evaluate to a positive integer value.
+  if (!isNonNegativeIntegerValue(ValExpr, *this, OMPC_drop,
+                                 /*StrictlyPositive=*/true))
+    return nullptr;
+
+  OpenMPDirectiveKind DKind = DSAStack->getCurrentDirective();
+  OpenMPDirectiveKind CaptureRegion =
+      getOpenMPCaptureRegionForClause(DKind, OMPC_drop, LangOpts.OpenMP);
+  if (CaptureRegion != OMPD_unknown && !CurContext->isDependentContext()) {
+    ValExpr = MakeFullExpr(ValExpr).get();
+    llvm::MapVector<const Expr *, DeclRefExpr *> Captures;
+    ValExpr = tryBuildCapture(*this, ValExpr, Captures).get();
+    HelperValStmt = buildPreInits(Context, Captures);
+  }
+
+  return new (Context) OMPDropClause(
+      ValExpr, HelperValStmt, CaptureRegion, StartLoc, LParenLoc, EndLoc);
 }

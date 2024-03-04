@@ -9237,6 +9237,46 @@ public:
   }
 };
 
+/// This represents 'drop' clause in the '#pragma omp approx taskloop drop'
+/// directive.
+///
+/// \code
+/// #pragma omp approx taskloop drop(5)
+/// \endcode
+/// In this example directive '#pragma omp approx taskloop' has the clause 
+/// 'drop' with the dropping of 5 tasks.
+class OMPDropClause final
+    : public OMPOneStmtClause<llvm::omp::OMPC_drop, OMPClause>,
+      public OMPClauseWithPreInit {
+  friend class OMPClauseReader;
+
+  /// Set condition.
+  void setDrop(Expr *NDrop) { setStmt(NDrop); }
+
+public:
+  /// Build 'drop' clause with condition \a Drop.
+  ///
+  /// \param Drop Drop for the construct.
+  /// \param HelperDrop Helper Drop for the construct.
+  /// \param CaptureRegion Innermost OpenMP region where expressions in this
+  /// clause must be captured.
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param EndLoc Ending location of the clause.
+  OMPDropClause(Expr *Drop, Stmt *HelperDrop,
+                     OpenMPDirectiveKind CaptureRegion, SourceLocation StartLoc,
+                     SourceLocation LParenLoc, SourceLocation EndLoc)
+      : OMPOneStmtClause(Drop, StartLoc, LParenLoc, EndLoc),
+        OMPClauseWithPreInit(this) {
+    setPreInitStmt(HelperDrop, CaptureRegion);
+  }
+
+  /// Build an empty clause.
+  OMPDropClause() : OMPOneStmtClause(), OMPClauseWithPreInit(this) {}
+
+  /// Returns drop limit.
+  Expr *getDrop() const { return getStmtAs<Expr>(); }
+};
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_OPENMPCLAUSE_H
