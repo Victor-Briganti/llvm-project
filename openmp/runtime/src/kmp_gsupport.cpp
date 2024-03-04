@@ -1863,7 +1863,7 @@ void __GOMP_taskloop(void (*func)(void *), void *data,
       KMP_EXPAND_NAME(KMP_API_NAME_GOMP_TASKGROUP_REDUCTION_REGISTER)(d);
     }
   }
-  __kmpc_taskloop(&loc, gtid, task, if_val, (kmp_uint64 *)&(loop_bounds[0]),
+  __kmpc_taskloop(&loc, gtid, task, if_val, 0 ,(kmp_uint64 *)&(loop_bounds[0]),
                   (kmp_uint64 *)&(loop_bounds[1]), (kmp_int64)step, 1, sched,
                   (kmp_uint64)num_tasks, (void *)task_dup);
   if (!nogroup) {

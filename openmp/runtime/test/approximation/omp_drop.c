@@ -3,9 +3,10 @@
 int main() {
   int x = 0;
 #pragma omp parallel
-#pragma omp approx taskloop drop(5)
+#pragma omp single
+#pragma omp approx taskloop drop(5) reduction(+ : x)
   {
-    for (int i = 0; i < 1000; i++)
+    for (size_t i = 0; i < 1000; i++)
       x++;
   }
 
