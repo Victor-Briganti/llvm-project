@@ -26,14 +26,14 @@ typedef enum {
 } cache_state;
 
 struct kmp_memo_cache {
-  char *loc;
   void **addresses;
   void **datas;
+  kmp_int32 loc;
   size_t *sizes;
   kmp_int32 nvars;
   kmp_real64 thresh;
   cache_state valid; /* 1 for valid. 0 for invalid */
-  void construct(const char *loc, kmp_int32 nvars, kmp_real64 threshold);
+  void construct(kmp_int32 loc, kmp_int32 nvars, kmp_real64 threshold);
   void insert(kmp_int32 idx, void *data, size_t size);
   void update_address();
   void update_cache();
@@ -45,14 +45,14 @@ class kmp_memo_map {
   kmp_int32 nbuckets;
   kmp_int32 entries;
 
-  kmp_int32 bucket_index(const char *loc);
+  kmp_int32 bucket_index(kmp_int32 loc);
   void rehash();
 
 public:
   kmp_memo_map();
   ~kmp_memo_map();
   void insert(kmp_memo_cache *cache);
-  kmp_memo_cache *search(const char *loc);
+  kmp_memo_cache *search(kmp_int32 loc);
 };
 
 #endif // KMP_APPROX_H

@@ -2588,6 +2588,231 @@ void CGOpenMPRuntime::emitErrorCall(CodeGenFunction &CGF, SourceLocation Loc,
                       Args);
 }
 
+/// Perforation types for 'omp approx for' loops (these enumerators are taken 
+/// from the enum perfo_type in kmp.h).
+enum OpenMPPerfoType {
+  OMP_perfo_undefined = -1,
+  OMP_perfo_small = 0,
+  OMP_perfo_large = 1,
+  OMP_perfo_init = 2,
+  OMP_perfo_fini = 3,
+};
+
+/// Map the OpenMP loop perforation to the runtime enumeration.
+static OpenMPPerfoType getRuntimePerfo(OpenMPPerfoClauseKind PerfoKind) {
+  switch (PerfoKind) {
+  case OMPC_PERFO_small:
+    return OMP_perfo_small;
+  case OMPC_PERFO_large:
+    return OMP_perfo_large;
+  case OMPC_PERFO_init:
+    return OMP_perfo_init;
+  case OMPC_PERFO_fini:
+    return OMP_perfo_fini;
+  case OMPC_PERFO_unknown:
+    return OMP_perfo_undefined;
+  }
+  llvm_unreachable("Unexpected runtime perforation");
+}
+
+void CGOpenMPRuntime::emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
+                                      VarDecl *IncVar, OpenMPPerfoTy PerfoKind,
+                                      llvm::Value *Induction,
+                                      llvm::SmallVector<Address, 8> LoopAddrs,
+                                      const Expr *IncExpr) {
+  if (!CGF.HaveInsertPoint())
+    return;
+
+  llvm::Value *Ident = emitUpdateLocation(CGF, Loc);
+  llvm::Value *ThreadID = getThreadID(CGF, Loc);
+  Address IncAddr = CGF.GetAddrOfLocalVar(IncVar);
+  OpenMPPerfoType Perforation = getRuntimePerfo(PerfoKind.Perforation);
+
+  llvm::Value *Args[] = {
+      Ident,
+      ThreadID,
+      CGF.Builder.CreatePointerCast(IncAddr.getPointer(), CGM.VoidPtrTy),
+      CGF.Builder.getInt32(Perforation),
+      Induction,
+      CGF.Builder.CreatePointerCast(LoopAddrs[0].getPointer(),
+                                    CGM.VoidPtrTy), // LB
+      CGF.Builder.CreatePointerCast(LoopAddrs[1].getPointer(),
+                                    CGM.VoidPtrTy), // UB
+  };
+
+  switch (Perforation) {
+  case OMP_perfo_small: {
+  llvm::Value *ArgsEnd[] = {Ident, ThreadID};
+  CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_perfo),
+                        Args,
+                        OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_end_perfo),
+                        ArgsEnd,
+                        /*Conditional=*/true);
+    Action.Enter(CGF);
+    CGF.EmitIgnoredExpr(IncExpr);
+    Action.Done(CGF);
+    CGF.EmitIgnoredExpr(IncExpr);
+    break;
+  }
+  case OMP_perfo_large:
+    CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_perfo),
+                        Args);
+    break;
+  case OMP_perfo_fini:
+    CGF.EmitIgnoredExpr(IncExpr);
+    CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_perfo),
+                        Args);
+    break;
+  case OMP_perfo_init:
+    CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_perfo),
+                        Args);
+    return;
+  case OMP_perfo_undefined:
+  default:
+    CGF.EmitIgnoredExpr(IncExpr);
+  }
+}
+
+void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
+                                     const RegionCodeGenTy &ApproxOpGen,
+                                     SourceLocation Loc,
+                                     ArrayRef<const VarDecl *> DeclarationVars,
+                                     llvm::Value *Threshold) {
+  if (!CGF.HaveInsertPoint())
+    return;
+
+  if (DeclarationVars.size() == 0) {
+    emitInlinedDirective(CGF, OMPD_approx, ApproxOpGen);
+    return;
+  }
+
+  ASTContext &C = CGM.getContext();
+
+  llvm::Value *Ident = emitUpdateLocation(CGF, Loc);
+  llvm::Value *ThreadID = getThreadID(CGF, Loc);
+  
+  Address LocID = Address::invalid();
+  QualType KmpInt32Ty = C.getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1);
+  LocID = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.hash_loc");
+  CGF.Builder.CreateStore(CGF.Builder.getInt32(Loc.getHashValue()), LocID);
+  llvm::Value *LocHash = CGF.Builder.CreateLoad(LocID);
+
+  // int32 id_var = 0;
+  // if(__kmpc_single(ident_t *, gtid)) {
+  //  __kmpc_memo_init(ident_t *, gtid, hash_loc, num_vars)
+  //  __kmpc_memo_in(ident_t *, gtid, hash_loc, void*, size, id_var)
+  //  id_var++
+  //  ...
+  //  __kmpc_end_single(ident_t *, gtid);
+  // }
+  llvm::Value *ArgsSingle[] = {Ident, ThreadID};
+  CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_single),
+                        ArgsSingle,
+                        OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_end_single),
+                        ArgsSingle,
+                        /*Conditional=*/true);
+
+  Address IdVar = Address::invalid();
+  int IdVarIdx = DeclarationVars.size();
+  // int32 id_var = 0;
+  IdVar = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.id_var");
+  CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
+
+  Action.Enter(CGF);
+  llvm::Value *NumVars = CGF.Builder.CreateLoad(IdVar);
+
+  llvm::Value *Thresh = nullptr;
+  if (!Threshold) {
+    Address TRH = Address::invalid();
+    // int32 id_var = 0;
+    QualType KmpInt32Ty =
+        C.getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1);
+    TRH = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.tresh");
+    CGF.Builder.CreateStore(CGF.Builder.getInt32(0), TRH);
+    Thresh = CGF.Builder.CreateLoad(TRH);
+  } else
+    Thresh =
+        CGF.Builder.CreateIntCast(Threshold, CGF.Int32Ty, /*isSigned*/ true);
+
+  llvm::Value *ArgsInit[] = {Ident, ThreadID, LocHash, NumVars, Thresh};
+  CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                          CGM.getModule(), OMPRTL___kmpc_memo_init),
+                      ArgsInit);
+
+  IdVarIdx = 0;
+  CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
+
+  for (auto DV : DeclarationVars) {
+    Address Addr = CGF.GetAddrOfLocalVar(DV);
+    const VarDecl *CDV = DV->getCanonicalDecl();
+
+    llvm::Value *IdVarVal = CGF.Builder.CreateLoad(IdVar);
+
+    llvm::Value *Args[] = {
+        Ident, ThreadID, LocHash,
+        CGF.Builder.CreatePointerCast(Addr.getPointer(), CGM.VoidPtrTy),
+        CGF.getTypeSize(CDV->getType()), IdVarVal};
+    CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_memo_in),
+                        Args);
+
+    IdVarIdx++;
+    CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
+  }
+  IdVarIdx = 0;
+  Action.Done(CGF);
+
+  // __kmpc_barrier(loc, thread_id)
+  emitBarrierCall(CGF, Loc, OMPD_unknown, /*EmitChecks=*/false,
+                  /*ForceSimpleCall=*/false);
+
+  auto &&CodeGen = [&](CodeGenFunction &CGF, PrePostActionTy &PPAction) {
+    PPAction.Enter(CGF);
+    if (!CGF.HaveInsertPoint())
+      return;
+    // __kmpc_critical[_with_hint](ident_t *, gtid, Lock[, hint]);
+    // if(__kmpc_memo(ident_t *, gtid, hash_loc)) {
+    //   ApproxOpGen();
+    //   __kmpc_end_memo(ident_t *, gtid, hash_loc);
+    // }
+    // __kmpc_end_critical(ident_t *, gtid, Lock);
+    llvm::Value *Args[] = {Ident, ThreadID, LocHash};
+    CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
+                              CGM.getModule(), OMPRTL___kmpc_memo),
+                          Args,
+                          OMPBuilder.getOrCreateRuntimeFunction(
+                              CGM.getModule(), OMPRTL___kmpc_end_memo),
+                          Args,
+                          /*Conditional=*/true);
+    ApproxOpGen.setAction(Action);
+    emitInlinedDirective(CGF, OMPD_approx, ApproxOpGen);
+    CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
+    Action.Done(CGF);
+  };
+  emitCriticalRegion(CGF, CGF.CGM.getOpenMPRuntime().getName({"critical_memo"}),
+                     CodeGen, Loc, nullptr);
+
+  // __kmpc_barrier(loc, thread_id)
+  emitBarrierCall(CGF, Loc, OMPD_unknown, /*EmitChecks=*/false,
+                  /*ForceSimpleCall=*/false);
+}
+
+void CGOpenMPRuntime::emitApproxFastMathRegion(CodeGenFunction &CGF,
+                                        const RegionCodeGenTy &FastMathOpGen) {
+  if (!CGF.HaveInsertPoint())
+    return;
+
+  // OrderedOpGen();
+  emitInlinedDirective(CGF, OMPD_approx, FastMathOpGen);
+}
+
 /// Map the OpenMP loop schedule to the runtime enumeration.
 static OpenMPSchedType getRuntimeSchedule(OpenMPScheduleClauseKind ScheduleKind,
                                           bool Chunked, bool Ordered) {
@@ -12424,6 +12649,27 @@ void CGOpenMPSIMDRuntime::emitBarrierCall(CodeGenFunction &CGF,
                                           OpenMPDirectiveKind Kind,
                                           bool EmitChecks,
                                           bool ForceSimpleCall) {
+  llvm_unreachable("Not supported in SIMD-only mode");
+}
+
+void CGOpenMPSIMDRuntime::emitApproxPerfo(
+    CodeGenFunction &CGF, SourceLocation Loc,
+    VarDecl *IncVar, OpenMPPerfoTy PerfoKind,
+    llvm::Value *Induction,  llvm::SmallVector<Address, 8>LoopAddrs,
+    const Expr *IncExpr) {
+  llvm_unreachable("No supported in SIMD-only mode");
+}
+
+void CGOpenMPSIMDRuntime::emitApproxMemoRegion(
+    CodeGenFunction &CGF, const RegionCodeGenTy &ApproxGen, SourceLocation Loc,
+    ArrayRef<const VarDecl *> DeclarationVars,
+    llvm::Value *Threshold) {
+  llvm_unreachable("No supported in SIMD-only mode");
+}
+
+void CGOpenMPSIMDRuntime::emitApproxFastMathRegion(CodeGenFunction &CGF,
+                                            const RegionCodeGenTy &OrderedOpGen)
+{
   llvm_unreachable("Not supported in SIMD-only mode");
 }
 

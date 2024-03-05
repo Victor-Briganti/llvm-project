@@ -3585,6 +3585,9 @@ public:
   void EmitOMPGenericLoopDirective(const OMPGenericLoopDirective &S);
   void EmitOMPInteropDirective(const OMPInteropDirective &S);
   void EmitOMPParallelMaskedDirective(const OMPParallelMaskedDirective &S);
+  void EmitOMPApproxDirective(const OMPApproxDirective &S);
+  void EmitOMPApproxForDirective(const OMPApproxForDirective &S);
+  void EmitOMPApproxTaskLoopDirective(const OMPApproxTaskLoopDirective &S);
 
   /// Emit device code for the target directive.
   static void EmitOMPTargetDeviceFunction(CodeGenModule &CGM,
@@ -3650,7 +3653,23 @@ public:
   /// loop directvies).
   void EmitOMPInnerLoop(
       const OMPExecutableDirective &S, bool RequiresCleanup,
-      const Expr *LoopCond, const Expr *IncExpr,
+      const Expr *LoopCond, const Expr *IncExpr, const VarDecl *IncVar,llvm::SmallVector<Address, 8> LoopAddrs,
+      const llvm::function_ref<void(CodeGenFunction &)> BodyGen,
+      const llvm::function_ref<void(CodeGenFunction &)> PostIncGen);
+
+  /// Emit inner loop of the worksharing/simd construct.
+  ///
+  /// \param S Directive, for which the inner loop must be emitted.
+  /// \param RequiresCleanup true, if directive has some associated private
+  /// variables.
+  /// \param LoopCond Bollean condition for loop continuation.
+  /// \param IncExpr Increment expression for loop control variable.
+  /// \param BodyGen Generator for the inner body of the inner loop.
+  /// \param PostIncGen Genrator for post-increment code (required for ordered
+  /// loop directvies).
+  void EmitOMPInnerLoop(
+      const OMPLoopDirective &S, bool RequiresCleanup,
+      const Expr *LoopCond, const Expr *IncExpr, const VarDecl *IncVar, llvm::SmallVector<Address, 8> LoopAddrs,
       const llvm::function_ref<void(CodeGenFunction &)> BodyGen,
       const llvm::function_ref<void(CodeGenFunction &)> PostIncGen);
 

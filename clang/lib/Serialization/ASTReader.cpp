@@ -10356,6 +10356,18 @@ OMPClause *OMPClauseReader::readClause() {
   case llvm::omp::OMPC_ompx_dyn_cgroup_mem:
     C = new (Context) OMPXDynCGroupMemClause();
     break;
+  case llvm::omp::OMPC_memo:
+    C = new (Context) OMPMemoClause();
+    break;
+  case llvm::omp::OMPC_threshold:
+    C = new (Context) OMPThresholdClause();
+    break;
+  case llvm::omp::OMPC_perfo:
+    C = new (Context) OMPPerfoClause();
+    break;
+  case llvm::omp::OMPC_drop:
+    C = new (Context) OMPDropClause();
+    break;
 #define OMP_CLAUSE_NO_CLASS(Enum, Str)                                         \
   case llvm::omp::Enum:                                                        \
     break;
@@ -11432,6 +11444,22 @@ void OMPClauseReader::VisitOMPXDynCGroupMemClause(OMPXDynCGroupMemClause *C) {
   C->setLParenLoc(Record.readSourceLocation());
 }
 
+void OMPClauseReader::VisitOMPMemoClause(OMPMemoClause *) {}
+
+void OMPClauseReader::VisitOMPThresholdClause(OMPThresholdClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  C->setThreshold(Record.readSubExpr());
+  C->setLParenLoc(Record.readSourceLocation());
+}
+
+void OMPClauseReader::VisitOMPFastMathClause(OMPFastMathClause *) {}
+
+void OMPClauseReader::VisitOMPDropClause(OMPDropClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  C->setDrop(Record.readSubExpr());
+  C->setLParenLoc(Record.readSourceLocation());
+}
+
 OMPTraitInfo *ASTRecordReader::readOMPTraitInfo() {
   OMPTraitInfo &TI = getContext().getNewOMPTraitInfo();
   TI.Sets.resize(readUInt32());
@@ -11449,6 +11477,16 @@ OMPTraitInfo *ASTRecordReader::readOMPTraitInfo() {
     }
   }
   return &TI;
+}
+
+void OMPClauseReader::VisitOMPPerfoClause(OMPPerfoClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  C->setPerfoKind(
+       static_cast<OpenMPPerfoClauseKind>(Record.readInt()));
+  C->setInductionSize(Record.readSubExpr());
+  C->setLParenLoc(Record.readSourceLocation());
+  C->setPerfoKindLoc(Record.readSourceLocation());
+  C->setCommaLoc(Record.readSourceLocation());
 }
 
 void ASTRecordReader::readOMPChildren(OMPChildren *Data) {

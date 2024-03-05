@@ -1644,7 +1644,7 @@ class OMPScheduleClause : public OMPClause, public OMPClauseWithPreInit {
   OpenMPScheduleClauseKind Kind = OMPC_SCHEDULE_unknown;
 
   /// Modifiers for 'schedule' clause.
-  enum {FIRST, SECOND, NUM_MODIFIERS};
+  enum { FIRST, SECOND, NUM_MODIFIERS };
   OpenMPScheduleClauseModifier Modifiers[NUM_MODIFIERS];
 
   /// Locations of modifiers.
@@ -1876,7 +1876,7 @@ public:
                                   SourceLocation EndLoc);
 
   /// Build an empty clause.
-  static OMPOrderedClause* CreateEmpty(const ASTContext &C, unsigned NumLoops);
+  static OMPOrderedClause *CreateEmpty(const ASTContext &C, unsigned NumLoops);
 
   /// Sets the location of '('.
   void setLParenLoc(SourceLocation Loc) { LParenLoc = Loc; }
@@ -5960,9 +5960,8 @@ public:
   SourceLocation getColonLoc() const { return ColonLoc; }
 
   child_range children() {
-    return child_range(
-        reinterpret_cast<Stmt **>(varlist_begin()),
-        reinterpret_cast<Stmt **>(varlist_end()));
+    return child_range(reinterpret_cast<Stmt **>(varlist_begin()),
+                       reinterpret_cast<Stmt **>(varlist_end()));
   }
 
   const_child_range children() const {
@@ -5980,7 +5979,6 @@ public:
     auto Children = const_cast<OMPMapClause *>(this)->used_children();
     return const_child_range(Children.begin(), Children.end());
   }
-
 
   static bool classof(const OMPClause *T) {
     return T->getClauseKind() == llvm::omp::OMPC_map;
@@ -6625,8 +6623,8 @@ public:
 /// \code
 /// #pragma omp target defaultmap(tofrom: scalar)
 /// \endcode
-/// In this example directive '#pragma omp target' has 'defaultmap' clause of kind
-/// 'scalar' with modifier 'tofrom'.
+/// In this example directive '#pragma omp target' has 'defaultmap' clause of
+/// kind 'scalar' with modifier 'tofrom'.
 class OMPDefaultmapClause : public OMPClause {
   friend class OMPClauseReader;
 
@@ -6653,14 +6651,10 @@ class OMPDefaultmapClause : public OMPClause {
   /// Set the defaultmap modifier.
   ///
   /// \param M Defaultmap modifier.
-  void setDefaultmapModifier(OpenMPDefaultmapClauseModifier M) {
-    Modifier = M;
-  }
+  void setDefaultmapModifier(OpenMPDefaultmapClauseModifier M) { Modifier = M; }
 
   /// Set location of the defaultmap modifier.
-  void setDefaultmapModifierLoc(SourceLocation Loc) {
-    ModifierLoc = Loc;
-  }
+  void setDefaultmapModifierLoc(SourceLocation Loc) { ModifierLoc = Loc; }
 
   /// Sets the location of '('.
   ///
@@ -6710,9 +6704,7 @@ public:
   SourceLocation getDefaultmapKindLoc() { return KindLoc; }
 
   /// Get the modifier location.
-  SourceLocation getDefaultmapModifierLoc() const {
-    return ModifierLoc;
-  }
+  SourceLocation getDefaultmapModifierLoc() const { return ModifierLoc; }
 
   child_range children() {
     return child_range(child_iterator(), child_iterator());
@@ -8706,12 +8698,13 @@ public:
 
 /// This class implements a simple visitor for OMPClause
 /// subclasses.
-template<class ImplClass, template <typename> class Ptr, typename RetTy>
+template <class ImplClass, template <typename> class Ptr, typename RetTy>
 class OMPClauseVisitorBase {
 public:
 #define PTR(CLASS) Ptr<CLASS>
-#define DISPATCH(CLASS) \
-  return static_cast<ImplClass*>(this)->Visit##CLASS(static_cast<PTR(CLASS)>(S))
+#define DISPATCH(CLASS)                                                        \
+  return static_cast<ImplClass *>(this)->Visit##CLASS(                         \
+      static_cast<PTR(CLASS)>(S))
 
 #define GEN_CLANG_CLAUSE_CLASS
 #define CLAUSE_CLASS(Enum, Str, Class)                                         \
@@ -8742,9 +8735,9 @@ template <typename T> using const_ptr = std::add_pointer_t<std::add_const_t<T>>;
 template <class ImplClass, typename RetTy = void>
 class OMPClauseVisitor
     : public OMPClauseVisitorBase<ImplClass, std::add_pointer_t, RetTy> {};
-template<class ImplClass, typename RetTy = void>
-class ConstOMPClauseVisitor :
-      public OMPClauseVisitorBase <ImplClass, const_ptr, RetTy> {};
+template <class ImplClass, typename RetTy = void>
+class ConstOMPClauseVisitor
+    : public OMPClauseVisitorBase<ImplClass, const_ptr, RetTy> {};
 
 class OMPClausePrinter final : public OMPClauseVisitor<OMPClausePrinter> {
   raw_ostream &OS;
@@ -8801,12 +8794,11 @@ public:
   bool anyScoreOrCondition(
       llvm::function_ref<bool(Expr *&, bool /* IsScore */)> Cond) {
     return llvm::any_of(Sets, [&](OMPTraitSet &Set) {
-      return llvm::any_of(
-          Set.Selectors, [&](OMPTraitSelector &Selector) {
-            return Cond(Selector.ScoreOrCondition,
-                        /* IsScore */ Selector.Kind !=
-                            llvm::omp::TraitSelector::user_condition);
-          });
+      return llvm::any_of(Set.Selectors, [&](OMPTraitSelector &Selector) {
+        return Cond(Selector.ScoreOrCondition,
+                    /* IsScore */ Selector.Kind !=
+                        llvm::omp::TraitSelector::user_condition);
+      });
     });
   }
 
@@ -8931,8 +8923,7 @@ public:
 
   /// Get the clauses storage.
   MutableArrayRef<OMPClause *> getClauses() {
-    return llvm::MutableArrayRef(getTrailingObjects<OMPClause *>(),
-                                     NumClauses);
+    return llvm::MutableArrayRef(getTrailingObjects<OMPClause *>(), NumClauses);
   }
   ArrayRef<OMPClause *> getClauses() const {
     return const_cast<OMPChildren *>(this)->getClauses();
@@ -9046,6 +9037,246 @@ public:
   Expr *getSize() const { return getStmtAs<Expr>(); }
 };
 
+/// This represents 'memo' clause in the '#pragma omp approx' directive.
+///
+/// \code
+/// #pragma omp approx memo
+/// \endcode
+/// In this example directive '#pragma omp approx' has simple 'memo'
+/// clause.
+class OMPMemoClause final : public OMPNoChildClause<llvm::omp::OMPC_memo> {
+public:
+  friend class OMPClauseReader;
+  /// Build 'memo' clause.
+  ///
+  /// \param StartLoc Starting location of the clause.
+  /// \param EndLoc Ending location of the clause.
+  OMPMemoClause(SourceLocation StartLoc, SourceLocation EndLoc)
+      : OMPNoChildClause(StartLoc, EndLoc) {}
+
+  /// Build an empty clause.
+  OMPMemoClause() : OMPNoChildClause() {}
+};
+
+/// This represents 'threshold' clause in the '#pragma omp approx memo'
+/// directive.
+///
+/// \code
+/// #pragma omp approx memo threshold(5)
+/// \endcode
+/// In this example directive '#pragma omp approx' has the clause 'memo' and the
+/// clause 'threshold', with the threshold limit of '5'%.
+class OMPThresholdClause final
+    : public OMPOneStmtClause<llvm::omp::OMPC_threshold, OMPClause>,
+      public OMPClauseWithPreInit {
+  friend class OMPClauseReader;
+
+  /// Set condition.
+  void setThreshold(Expr *NThresh) { setStmt(NThresh); }
+
+public:
+  /// Build 'threshold' clause with condition \a Thresh.
+  ///
+  /// \param Thresh Threshold for the construct.
+  /// \param HelperThresh Helper Thresh for the construct.
+  /// \param CaptureRegion Innermost OpenMP region where expressions in this
+  /// clause must be captured.
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param EndLoc Ending location of the clause.
+  OMPThresholdClause(Expr *Thresh, Stmt *HelperThresh,
+                     OpenMPDirectiveKind CaptureRegion, SourceLocation StartLoc,
+                     SourceLocation LParenLoc, SourceLocation EndLoc)
+      : OMPOneStmtClause(Thresh, StartLoc, LParenLoc, EndLoc),
+        OMPClauseWithPreInit(this) {
+    setPreInitStmt(HelperThresh, CaptureRegion);
+  }
+
+  /// Build an empty clause.
+  OMPThresholdClause() : OMPOneStmtClause(), OMPClauseWithPreInit(this) {}
+
+  /// Returns threshold limit.
+  Expr *getThreshold() const { return getStmtAs<Expr>(); }
+};
+
+/// This represents 'fastmath' clause in the '#pragma omp approx' directive.
+///
+/// \code
+/// #pragma omp approx fastmath
+/// \endcode
+/// In this example directive '#pragma omp approx' has simple 'fastmath'
+/// clause.
+class OMPFastMathClause final : public OMPNoChildClause<llvm::omp::OMPC_fastmath> {
+public:
+  friend class OMPClauseReader;
+  /// Build 'fastmath' clause.
+  ///
+  /// \param StartLoc Starting location of the clause.
+  /// \param EndLoc Ending location of the clause.
+  OMPFastMathClause(SourceLocation StartLoc, SourceLocation EndLoc)
+      : OMPNoChildClause(StartLoc, EndLoc) {}
+
+  /// Build an empty clause.
+  OMPFastMathClause() : OMPNoChildClause() {}
+};
+
+/// This represents 'perfo' clause in the '#pragma omp approx perfo' directive.
+///
+/// \code
+/// #pragma omp approx for perfo(large, 10)
+/// \endcode
+/// In this example directive '#pragma omp for' has 'perfo' clause with
+/// arguments 'large' and '3'.
+class OMPPerfoClause : public OMPClause, public OMPClauseWithPreInit {
+  friend class OMPClauseReader;
+
+  /// Location of '('.
+  SourceLocation LParenLoc;
+
+  /// A kind of the 'perfo' clause.
+  OpenMPPerfoClauseKind Kind = OMPC_PERFO_unknown;
+
+  /// Start location of the perfo ind in source code.
+  SourceLocation KindLoc;
+
+  /// Location of ',' (if any).
+  SourceLocation CommaLoc;
+
+  /// Induction size.
+  Expr *InductionSize = nullptr;
+
+  /// Set perfo kind.
+  ///
+  /// \param K perfo kind.
+  void setPerfoKind(OpenMPPerfoClauseKind K) { Kind = K; }
+
+  /// Sets the location of '('.
+  ///
+  /// \param Loc Location of '('.
+  void setLParenLoc(SourceLocation Loc) { LParenLoc = Loc; }
+
+  /// Set perfo kind start location.
+  ///
+  /// \param KLoc Perfo kind location.
+  void setPerfoKindLoc(SourceLocation KLoc) { KindLoc = KLoc; }
+
+  /// Set location of ','.
+  ///
+  /// \param Loc Location of ','.
+  void setCommaLoc(SourceLocation Loc) { CommaLoc = Loc; }
+
+  /// Set induction size.
+  ///
+  /// \param E Induction size.
+  void setInductionSize(Expr *E) { InductionSize = E; }
+
+public:
+  /// Build 'perfo' clause with perfo kind \a Kind and induction size
+  /// expression \a InductionSize.
+  ///
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param KLoc Starting location of the argument.
+  /// \param CommaLoc Location of ','.
+  /// \param EndLoc Ending location of the clause.
+  /// \param Kind Perfo kind.
+  /// \param InductionSize Induction size.
+  /// \param HelperInductionSize Helper Induction size for combined directives.
+  OMPPerfoClause(SourceLocation StartLoc, SourceLocation LParenLoc,
+                  SourceLocation KLoc, SourceLocation CommaLoc,
+                  SourceLocation EndLoc, OpenMPPerfoClauseKind Kind,
+                  Expr *InductionSize, Stmt *HelperInductionSize)
+      : OMPClause(llvm::omp::OMPC_perfo, StartLoc, EndLoc),
+        OMPClauseWithPreInit(this), LParenLoc(LParenLoc), Kind(Kind),
+        KindLoc(KLoc), CommaLoc(CommaLoc), InductionSize(InductionSize) {
+    setPreInitStmt(HelperInductionSize);
+    }
+
+  /// Build an empty clause.
+  explicit OMPPerfoClause()
+      : OMPClause(llvm::omp::OMPC_perfo, SourceLocation(), SourceLocation()),
+        OMPClauseWithPreInit(this) {}
+
+  /// Get kind of the clause.
+  OpenMPPerfoClauseKind getPerfoKind() const { return Kind; }
+
+  /// Get location of '('.
+  SourceLocation getLParenLoc() { return LParenLoc; }
+
+  /// Get kind location.
+  SourceLocation getPerfoKindLoc() { return KindLoc; }
+
+  /// Get location of ','.
+  SourceLocation getCommaLoc() { return CommaLoc; }
+
+  /// Get induction size.
+  Expr *getInductionSize() { return InductionSize; }
+
+  /// Get induction size.
+  const Expr *getInductionSize() const { return InductionSize; }
+
+  child_range children() {
+    return child_range(reinterpret_cast<Stmt **>(&InductionSize),
+                       reinterpret_cast<Stmt **>(&InductionSize) + 1);
+  }
+
+  const_child_range children() const {
+    auto Children = const_cast<OMPPerfoClause *>(this)->children();
+    return const_child_range(Children.begin(), Children.end());
+  }
+
+  child_range used_children() {
+    return child_range(child_iterator(), child_iterator());
+  }
+  const_child_range used_children() const {
+    return const_child_range(const_child_iterator(), const_child_iterator());
+  }
+
+  static bool classof(const OMPClause *T) {
+    return T->getClauseKind() == llvm::omp::OMPC_perfo;
+  }
+};
+
+/// This represents 'drop' clause in the '#pragma omp approx taskloop drop'
+/// directive.
+///
+/// \code
+/// #pragma omp approx taskloop drop(5)
+/// \endcode
+/// In this example directive '#pragma omp approx taskloop' has the clause 
+/// 'drop' with the dropping of 5 tasks.
+class OMPDropClause final
+    : public OMPOneStmtClause<llvm::omp::OMPC_drop, OMPClause>,
+      public OMPClauseWithPreInit {
+  friend class OMPClauseReader;
+
+  /// Set condition.
+  void setDrop(Expr *NDrop) { setStmt(NDrop); }
+
+public:
+  /// Build 'drop' clause with condition \a Drop.
+  ///
+  /// \param Drop Drop for the construct.
+  /// \param HelperDrop Helper Drop for the construct.
+  /// \param CaptureRegion Innermost OpenMP region where expressions in this
+  /// clause must be captured.
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param EndLoc Ending location of the clause.
+  OMPDropClause(Expr *Drop, Stmt *HelperDrop,
+                     OpenMPDirectiveKind CaptureRegion, SourceLocation StartLoc,
+                     SourceLocation LParenLoc, SourceLocation EndLoc)
+      : OMPOneStmtClause(Drop, StartLoc, LParenLoc, EndLoc),
+        OMPClauseWithPreInit(this) {
+    setPreInitStmt(HelperDrop, CaptureRegion);
+  }
+
+  /// Build an empty clause.
+  OMPDropClause() : OMPOneStmtClause(), OMPClauseWithPreInit(this) {}
+
+  /// Returns drop limit.
+  Expr *getDrop() const { return getStmtAs<Expr>(); }
+};
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_OPENMPCLAUSE_H

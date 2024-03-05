@@ -430,6 +430,15 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   case Stmt::OMPParallelMaskedDirectiveClass:
     EmitOMPParallelMaskedDirective(cast<OMPParallelMaskedDirective>(*S));
     break;
+  case Stmt::OMPApproxDirectiveClass:
+    EmitOMPApproxDirective(cast<OMPApproxDirective>(*S));
+    break;
+  case Stmt::OMPApproxForDirectiveClass:
+    EmitOMPApproxForDirective(cast<OMPApproxForDirective>(*S));
+    break;
+  case Stmt::OMPApproxTaskLoopDirectiveClass:
+    EmitOMPApproxTaskLoopDirective(cast<OMPApproxTaskLoopDirective>(*S));
+    break;
   }
 }
 

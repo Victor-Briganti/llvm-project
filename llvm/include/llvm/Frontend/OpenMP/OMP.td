@@ -444,6 +444,38 @@ def OMPC_OMPX_DynCGroupMem : Clause<"ompx_dyn_cgroup_mem"> {
   let flangClass = "ScalarIntExpr";
 }
 
+def OMPC_Memo : Clause<"memo"> {
+  let clangClass = "OMPMemoClause";
+}
+
+def OMPC_Threshold : Clause<"threshold"> {
+  let clangClass = "OMPThresholdClause";
+}
+
+def OMPC_FastMath : Clause<"fastmath"> {
+  let clangClass = "OMPFastMathClause";
+}
+
+def OMP_PERFO_Small : ClauseVal<"small", 1, 1> {}
+def OMP_PERFO_Large : ClauseVal<"large", 2, 1> { let isDefault = 1; }
+def OMP_PERFO_Init : ClauseVal<"init", 3, 1> {}
+def OMP_PERFO_Finish : ClauseVal<"finish", 4, 1> {}
+
+def OMPC_Perfo : Clause<"perfo"> {
+  let clangClass = "OMPPerfoClause";
+  let enumClauseValue = "PerfoKind";
+  let allowedClauseValues = [
+    OMP_PERFO_Small,
+    OMP_PERFO_Large,
+    OMP_PERFO_Init,
+    OMP_PERFO_Finish,
+  ];
+}
+
+def OMPC_Drop : Clause<"drop"> {
+  let clangClass = "OMPDropClause";
+}
+
 //===----------------------------------------------------------------------===//
 // Definition of OpenMP directives
 //===----------------------------------------------------------------------===//
@@ -2109,4 +2141,58 @@ def OMP_Metadirective : Directive<"metadirective"> {
 }
 def OMP_Unknown : Directive<"unknown"> {
   let isDefault = true;
+}
+def OMP_Approx : Directive<"approx"> {
+  let allowedOnceClauses = [
+    VersionedClause<OMPC_Memo>,
+    VersionedClause<OMPC_Threshold>,
+    VersionedClause<OMPC_FastMath>
+  ];
+  let allowedClauses = [
+    VersionedClause<OMPC_Shared>
+  ];
+}
+def OMP_ApproxFor : Directive<"approx for"> {
+  let allowedClauses = [
+    VersionedClause<OMPC_Private>,
+    VersionedClause<OMPC_LastPrivate>,
+    VersionedClause<OMPC_FirstPrivate>,
+    VersionedClause<OMPC_Reduction>,
+    VersionedClause<OMPC_Collapse>,
+    VersionedClause<OMPC_Schedule>,
+    VersionedClause<OMPC_Ordered>,
+    VersionedClause<OMPC_NoWait>,
+    VersionedClause<OMPC_Linear>,
+    VersionedClause<OMPC_Allocate>,
+    VersionedClause<OMPC_Order, 50>
+  ];
+  let allowedOnceClauses = [
+    VersionedClause<OMPC_Perfo>
+  ];
+}
+def OMP_ApproxTaskLoop : Directive<"approx taskloop"> {
+  let allowedClauses = [
+    VersionedClause<OMPC_Drop>,
+    VersionedClause<OMPC_Shared>,
+    VersionedClause<OMPC_Private>,
+    VersionedClause<OMPC_FirstPrivate>,
+    VersionedClause<OMPC_LastPrivate>,
+    VersionedClause<OMPC_Untied>,
+    VersionedClause<OMPC_Mergeable>,
+    VersionedClause<OMPC_NoGroup>,
+    VersionedClause<OMPC_Reduction>,
+    VersionedClause<OMPC_InReduction>,
+    VersionedClause<OMPC_Allocate>
+  ];
+  let allowedOnceClauses = [
+    VersionedClause<OMPC_Default>,
+    VersionedClause<OMPC_If>,
+    VersionedClause<OMPC_Collapse>,
+    VersionedClause<OMPC_Final>,
+    VersionedClause<OMPC_Priority>,
+  ];
+  let allowedExclusiveClauses = [
+    VersionedClause<OMPC_GrainSize>,
+    VersionedClause<OMPC_NumTasks>
+  ];
 }

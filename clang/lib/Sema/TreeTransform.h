@@ -2377,6 +2377,30 @@ public:
                                                     EndLoc);
   }
 
+  /// Build a new OpenMP 'threshold' clause.
+  ///
+  /// By default, performs semantic analysis to build the new OpenMP clause.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPThresholdClause(Expr *Thresh,
+                                        SourceLocation StartLoc,
+                                        SourceLocation LParenLoc,
+                                        SourceLocation EndLoc) {
+    return getSema().ActOnOpenMPThresholdClause(Thresh, StartLoc,
+                                                 LParenLoc, EndLoc);
+  }
+
+  /// Build a new OpenMP 'drop' clause.
+  ///
+  /// By default, performs semantic analysis to build the new OpenMP clause.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPDropClause(Expr *Dropping,
+                                  SourceLocation StartLoc,
+                                  SourceLocation LParenLoc,
+                                  SourceLocation EndLoc) {
+    return getSema().ActOnOpenMPDropClause(Dropping, StartLoc,
+                                           LParenLoc, EndLoc);
+  }
+
   /// Build a new OpenMP 'align' clause.
   ///
   /// By default, performs semantic analysis to build the new OpenMP clause.
@@ -2421,6 +2445,19 @@ public:
                                      SourceLocation EndLoc) {
     return getSema().ActOnOpenMPMessageClause(MS, StartLoc, LParenLoc, EndLoc);
   }
+
+  /// Build a new OpenMP 'perfo' clause.
+  ///
+  /// By default, performs semantic analysis to build the new OpenMP clause.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPPerfoClause(
+      OpenMPPerfoClauseKind Kind, Expr *InductionSize, SourceLocation StartLoc,
+      SourceLocation LParenLoc, SourceLocation KindLoc,
+      SourceLocation CommaLoc, SourceLocation EndLoc) {
+    return getSema().ActOnOpenMPPerfoClause(
+        Kind, InductionSize, StartLoc, LParenLoc, KindLoc, CommaLoc, EndLoc);
+  }
+
 
   /// Rebuild the operand to an Objective-C \@synchronized statement.
   ///
@@ -9568,6 +9605,39 @@ TreeTransform<Derived>::TransformOMPTargetParallelGenericLoopDirective(
   return Res;
 }
 
+template <typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformOMPApproxDirective(OMPApproxDirective *D) {
+  DeclarationNameInfo DirName;
+  getDerived().getSema().StartOpenMPDSABlock(OMPD_approx, DirName, nullptr,
+                                             D->getBeginLoc());
+  StmtResult Res = getDerived().TransformOMPExecutableDirective(D);
+  getDerived().getSema().EndOpenMPDSABlock(Res.get());
+  return Res;
+}
+
+template <typename Derived>
+StmtResult TreeTransform<Derived>::TransformOMPApproxForDirective(
+    OMPApproxForDirective *D) {
+  DeclarationNameInfo DirName;
+  getDerived().getSema().StartOpenMPDSABlock(OMPD_approx_for, DirName,
+                                             nullptr, D->getBeginLoc());
+  StmtResult Res = getDerived().TransformOMPExecutableDirective(D);
+  getDerived().getSema().EndOpenMPDSABlock(Res.get());
+  return Res;
+}
+
+template <typename Derived>
+StmtResult TreeTransform<Derived>::TransformOMPApproxTaskLoopDirective(
+    OMPApproxTaskLoopDirective *D) {
+  DeclarationNameInfo DirName;
+  getDerived().getSema().StartOpenMPDSABlock(OMPD_approx_taskloop, DirName,
+                                             nullptr, D->getBeginLoc());
+  StmtResult Res = getDerived().TransformOMPExecutableDirective(D);
+  getDerived().getSema().EndOpenMPDSABlock(Res.get());
+  return Res;
+}
+
 //===----------------------------------------------------------------------===//
 // OpenMP clause transformation
 //===----------------------------------------------------------------------===//
@@ -10708,6 +10778,49 @@ OMPClause *TreeTransform<Derived>::TransformOMPXDynCGroupMemClause(
     return nullptr;
   return getDerived().RebuildOMPXDynCGroupMemClause(
       Size.get(), C->getBeginLoc(), C->getLParenLoc(), C->getEndLoc());
+}
+
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPMemoClause(OMPMemoClause *C) {
+  llvm_unreachable("memo clause cannot appear in dependent context");
+}
+
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPThresholdClause(OMPThresholdClause *C) {
+  ExprResult Threshold = getDerived().TransformExpr(C->getThreshold());
+  if (Threshold.isInvalid())
+    return nullptr;
+  return getDerived().RebuildOMPThresholdClause(
+      Threshold.get(), C->getBeginLoc(), C->getLParenLoc(), C->getEndLoc());
+}
+
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPFastMathClause(OMPFastMathClause *C) {
+  llvm_unreachable("fastmath clause cannot appear in dependent context");
+}
+
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPPerfoClause(OMPPerfoClause *C) {
+  ExprResult E = getDerived().TransformExpr(C->getInductionSize());
+  if (E.isInvalid())
+    return nullptr;
+  return getDerived().RebuildOMPPerfoClause(
+      C->getPerfoKind(), E.get(), C->getBeginLoc(), C->getLParenLoc(),
+      C->getPerfoKindLoc(), C->getCommaLoc(), C->getEndLoc());
+}
+
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPDropClause(OMPDropClause *C) {
+  ExprResult Drop = getDerived().TransformExpr(C->getDrop());
+  if (Drop.isInvalid())
+    return nullptr;
+  return getDerived().RebuildOMPDropClause(
+      Drop.get(), C->getBeginLoc(), C->getLParenLoc(), C->getEndLoc());
 }
 
 //===----------------------------------------------------------------------===//

@@ -11,16 +11,20 @@
 //===----------------------------------------------------------------------===//
 
 #include "kmp_approx.h"
+#include "kmp.h"
 #include <math.h>
+
+/* ------------------------------------------------------------------------ */
+/* Memoization                                                              */
+/* ------------------------------------------------------------------------ */
 
 // TODO: Enable read/write locks on the structure. Following:
 // https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock#Using_two_mutexes
 kmp_memo_map kmap;
 
-void kmp_memo_cache::construct(const char *location, kmp_int32 num_vars,
+void kmp_memo_cache::construct(kmp_int32 location, kmp_int32 num_vars,
                                kmp_real64 threshold) {
-  loc = (char *)kmpc_malloc(sizeof(char) * (strlen(location) + 1));
-  strcpy(loc, location);
+  loc = location;
   nvars = num_vars;
   sizes = (size_t *)kmpc_malloc(sizeof(size_t) * num_vars);
   datas = (void **)kmpc_malloc(sizeof(void *) * num_vars);
@@ -46,7 +50,6 @@ void kmp_memo_cache::update_address() {
 }
 
 void kmp_memo_cache::destruct() {
-  kmpc_free(loc);
   kmpc_free(sizes);
   for (kmp_int32 i = 0; i < nvars; i++)
     kmpc_free(datas[i]);
@@ -80,8 +83,9 @@ kmp_memo_map::~kmp_memo_map() {
 // More about it can be found:
 // http://www.cse.yorku.ca/~oz/hash.html#sdbm
 // https://github.com/davidar/sdbm/blob/29d5ed2b5297e51125ee45f6efc5541851aab0fb/hash.c#L18-L47
-kmp_int32 kmp_memo_map::bucket_index(const char *key) {
+kmp_int32 kmp_memo_map::bucket_index(kmp_int32 loc) {
   kmp_int32 hash = 0;
+  const char *key = (const char *)&loc;
   int c;
 
   while ((c = *(unsigned char *)(key++)))
@@ -132,17 +136,17 @@ void kmp_memo_map::insert(kmp_memo_cache *cache) {
     rehash();
 }
 
-kmp_memo_cache *kmp_memo_map::search(const char *loc) {
+kmp_memo_cache *kmp_memo_map::search(kmp_int32 loc) {
   kmp_int32 idx = bucket_index(loc);
   if (buckets[idx] == NULL)
     return NULL;
 
-  if (!strcmp(buckets[idx]->loc, loc))
+  if (buckets[idx]->loc == loc)
     return buckets[idx];
 
   kmp_int32 i = (idx + 1) % nbuckets;
   while (buckets[i] != NULL && i != idx) {
-    if (!strcmp(buckets[i]->loc, loc))
+    if (buckets[i]->loc == loc)
       return buckets[i];
 
     i = (i + 1) % nbuckets;
@@ -177,26 +181,26 @@ static void compare(kmp_memo_cache *cache) {
 
 /*----------------------------------------------------------------------------*/
 
-void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 num_vars,
-                             kmp_int32 tresh) {
-  kmp_memo_cache *cache = kmap.search(loc->psource);
+void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
+                             kmp_int32 num_vars, kmp_int32 tresh) {
+  kmp_memo_cache *cache = kmap.search(hash_loc);
   if (cache != NULL)
     return;
 
   cache = (kmp_memo_cache *)kmpc_malloc(sizeof(kmp_memo_cache));
-  cache->construct(loc->psource, num_vars, tresh);
+  cache->construct(hash_loc, num_vars, tresh);
   kmap.insert(cache);
 }
 
-void __kmp_memo_copy_in(kmp_int32 gtid, ident_t *loc, void *data, size_t size,
-                        kmp_int32 id_var) {
-  kmp_memo_cache *cache = kmap.search(loc->psource);
+void __kmp_memo_copy_in(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
+                        void *data, size_t size, kmp_int32 id_var) {
+  kmp_memo_cache *cache = kmap.search(hash_loc);
   if (cache->valid == UNINITIALIZED)
     cache->insert(id_var, data, size);
 }
 
-kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc) {
-  kmp_memo_cache *cache = kmap.search(loc->psource);
+kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
+  kmp_memo_cache *cache = kmap.search(hash_loc);
   switch (cache->valid) {
   case UNINITIALIZED:
   case INVALID:
@@ -207,8 +211,8 @@ kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc) {
   return 0;
 }
 
-void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc) {
-  kmp_memo_cache *cache = kmap.search(loc->psource);
+void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
+  kmp_memo_cache *cache = kmap.search(hash_loc);
   if (cache->valid == UNINITIALIZED) {
     cache->valid = INVALID;
     cache->update_cache();
@@ -225,4 +229,37 @@ void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc) {
     cache->update_cache();
     cache->valid = VALID;
   }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Perforation                                                              */
+/* ------------------------------------------------------------------------ */
+
+int __kmp_perforation(int gtid, ident_t *id_ref, void *inc_var,
+                       perfo_t perfo_type, kmp_int32 induction, kmp_int32 lb,
+                       kmp_int32 ub) {
+  switch(perfo_type) {
+    case perfo_fini: {
+      if (*(kmp_int32*)inc_var + induction > ub)
+        *(kmp_int32*)inc_var += induction;
+
+      return 0;
+    }
+    case perfo_init: {
+      *(kmp_int32*)inc_var = lb + induction;
+      return 0;
+    }
+    case perfo_small: {
+      kmp_int32 k = (rand() % (ub - lb) + ub) % induction;
+      return (*(kmp_int32*)inc_var % induction == k ? 1 : 0);
+    }
+    case perfo_large: {
+      *(kmp_int32*)inc_var += induction;
+      return 0;
+    }
+    case perfo_undefined:
+    default:
+        KMP_ASSERT2(perfo_type >= 0, "undefined perforation type");
+  }
+  return 0;
 }

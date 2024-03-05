@@ -1127,6 +1127,22 @@ void StmtPrinter::VisitOMPTargetParallelGenericLoopDirective(
   PrintOMPExecutableDirective(Node);
 }
 
+void StmtPrinter::VisitOMPApproxDirective(OMPApproxDirective *Node) {
+  Indent() << "#pragma omp approx";
+  PrintOMPExecutableDirective(Node);
+}
+
+void StmtPrinter::VisitOMPApproxForDirective(OMPApproxForDirective *Node) {
+  Indent() << "#pragma omp approx for";
+  PrintOMPExecutableDirective(Node);
+}
+
+void StmtPrinter::VisitOMPApproxTaskLoopDirective(
+    OMPApproxTaskLoopDirective *Node) {
+  Indent() << "#pragma omp approx taskloop";
+  PrintOMPExecutableDirective(Node);
+}
+
 //===----------------------------------------------------------------------===//
 //  Expr printing methods.
 //===----------------------------------------------------------------------===//

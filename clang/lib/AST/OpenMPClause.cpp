@@ -105,6 +105,12 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
     return static_cast<const OMPFilterClause *>(C);
   case OMPC_ompx_dyn_cgroup_mem:
     return static_cast<const OMPXDynCGroupMemClause *>(C);
+  case OMPC_threshold:
+    return static_cast<const OMPThresholdClause *>(C);
+  case OMPC_perfo:
+    return static_cast<const OMPPerfoClause *>(C);
+  case OMPC_drop:
+    return static_cast<const OMPDropClause *>(C);
   case OMPC_default:
   case OMPC_proc_bind:
   case OMPC_safelen:
@@ -170,6 +176,8 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_bind:
+  case OMPC_memo:
+  case OMPC_fastmath:
     break;
   default:
     break;
@@ -274,6 +282,11 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_bind:
+  case OMPC_memo:
+  case OMPC_threshold:
+  case OMPC_fastmath:
+  case OMPC_perfo:
+  case OMPC_drop:
     break;
   default:
     break;
@@ -2461,6 +2474,36 @@ void OMPClausePrinter::VisitOMPXDynCGroupMemClause(
     OMPXDynCGroupMemClause *Node) {
   OS << "ompx_dyn_cgroup_mem(";
   Node->getSize()->printPretty(OS, nullptr, Policy, 0);
+  OS << ")";
+}
+
+void OMPClausePrinter::VisitOMPMemoClause(OMPMemoClause *) {
+  OS << "memo";
+}
+
+void OMPClausePrinter::VisitOMPThresholdClause(OMPThresholdClause *Node) {
+  OS << "threshold(";
+  Node->getThreshold()->printPretty(OS, nullptr, Policy, 0);
+  OS << ")";
+}
+
+void OMPClausePrinter::VisitOMPFastMathClause(OMPFastMathClause *) {
+  OS << "fastmath";
+}
+
+void OMPClausePrinter::VisitOMPPerfoClause(OMPPerfoClause *Node) {
+  OS << "perfo(";
+  OS << getOpenMPSimpleClauseTypeName(OMPC_perfo, Node->getPerfoKind());
+  if (auto *E = Node->getInductionSize()) {
+    OS << ", ";
+    E->printPretty(OS, nullptr, Policy);
+  }
+  OS << ")";
+}
+
+void OMPClausePrinter::VisitOMPDropClause(OMPDropClause *Node) {
+  OS << "drop(";
+  Node->getDrop()->printPretty(OS, nullptr, Policy, 0);
   OS << ")";
 }
 

@@ -920,6 +920,23 @@ void OMPClauseProfiler::VisitOMPXDynCGroupMemClause(
   if (Expr *Size = C->getSize())
     Profiler->VisitStmt(Size);
 }
+void OMPClauseProfiler::VisitOMPMemoClause(const OMPMemoClause *) {}
+void OMPClauseProfiler::VisitOMPThresholdClause(const OMPThresholdClause *C) {
+  VistOMPClauseWithPreInit(C);
+  if (C->getThreshold())
+    Profiler->VisitStmt(C->getThreshold());
+}
+void OMPClauseProfiler::VisitOMPFastMathClause(const OMPFastMathClause *) {}
+void OMPClauseProfiler::VisitOMPPerfoClause(const OMPPerfoClause *C) {
+  VistOMPClauseWithPreInit(C);
+  if (auto *S = C->getInductionSize())
+    Profiler->VisitStmt(S);
+}
+void OMPClauseProfiler::VisitOMPDropClause(const OMPDropClause *C) {
+  VistOMPClauseWithPreInit(C);
+  if (C->getDrop())
+    Profiler->VisitStmt(C->getDrop());
+}
 } // namespace
 
 void
@@ -1282,6 +1299,20 @@ void StmtProfiler::VisitOMPParallelGenericLoopDirective(
 
 void StmtProfiler::VisitOMPTargetParallelGenericLoopDirective(
     const OMPTargetParallelGenericLoopDirective *S) {
+  VisitOMPLoopDirective(S);
+}
+
+void StmtProfiler::VisitOMPApproxDirective(const OMPApproxDirective *S) {
+  VisitOMPExecutableDirective(S);
+}
+
+void
+StmtProfiler::VisitOMPApproxForDirective(const OMPApproxForDirective *S) {
+  VisitOMPLoopDirective(S);
+}
+
+void StmtProfiler::VisitOMPApproxTaskLoopDirective(
+    const OMPApproxTaskLoopDirective *S) {
   VisitOMPLoopDirective(S);
 }
 

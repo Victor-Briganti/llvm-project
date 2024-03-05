@@ -11781,6 +11781,26 @@ public:
       ArrayRef<OMPInteropInfo> AppendArgs, SourceLocation AdjustArgsLoc,
       SourceLocation AppendArgsLoc, SourceRange SR);
 
+  /// Called on well-formed '\#pragma omp approx' after parsing
+  /// of the  associated statement.
+  StmtResult ActOnOpenMPApproxDirective(ArrayRef<OMPClause *> Clauses,
+                                      SourceLocation StartLoc,
+                                      SourceLocation EndLoc,
+                                      Stmt *AStmt);
+  /// Called on well-formed '\#pragma omp approx for' after parsing
+  /// of the  associated statement.
+  StmtResult ActOnOpenMPApproxForDirective(
+      ArrayRef<OMPClause *> Clauses, Stmt *AStmt, SourceLocation StartLoc,
+      SourceLocation EndLoc, VarsWithInheritedDSAType &VarsWithImplicitDSA);
+
+  /// Called on well-formed '\#pragma omp approx taskloop' after parsing of the
+  /// associated statement.
+  StmtResult
+  ActOnOpenMPApproxTaskLoopDirective(ArrayRef<OMPClause *> Clauses, Stmt *AStmt,
+                               SourceLocation StartLoc, SourceLocation EndLoc,
+                               VarsWithInheritedDSAType &VarsWithImplicitDSA);
+
+
   OMPClause *ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind,
                                          Expr *Expr,
                                          SourceLocation StartLoc,
@@ -12258,6 +12278,32 @@ public:
   OMPClause *ActOnOpenMPXDynCGroupMemClause(Expr *Size, SourceLocation StartLoc,
                                             SourceLocation LParenLoc,
                                             SourceLocation EndLoc);
+
+  /// Called on well-formed 'memo' clause.
+  OMPClause *ActOnOpenMPMemoClause(SourceLocation StartLoc,
+                                   SourceLocation EndLoc);
+
+  /// Called on well-formed 'threshold' clause.
+  OMPClause *ActOnOpenMPThresholdClause(Expr *Threshold,
+                                         SourceLocation StartLoc,
+                                         SourceLocation LParenLoc,
+                                         SourceLocation EndLoc);
+
+  /// Called on well-formed 'fastmath' clause.
+  OMPClause *ActOnOpenMPFastMathClause(SourceLocation StartLoc,
+                                   SourceLocation EndLoc);
+
+  /// Called on well-formed 'perfo' clause.
+  OMPClause *ActOnOpenMPPerfoClause(
+      OpenMPPerfoClauseKind Kind, Expr *InductionSize, SourceLocation StartLoc,
+      SourceLocation LParenLoc, SourceLocation KindLoc, 
+      SourceLocation CommaLoc, SourceLocation EndLoc);
+
+  /// Called on well-formed 'drop' clause.
+  OMPClause *ActOnOpenMPDropClause(Expr *Drop,
+                                   SourceLocation StartLoc,
+                                   SourceLocation LParenLoc,
+                                   SourceLocation EndLoc);
 
   /// The kind of conversion being performed.
   enum CheckedConversionKind {

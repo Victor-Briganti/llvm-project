@@ -7139,6 +7139,31 @@ void OMPClauseWriter::VisitOMPXDynCGroupMemClause(OMPXDynCGroupMemClause *C) {
   Record.AddSourceLocation(C->getLParenLoc());
 }
 
+void OMPClauseWriter::VisitOMPMemoClause(OMPMemoClause *) {}
+
+void OMPClauseWriter::VisitOMPThresholdClause(OMPThresholdClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  Record.AddStmt(C->getThreshold());
+  Record.AddSourceLocation(C->getLParenLoc());
+}
+
+void OMPClauseWriter::VisitOMPFastMathClause(OMPFastMathClause *) {}
+
+void OMPClauseWriter::VisitOMPPerfoClause(OMPPerfoClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  Record.push_back(C->getPerfoKind());
+  Record.AddStmt(C->getInductionSize());
+  Record.AddSourceLocation(C->getLParenLoc());
+  Record.AddSourceLocation(C->getPerfoKindLoc());
+  Record.AddSourceLocation(C->getCommaLoc());
+}
+
+void OMPClauseWriter::VisitOMPDropClause(OMPDropClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  Record.AddStmt(C->getDrop());
+  Record.AddSourceLocation(C->getLParenLoc());
+}
+
 void ASTRecordWriter::writeOMPTraitInfo(const OMPTraitInfo *TI) {
   writeUInt32(TI->Sets.size());
   for (const auto &Set : TI->Sets) {

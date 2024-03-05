@@ -215,6 +215,18 @@ enum OpenMPNumTasksClauseModifier {
   OMPC_NUMTASKS_unknown
 };
 
+/// OpenMP attributes for 'perfo' clause.
+enum OpenMPPerfoClauseKind {
+#define OPENMP_PERFO_KIND(Name) OMPC_PERFO_##Name,
+#include "clang/Basic/OpenMPKinds.def"
+  OMPC_PERFO_unknown
+};
+
+/// Perforation data for loop and approximat based OpenMP directives.
+struct OpenMPPerfoTy final {
+  OpenMPPerfoClauseKind Perforation = OMPC_PERFO_unknown;
+};
+
 /// Contains 'interop' data for 'append_args' and 'init' clauses.
 class Expr;
 struct OMPInteropInfo final {
@@ -349,6 +361,11 @@ void getOpenMPCaptureRegions(
 /// \return true - if the above condition is met for this directive
 /// otherwise - false.
 bool isOpenMPCombinedParallelADirective(OpenMPDirectiveKind DKind);
+
+/// Checks if the specified directive is a approx directive.
+/// \param DKind Specified directive.
+/// \return True iff the directive is a approx.
+bool isOpenMPApproxDirective(OpenMPDirectiveKind DKind);
 }
 
 #endif

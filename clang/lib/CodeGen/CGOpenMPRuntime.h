@@ -865,6 +865,26 @@ public:
                                bool EmitChecks = true,
                                bool ForceSimpleCall = false);
 
+  /// Emit approximatted region
+    virtual void emitApproxMemoRegion(CodeGenFunction &CGF, 
+                                  const RegionCodeGenTy &ApproxGen,
+                                  SourceLocation Loc,
+                                  ArrayRef<const VarDecl *> DeclarationVars,
+                                  llvm::Value *Threshold);
+
+  /// Emit an approximatted fastmath region.
+  /// \param OrderedOpGen Generator for the statement associated with the given
+  /// approx region.
+  virtual void emitApproxFastMathRegion(CodeGenFunction &CGF,
+                                 const RegionCodeGenTy &OrderedOpGen);
+
+  /// Emit approximatted region
+  virtual void emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
+                               VarDecl *IncVar, OpenMPPerfoTy PerfoKind,
+                               llvm::Value *Induction,
+                               llvm::SmallVector<Address, 8>LoopAddrs,
+                               const Expr *IncExpr);
+
   /// Check if the specified \a ScheduleKind is static non-chunked.
   /// This kind of worksharing directive is emitted without outer loop.
   /// \param ScheduleKind Schedule kind specified in the 'schedule' clause.
@@ -1793,6 +1813,27 @@ public:
   void emitBarrierCall(CodeGenFunction &CGF, SourceLocation Loc,
                        OpenMPDirectiveKind Kind, bool EmitChecks = true,
                        bool ForceSimpleCall = false) override;
+
+  /// Emit approx directive
+  virtual void
+  emitApproxMemoRegion(CodeGenFunction &CGF, const RegionCodeGenTy &ApproxGen,
+                 SourceLocation Loc,
+                 ArrayRef<const VarDecl *> DeclarationVars,
+                 llvm::Value *Threshold) override;
+
+  /// Emit an approx region.
+  /// \param OrderedOpGen Generator for the statement associated with the given
+  /// approx region.
+  void emitApproxFastMathRegion(CodeGenFunction &CGF,
+                         const RegionCodeGenTy &OrderedOpGen) override;
+
+    /// Emit approx directive
+  virtual void emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
+                               VarDecl *IncVar,
+                               OpenMPPerfoTy PerfoKind,
+                               llvm::Value *Induction,
+                               llvm::SmallVector<Address, 8>LoopAddrs,
+                               const Expr *IncExpr) override;
 
   /// This is used for non static scheduled types and when the ordered
   /// clause is present on the loop construct.

@@ -1,6 +1,6 @@
+// RUN: %libomp-compile-and-run
 #include <stdlib.h>
 #include <stdio.h>
-#include "omp_testsuite.h"
 
 int test_omp_memo() {
   int a, b, c, d, e, f, g, h, m, n, o, p, x, y, z;
@@ -25,24 +25,24 @@ int test_omp_memo() {
 #pragma omp parallel
   {
     for (int i = 0; i < 1000; i++) {
-#pragma omp memo shared(a, b, c, d, e, f, g, h, m, n, o, p)
+#pragma omp approx memo shared(a, b, c, d, e, f, g, h, m, n, o, p)
       { a++, b++, c++, d++, e++, f++, g++, h++, m++, n++, o++, p++; }
     }
 
     for (int i = 0; i < 1000; i++) {
-#pragma omp memo shared(x, y, z)
+#pragma omp approx memo shared(x, y, z)
       { x++, y++, z++; }
     }
   }
 
-  if (a != saved[0] + 1 && b != saved[1] + 1 && c != saved[2] + 1 &&
-      d != saved[3] + 1 && e != saved[4] + 1 && f != saved[5] + 1 &&
-      g != saved[6] + 1 && h != saved[7] + 1 && m != saved[8] + 1 &&
-      n != saved[9] + 1 && o != saved[10] + 1 && p != saved[11] + 1 &&
-      x != saved[12] + 1 && y != saved[13] + 1 && z != saved[14] + 1)
-    return 0;
+  if (a == (saved[0] + 1) && b == (saved[1] + 1) && c == (saved[2] + 1) &&
+      d == (saved[3] + 1) && e == (saved[4] + 1) && f == (saved[5] + 1) &&
+      g == (saved[6] + 1) && h == (saved[7] + 1) && m == (saved[8] + 1) &&
+      n == (saved[9] + 1) && o == (saved[10] + 1) && p == (saved[11] + 1) &&
+      x == (saved[12] + 1) && y == (saved[13] + 1) && z == (saved[14] + 1))
+    return 1;
 
-  return 1;
+  return 0;
 }
 
 int main() {
