@@ -137,7 +137,6 @@ def OMP_SCHEDULE_Dynamic : ClauseVal<"dynamic", 3, 1> {}
 def OMP_SCHEDULE_Guided : ClauseVal<"guided", 4, 1> {}
 def OMP_SCHEDULE_Auto : ClauseVal<"auto", 5, 1> {}
 def OMP_SCHEDULE_Runtime : ClauseVal<"runtime", 6, 1> {}
-def OMP_SCHEDULE_Perfo : ClauseVal<"perfo", 8, 1> {}
 def OMP_SCHEDULE_Default : ClauseVal<"default", 7, 0> { let isDefault = 1; }
 
 def OMPC_Schedule : Clause<"schedule"> {
@@ -150,7 +149,6 @@ def OMPC_Schedule : Clause<"schedule"> {
     OMP_SCHEDULE_Guided,
     OMP_SCHEDULE_Auto,
     OMP_SCHEDULE_Runtime,
-    OMP_SCHEDULE_Perfo,
     OMP_SCHEDULE_Default
   ];
 }
@@ -444,10 +442,6 @@ def OMPC_Bind : Clause<"bind"> {
 def OMPC_OMPX_DynCGroupMem : Clause<"ompx_dyn_cgroup_mem"> {
   let clangClass = "OMPXDynCGroupMemClause";
   let flangClass = "ScalarIntExpr";
-}
-
-def OMPC_Threshold : Clause<"threshold"> {
-  let clangClass = "OMPThresholdClause";
 }
 
 //===----------------------------------------------------------------------===//
@@ -2115,12 +2109,4 @@ def OMP_Metadirective : Directive<"metadirective"> {
 }
 def OMP_Unknown : Directive<"unknown"> {
   let isDefault = true;
-}
-def OMP_Memo : Directive<"memo"> {
-  let allowedOnceClauses = [
-    VersionedClause<OMPC_Threshold>
-  ];
-  let allowedClauses = [ 
-    VersionedClause<OMPC_Shared>
-  ];
 }

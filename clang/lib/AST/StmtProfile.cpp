@@ -920,11 +920,6 @@ void OMPClauseProfiler::VisitOMPXDynCGroupMemClause(
   if (Expr *Size = C->getSize())
     Profiler->VisitStmt(Size);
 }
-void OMPClauseProfiler::VisitOMPThresholdClause(const OMPThresholdClause *C) {
-  VistOMPClauseWithPreInit(C);
-  if (C->getThreshold())
-    Profiler->VisitStmt(C->getThreshold());
-}
 } // namespace
 
 void
@@ -1288,10 +1283,6 @@ void StmtProfiler::VisitOMPParallelGenericLoopDirective(
 void StmtProfiler::VisitOMPTargetParallelGenericLoopDirective(
     const OMPTargetParallelGenericLoopDirective *S) {
   VisitOMPLoopDirective(S);
-}
-
-void StmtProfiler::VisitOMPMemoDirective(const OMPMemoDirective *S) {
-  VisitOMPExecutableDirective(S);
 }
 
 void StmtProfiler::VisitExpr(const Expr *S) {

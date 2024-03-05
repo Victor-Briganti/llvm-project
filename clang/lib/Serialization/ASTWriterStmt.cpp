@@ -2699,12 +2699,6 @@ void ASTStmtWriter::VisitOMPTargetParallelGenericLoopDirective(
   Code = serialization::STMT_OMP_TARGET_PARALLEL_GENERIC_LOOP_DIRECTIVE;
 }
 
-void ASTStmtWriter::VisitOMPMemoDirective(OMPMemoDirective *D) {
-  VisitStmt(D);
-  VisitOMPExecutableDirective(D);
-  Code = serialization::STMT_OMP_MEMO_DIRECTIVE;
-}
-
 //===----------------------------------------------------------------------===//
 // ASTWriter Implementation
 //===----------------------------------------------------------------------===//

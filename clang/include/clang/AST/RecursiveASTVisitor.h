@@ -3160,9 +3160,6 @@ DEF_TRAVERSE_STMT(OMPTargetParallelGenericLoopDirective,
 DEF_TRAVERSE_STMT(OMPErrorDirective,
                   { TRY_TO(TraverseOMPExecutableDirective(S)); })
 
-DEF_TRAVERSE_STMT(OMPMemoDirective,
-                  { TRY_TO(TraverseOMPExecutableDirective(S)); })
-
 // OpenMP clauses.
 template <typename Derived>
 bool RecursiveASTVisitor<Derived>::TraverseOMPClause(OMPClause *C) {
@@ -3860,14 +3857,6 @@ bool RecursiveASTVisitor<Derived>::VisitOMPXDynCGroupMemClause(
     OMPXDynCGroupMemClause *C) {
   TRY_TO(VisitOMPClauseWithPreInit(C));
   TRY_TO(TraverseStmt(C->getSize()));
-  return true;
-}
-
-template <typename Derived>
-bool
-RecursiveASTVisitor<Derived>::VisitOMPThresholdClause(OMPThresholdClause *C) {
-  TRY_TO(VisitOMPClauseWithPreInit(C));
-  TRY_TO(TraverseStmt(C->getThreshold()));
   return true;
 }
 

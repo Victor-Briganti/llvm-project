@@ -2377,18 +2377,6 @@ public:
                                                     EndLoc);
   }
 
-  /// Build a new OpenMP 'threshold' clause.
-  ///
-  /// By default, performs semantic analysis to build the new OpenMP clause.
-  /// Subclasses may override this routine to provide different behavior.
-  OMPClause *RebuildOMPThresholdClause(Expr *Thresh,
-                                        SourceLocation StartLoc,
-                                        SourceLocation LParenLoc,
-                                        SourceLocation EndLoc) {
-    return getSema().ActOnOpenMPThresholdClause(Thresh, StartLoc,
-                                                 LParenLoc, EndLoc);
-  }
-
   /// Build a new OpenMP 'align' clause.
   ///
   /// By default, performs semantic analysis to build the new OpenMP clause.
@@ -9580,17 +9568,6 @@ TreeTransform<Derived>::TransformOMPTargetParallelGenericLoopDirective(
   return Res;
 }
 
-template <typename Derived>
-StmtResult
-TreeTransform<Derived>::TransformOMPMemoDirective(OMPMemoDirective *D) {
-  DeclarationNameInfo DirName;
-  getDerived().getSema().StartOpenMPDSABlock(OMPD_memo, DirName, nullptr,
-                                             D->getBeginLoc());
-  StmtResult Res = getDerived().TransformOMPExecutableDirective(D);
-  getDerived().getSema().EndOpenMPDSABlock(Res.get());
-  return Res;
-}
-
 //===----------------------------------------------------------------------===//
 // OpenMP clause transformation
 //===----------------------------------------------------------------------===//
@@ -10733,15 +10710,6 @@ OMPClause *TreeTransform<Derived>::TransformOMPXDynCGroupMemClause(
       Size.get(), C->getBeginLoc(), C->getLParenLoc(), C->getEndLoc());
 }
 
-template <typename Derived>
-OMPClause *
-TreeTransform<Derived>::TransformOMPThresholdClause(OMPThresholdClause *C) {
-  ExprResult Threshold = getDerived().TransformExpr(C->getThreshold());
-  if (Threshold.isInvalid())
-    return nullptr;
-  return getDerived().RebuildOMPThresholdClause(
-      Threshold.get(), C->getBeginLoc(), C->getLParenLoc(), C->getEndLoc());
-}
 //===----------------------------------------------------------------------===//
 // Expression transformation
 //===----------------------------------------------------------------------===//

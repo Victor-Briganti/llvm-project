@@ -1395,7 +1395,6 @@ void CodeGenFunction::EmitOMPReductionClauseInit(
     case OMPD_declare_variant:
     case OMPD_begin_declare_variant:
     case OMPD_end_declare_variant:
-    case OMPD_memo:
     case OMPD_unknown:
     default:
       llvm_unreachable("Enexpected directive with task reductions.");
@@ -3860,7 +3859,6 @@ static bool isSupportedByOpenMPIRBuilder(const OMPForDirective &S) {
       case OMPC_SCHEDULE_runtime:
       case OMPC_SCHEDULE_guided:
       case OMPC_SCHEDULE_static:
-      case OMPC_SCHEDULE_perfo:
         continue;
       case OMPC_SCHEDULE_unknown:
         return false;
@@ -3888,8 +3886,6 @@ convertClauseKindToSchedKind(OpenMPScheduleClauseKind ScheduleClauseKind) {
     return llvm::omp::OMP_SCHEDULE_Runtime;
   case OMPC_SCHEDULE_static:
     return llvm::omp::OMP_SCHEDULE_Static;
-  case OMPC_SCHEDULE_perfo:
-    return llvm::omp::OMP_SCHEDULE_Perfo;
   }
   llvm_unreachable("Unhandled schedule kind");
 }
@@ -7116,40 +7112,8 @@ void CodeGenFunction::EmitOMPCancellationPointDirective(
                                                    S.getCancelRegion());
 }
 
-void CodeGenFunction::EmitOMPMemoDirective(const OMPMemoDirective &S) {
-  llvm::SmallVector<const VarDecl *, 8> VarDeclarations;
-
-  for (auto *CS : S.getClausesOfKind<OMPSharedClause>()) {
-    for (auto RefExpr : CS->varlists()) {
-      auto *VD = cast<DeclRefExpr>(RefExpr)->getDecl();
-
-      // All values need to be an scalar to be memoized
-      if (!VD->getType()->isScalarType() || VD->getType()->isAnyPointerType()) {
-        VarDeclarations.clear();
-        break;
-      }
-
-      VarDeclarations.push_back(
-          cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl()));
-    }
-  }
-
-  auto &&CodeGen = [&S](CodeGenFunction &CGF, PrePostActionTy &Action) {
-    Action.Enter(CGF);
-    CGF.EmitStmt(S.getCapturedStmt(OMPD_memo)->getCapturedStmt());
-  };
-
-  llvm::Value *Threshold = nullptr;
-  if (const auto *ThresholdClause = S.getSingleClause<OMPThresholdClause>()) 
-    Threshold = EmitScalarExpr(ThresholdClause->getThreshold(),
-                                    /*IgnoreResultAssign=*/true);
-
-  CGM.getOpenMPRuntime().emitMemoRegion(*this, CodeGen, S.getBeginLoc(),
-                                        VarDeclarations, Threshold);
-}
-
 void CodeGenFunction::EmitOMPCancelDirective(const OMPCancelDirective &S) {
-  const Expr *IfCond = nullptr; 
+  const Expr *IfCond = nullptr;
   for (const auto *C : S.getClausesOfKind<OMPIfClause>()) {
     if (C->getNameModifier() == OMPD_unknown ||
         C->getNameModifier() == OMPD_cancel) {

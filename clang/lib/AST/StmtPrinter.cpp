@@ -1127,11 +1127,6 @@ void StmtPrinter::VisitOMPTargetParallelGenericLoopDirective(
   PrintOMPExecutableDirective(Node);
 }
 
-void StmtPrinter::VisitOMPMemoDirective(OMPMemoDirective *Node) {
-  Indent() << "#pragma omp memo";
-  PrintOMPExecutableDirective(Node);
-}
-
 //===----------------------------------------------------------------------===//
 //  Expr printing methods.
 //===----------------------------------------------------------------------===//

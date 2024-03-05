@@ -339,7 +339,6 @@ typedef enum kmp_sched {
   kmp_sched_guided = 3, // mapped to kmp_sch_guided_chunked           (36)
   kmp_sched_auto = 4, // mapped to kmp_sch_auto                     (38)
   kmp_sched_upper_std = 5, // upper bound for standard schedules
-  kmp_sched_perfo = 6, // mapped to kmp_sch_perfo                     (48)
   kmp_sched_lower_ext = 100, // lower bound of Intel extension schedules
   kmp_sched_trapezoidal = 101, // mapped to kmp_sch_trapezoidal (39)
 #if KMP_STATIC_STEAL_ENABLED
@@ -378,8 +377,6 @@ enum sched_type : kmp_int32 {
   kmp_sch_static_balanced_chunked = 45,
   kmp_sch_guided_simd = 46, /**< guided with chunk adjustment */
   kmp_sch_runtime_simd = 47, /**< runtime with chunk adjustment */
-
-  kmp_sch_perfo_chunked = 48, /**< runtime with chunk adjustment */
 
   /* accessible only through KMP_SCHEDULE environment variable */
   kmp_sch_upper, /**< upper bound for unordered values */
@@ -3862,18 +3859,6 @@ extern void __kmp_free_team(kmp_root_t *,
                             kmp_team_t *USE_NESTED_HOT_ARG(kmp_info_t *));
 extern kmp_team_t *__kmp_reap_team(kmp_team_t *);
 
-extern void __kmp_memo_create_cache(int gtid, ident_t *loc, kmp_int32 num_vars,
-                                    kmp_int32 thresh);
-extern void __kmp_memo_copy_in(int gtid, ident_t *loc, void *data, size_t size,
-                               kmp_int32 id_var);
-extern kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc);
-extern void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc);
-
-/* ------------------------------------------------------------------------ */
-
-extern int __kmp_memo_find(int gtid, ident_t *id_ref, void **data,
-                           ssize_t size);
-
 /* ------------------------------------------------------------------------ */
 
 extern void __kmp_initialize_bget(kmp_info_t *th);
@@ -4058,7 +4043,6 @@ KMP_EXPORT kmp_int32 __kmpc_barrier_master_nowait(ident_t *,
 KMP_EXPORT kmp_int32 __kmpc_single(ident_t *, kmp_int32 global_tid);
 KMP_EXPORT void __kmpc_end_single(ident_t *, kmp_int32 global_tid);
 
-
 KMP_EXPORT kmp_int32 __kmpc_sections_init(ident_t *loc, kmp_int32 global_tid);
 KMP_EXPORT kmp_int32 __kmpc_next_section(ident_t *loc, kmp_int32 global_tid,
                                          kmp_int32 numberOfSections);
@@ -4204,13 +4188,6 @@ KMP_EXPORT void __kmpc_init_lock_with_hint(ident_t *loc, kmp_int32 gtid,
 KMP_EXPORT void __kmpc_init_nest_lock_with_hint(ident_t *loc, kmp_int32 gtid,
                                                 void **user_lock,
                                                 uintptr_t hint);
-
-KMP_EXPORT kmp_int32 __kmpc_memo(ident_t *, kmp_int32 global_tid);
-KMP_EXPORT void __kmpc_end_memo(ident_t *, kmp_int32 global_tid);
-KMP_EXPORT void __kmpc_memo_init(ident_t *, kmp_int32 global_tid, 
-                               kmp_int32 num_vars, kmp_int32 thresh);
-KMP_EXPORT void __kmpc_memo_in(ident_t *, kmp_int32 global_tid, void *data_in, 
-                               size_t data_size, kmp_int32 id_var);
 
 #if OMPX_TASKGRAPH
 // Taskgraph's Record & Replay mechanism
