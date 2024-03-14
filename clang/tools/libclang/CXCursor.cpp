@@ -869,11 +869,11 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
   case Stmt::OMPApproxDirectiveClass:
     K = CXCursor_OMPApproxDirective;
     break;
-  case Stmt::OMPApproxDirectiveClass:
-    K = CXCursor_OMPApproxDirective;
-    break;
   case Stmt::OMPApproxTaskLoopDirectiveClass:
     K = CXCursor_OMPApproxTaskLoopDirective;
+    break;
+  case Stmt::OMPApproxForDirectiveClass:
+    K = CXCursor_OMPApproxForDirective;
     break;
   case Stmt::BuiltinBitCastExprClass:
     K = CXCursor_BuiltinBitCastExpr;

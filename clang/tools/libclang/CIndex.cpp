@@ -2718,7 +2718,6 @@ void OMPClauseEnqueue::VisitOMPXDynCGroupMemClause(
 }
 void OMPClauseEnqueue::VisitOMPMemoClause(const OMPMemoClause *) {}
 void OMPClauseEnqueue::VisitOMPThresholdClause(const OMPThresholdClause *C) {
-  VisitOMPClauseList(C);
   Visitor->AddStmt(C->getThreshold());
 }
 void OMPClauseEnqueue::VisitOMPFastMathClause(const OMPFastMathClause *) {}
@@ -2727,7 +2726,6 @@ void OMPClauseEnqueue::VisitOMPPerfoClause(const OMPPerfoClause *C) {
   Visitor->AddStmt(C->getInductionSize());
 }
 void OMPClauseEnqueue::VisitOMPDropClause(const OMPDropClause *C) {
-  VisitOMPClauseList(C);
   Visitor->AddStmt(C->getDrop());
 }
 } // namespace
