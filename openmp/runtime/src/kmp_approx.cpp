@@ -250,8 +250,11 @@ int __kmp_perforation(int gtid, ident_t *id_ref, void *inc_var,
       return 0;
     }
     case perfo_small: {
+    srand(1); // Fix seed to use in benchmarks
       kmp_int32 k = (rand() % (ub - lb) + ub) % induction;
-      return (*(kmp_int32*)inc_var % induction == k ? 1 : 0);
+      if (*(kmp_int32*)inc_var % induction == k)
+        *(kmp_int32*)inc_var += induction;
+      return 0;
     }
     case perfo_large: {
       *(kmp_int32*)inc_var += induction;
