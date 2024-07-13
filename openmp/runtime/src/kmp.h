@@ -4157,8 +4157,9 @@ KMP_EXPORT int __kmp_get_cancellation_status(int cancel_kind);
 KMP_EXPORT void __kmpc_proxy_task_completed(kmp_int32 gtid, kmp_task_t *ptask);
 KMP_EXPORT void __kmpc_proxy_task_completed_ooo(kmp_task_t *ptask);
 KMP_EXPORT void __kmpc_taskloop(ident_t *loc, kmp_int32 gtid, kmp_task_t *task,
-                                kmp_int32 if_val, kmp_uint64 *lb,
-                                kmp_uint64 *ub, kmp_int64 st, kmp_int32 nogroup,
+                                kmp_int32 if_val, kmp_int32 drop_val,
+                                kmp_uint64 *lb, kmp_uint64 *ub, 
+                                kmp_int64 st, kmp_int32 nogroup,
                                 kmp_int32 sched, kmp_uint64 grainsize,
                                 void *task_dup);
 KMP_EXPORT void __kmpc_taskloop_5(ident_t *loc, kmp_int32 gtid,

@@ -5040,6 +5040,21 @@ void CGOpenMPRuntime::emitTaskLoopCall(CodeGenFunction &CGF, SourceLocation Loc,
   } else {
     IfVal = llvm::ConstantInt::getSigned(CGF.IntTy, /*V=*/1);
   }
+ 
+  llvm::Value *DropVal = nullptr;
+  if (const auto *DropClause = D.getSingleClause<OMPDropClause>()) {
+    DropVal = CGF.EmitScalarExpr(DropClause->getDrop(),
+                                    /*IgnoreResultAssign=*/true);
+    DropVal =
+        CGF.Builder.CreateIntCast(DropVal, CGF.Int32Ty, /*isSigned*/ true);
+  } else {
+    Address DRP = Address::invalid();
+    QualType KmpInt32Ty =
+        CGM.getContext().getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1);
+    DRP = CGF.CreateMemTemp(KmpInt32Ty, ".omp.taskloop.drop");
+    CGF.Builder.CreateStore(CGF.Builder.getInt32(0), DRP);
+    DropVal = CGF.Builder.CreateLoad(DRP);
+  }
 
   LValue LBLVal = CGF.EmitLValueForField(
       Result.TDBase,
@@ -5081,6 +5096,7 @@ void CGOpenMPRuntime::emitTaskLoopCall(CodeGenFunction &CGF, SourceLocation Loc,
       ThreadID,
       Result.NewTask,
       IfVal,
+      DropVal,
       LBLVal.getPointer(CGF),
       UBLVal.getPointer(CGF),
       CGF.EmitLoadOfScalar(StLVal, Loc),
