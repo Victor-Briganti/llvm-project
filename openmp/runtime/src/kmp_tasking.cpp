@@ -4882,6 +4882,8 @@ void __kmp_taskloop_linear(ident_t *loc, int gtid, int drop, kmp_task_t *task,
 
   
   kmp_uint64 k = rand() % num_tasks;
+  if (k == 0)
+    k++;
 
   // Launch num_tasks tasks, assign grainsize iterations each task
   for (i = 0; i < num_tasks; i += (i % k == (kmp_uint64)drop ? 2 : 1)) {
