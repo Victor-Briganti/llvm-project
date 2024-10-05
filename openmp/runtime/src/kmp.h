@@ -3859,20 +3859,42 @@ extern void __kmp_free_team(kmp_root_t *,
                             kmp_team_t *USE_NESTED_HOT_ARG(kmp_info_t *));
 extern kmp_team_t *__kmp_reap_team(kmp_team_t *);
 
+/* ------------------------------------------------------------------------ */
+
+typedef enum memo_num_t {
+  memo_num_undefined = -1,
+  memo_num_bool = 0,
+  memo_num_char = 1,
+  memo_num_uchar = 2,
+  memo_num_wuchar = 3,
+  memo_num_wchar = 4,
+  memo_num_char8 = 5,
+  memo_num_char16 = 6,
+  memo_num_char32 = 7,
+  memo_num_ushort = 8,
+  memo_num_uint = 9,
+  memo_num_int = 10,
+  memo_num_short = 11,
+  memo_num_ulong = 12,
+  memo_num_long = 13,
+  memo_num_ulonglong = 14,
+  memo_num_longlong = 15,
+  memo_num_float = 16,
+  memo_num_double = 17,
+  memo_num_longdouble = 18,
+} memo_num_t;
+
 extern void __kmp_memo_create_cache(int gtid, ident_t *loc, kmp_int32 hash_loc, 
                                     kmp_int32 num_vars, kmp_int32 thresh);
 extern void __kmp_memo_copy_in(int gtid, ident_t *loc, kmp_int32 hash_loc, 
-                               void *data, size_t size, kmp_int32 id_var);
+                               void *data, size_t size, memo_num_t num_type, kmp_int32 id_var);
 extern kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc, 
                                    kmp_int32 hash_loc);
 extern void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc, 
                                kmp_int32 hash_loc);
 
-/* ------------------------------------------------------------------------ */
-
 extern int __kmp_memo_find(int gtid, ident_t *id_ref, kmp_int32 hash_loc, 
                            void **data, ssize_t size);
-
 /* ------------------------------------------------------------------------ */
 
 typedef enum perfo_t {
@@ -4224,7 +4246,8 @@ KMP_EXPORT void __kmpc_memo_init(ident_t *, kmp_int32 global_tid,
                                  kmp_int32 thresh);
 KMP_EXPORT void __kmpc_memo_in(ident_t *, kmp_int32 global_tid, 
                                kmp_int32 hash_loc, void *data_in,
-                               size_t data_size, kmp_int32 id_var);
+                               size_t data_size, memo_num_t num_type, 
+                               kmp_int32 id_var);
 
 KMP_EXPORT int __kmpc_perfo(ident_t *, kmp_int32 global_tid, 
                              void* inc_var, kmp_int32 perfo_type,

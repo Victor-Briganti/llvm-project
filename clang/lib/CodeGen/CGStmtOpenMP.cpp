@@ -7338,7 +7338,7 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
   if (Memo && Fast) {
     unsigned DiagID = CGM.getDiags().getCustomDiagID(
         DiagnosticsEngine::Error,
-        "Only one approximat clause can be used alongside 'approx' directive.");
+        "Only one approximated clause can be used alongside 'approx' directive.");
     this->CGM.getDiags().Report(DiagID);
     return;
   }

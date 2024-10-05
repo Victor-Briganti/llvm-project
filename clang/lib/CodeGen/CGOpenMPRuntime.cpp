@@ -22,6 +22,7 @@
 #include "clang/AST/OpenMPClause.h"
 #include "clang/AST/StmtOpenMP.h"
 #include "clang/AST/StmtVisitor.h"
+#include "clang/AST/Type.h"
 #include "clang/Basic/BitmaskEnum.h"
 #include "clang/Basic/FileManager.h"
 #include "clang/Basic/OpenMPKinds.h"
@@ -2589,7 +2590,7 @@ void CGOpenMPRuntime::emitErrorCall(CodeGenFunction &CGF, SourceLocation Loc,
 }
 
 /// Perforation types for 'omp approx for' loops (these enumerators are taken 
-/// from the enum perfo_type in kmp.h).
+/// from the enum perfo_t in kmp.h).
 enum OpenMPPerfoType {
   OMP_perfo_undefined = -1,
   OMP_perfo_small = 0,
@@ -2678,11 +2679,77 @@ void CGOpenMPRuntime::emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
   }
 }
 
-void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
-                                     const RegionCodeGenTy &ApproxOpGen,
-                                     SourceLocation Loc,
-                                     ArrayRef<const VarDecl *> DeclarationVars,
-                                     llvm::Value *Threshold) {
+/// Number types for 'omp approx memo' (these enumerators are taken from the enum 
+/// memo_num_t in kmp.h).
+enum OpenMPMemoNumType {
+  OMP_memo_num_undefined = -1,
+  OMP_memo_num_bool = 0,
+  OMP_memo_num_char = 1,
+  OMP_memo_num_uchar = 2,
+  OMP_memo_num_wuchar = 3,
+  OMP_memo_num_wchar = 4,
+  OMP_memo_num_char8 = 5,
+  OMP_memo_num_char16 = 6,
+  OMP_memo_num_char32 = 7,
+  OMP_memo_num_ushort = 8,
+  OMP_memo_num_uint = 9,
+  OMP_memo_num_int = 10,
+  OMP_memo_num_short = 11,
+  OMP_memo_num_ulong = 12,
+  OMP_memo_num_long = 13,
+  OMP_memo_num_ulonglong = 14,
+  OMP_memo_num_longlong = 15,
+  OMP_memo_num_float = 16,
+  OMP_memo_num_double = 17,
+  OMP_memo_num_longdouble = 18,
+};
+
+/// Map the OpenMP memo number types to the runtime enumeration.
+static OpenMPMemoNumType getMemoNumType(const BuiltinType *BT) {
+  switch (BT->getKind()) {
+  case clang::BuiltinType::Bool:
+    return OMP_memo_num_bool;
+  case clang::BuiltinType::Char_U:
+  case clang::BuiltinType::UChar:
+    return OMP_memo_num_uchar;
+  case clang::BuiltinType::WChar_U:
+    return OMP_memo_num_wuchar;
+  case BuiltinType::Char_S:
+  case BuiltinType::SChar:
+    return OMP_memo_num_char;
+  case BuiltinType::WChar_S:
+    return OMP_memo_num_wchar;
+  case BuiltinType::UShort:
+    return OMP_memo_num_ushort;
+  case BuiltinType::UInt:
+    return OMP_memo_num_uint;
+  case BuiltinType::ULong:
+    return OMP_memo_num_ulong;
+  case BuiltinType::ULongLong:
+    return OMP_memo_num_ulonglong;
+  case BuiltinType::Long:
+    return OMP_memo_num_long;
+  case BuiltinType::LongLong:
+    return OMP_memo_num_longlong;
+  case BuiltinType::Short:
+    return OMP_memo_num_short;
+  case BuiltinType::Int:
+    return OMP_memo_num_int;
+  case BuiltinType::Float:
+    return OMP_memo_num_float;
+  case BuiltinType::Double:
+    return OMP_memo_num_double;
+  case BuiltinType::LongDouble:
+    return OMP_memo_num_longdouble;
+  default:
+    return OMP_memo_num_undefined;
+  }
+}
+
+void CGOpenMPRuntime::emitApproxMemoRegion(
+    CodeGenFunction &CGF, const RegionCodeGenTy &ApproxOpGen,
+    SourceLocation Loc, ArrayRef<const VarDecl *> DeclarationVars,
+    llvm::Value *Threshold) {
   if (!CGF.HaveInsertPoint())
     return;
 
@@ -2695,7 +2762,7 @@ void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
 
   llvm::Value *Ident = emitUpdateLocation(CGF, Loc);
   llvm::Value *ThreadID = getThreadID(CGF, Loc);
-  
+
   Address LocID = Address::invalid();
   QualType KmpInt32Ty = C.getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1);
   LocID = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.hash_loc");
@@ -2703,21 +2770,10 @@ void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
   llvm::Value *LocHash = CGF.Builder.CreateLoad(LocID);
 
   // int32 id_var = 0;
-  // if(__kmpc_single(ident_t *, gtid)) {
-  //  __kmpc_memo_init(ident_t *, gtid, hash_loc, num_vars)
-  //  __kmpc_memo_in(ident_t *, gtid, hash_loc, void*, size, id_var)
+  // __kmpc_memo_init(ident_t *, gtid, hash_loc, num_vars, thresh)
+  // __kmpc_memo_in(ident_t *, gtid, hash_loc, void*, type, id_var)
   //  id_var++
   //  ...
-  //  __kmpc_end_single(ident_t *, gtid);
-  // }
-  llvm::Value *ArgsSingle[] = {Ident, ThreadID};
-  CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
-                            CGM.getModule(), OMPRTL___kmpc_single),
-                        ArgsSingle,
-                        OMPBuilder.getOrCreateRuntimeFunction(
-                            CGM.getModule(), OMPRTL___kmpc_end_single),
-                        ArgsSingle,
-                        /*Conditional=*/true);
 
   Address IdVar = Address::invalid();
   int IdVarIdx = DeclarationVars.size();
@@ -2725,7 +2781,6 @@ void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
   IdVar = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.id_var");
   CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
 
-  Action.Enter(CGF);
   llvm::Value *NumVars = CGF.Builder.CreateLoad(IdVar);
 
   llvm::Value *Thresh = nullptr;
@@ -2753,12 +2808,27 @@ void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
     Address Addr = CGF.GetAddrOfLocalVar(DV);
     const VarDecl *CDV = DV->getCanonicalDecl();
 
+    enum OpenMPMemoNumType NumType;
+    if (const BuiltinType *BT = CDV->getType()->getAs<BuiltinType>()) {
+      NumType = getMemoNumType(BT);
+    } else {
+      unsigned DiagID = CGM.getDiags().getCustomDiagID(
+          DiagnosticsEngine::Error,
+          "'memo' clause needs a valid builtin type number to work.");
+      CGM.getDiags().Report(DiagID);
+      return;
+    }
+
     llvm::Value *IdVarVal = CGF.Builder.CreateLoad(IdVar);
 
     llvm::Value *Args[] = {
-        Ident, ThreadID, LocHash,
+        Ident,
+        ThreadID,
+        LocHash,
         CGF.Builder.CreatePointerCast(Addr.getPointer(), CGM.VoidPtrTy),
-        CGF.getTypeSize(CDV->getType()), IdVarVal};
+        CGF.getTypeSize(CDV->getType()),
+        CGF.Builder.getInt32(NumType),
+        IdVarVal};
     CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
                             CGM.getModule(), OMPRTL___kmpc_memo_in),
                         Args);
@@ -2767,41 +2837,24 @@ void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
     CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
   }
   IdVarIdx = 0;
+
+  // if(__kmpc_memo(ident_t *, gtid, hash_loc)) {
+  //     ApproxOpGen();
+  //     __kmpc_end_memo(ident_t *, gtid, hash_loc);
+  // }
+  // __kmpc_end_critical(ident_t *, gtid, Lock);
+  llvm::Value *Args[] = {Ident, ThreadID, LocHash};
+  CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_memo),
+                        Args,
+                        OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_end_memo),
+                        Args,
+                        /*Conditional=*/true);
+  ApproxOpGen.setAction(Action);
+  emitInlinedDirective(CGF, OMPD_approx, ApproxOpGen);
+  CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
   Action.Done(CGF);
-
-  // __kmpc_barrier(loc, thread_id)
-  emitBarrierCall(CGF, Loc, OMPD_unknown, /*EmitChecks=*/false,
-                  /*ForceSimpleCall=*/false);
-
-  auto &&CodeGen = [&](CodeGenFunction &CGF, PrePostActionTy &PPAction) {
-    PPAction.Enter(CGF);
-    if (!CGF.HaveInsertPoint())
-      return;
-    // __kmpc_critical[_with_hint](ident_t *, gtid, Lock[, hint]);
-    // if(__kmpc_memo(ident_t *, gtid, hash_loc)) {
-    //   ApproxOpGen();
-    //   __kmpc_end_memo(ident_t *, gtid, hash_loc);
-    // }
-    // __kmpc_end_critical(ident_t *, gtid, Lock);
-    llvm::Value *Args[] = {Ident, ThreadID, LocHash};
-    CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
-                              CGM.getModule(), OMPRTL___kmpc_memo),
-                          Args,
-                          OMPBuilder.getOrCreateRuntimeFunction(
-                              CGM.getModule(), OMPRTL___kmpc_end_memo),
-                          Args,
-                          /*Conditional=*/true);
-    ApproxOpGen.setAction(Action);
-    emitInlinedDirective(CGF, OMPD_approx, ApproxOpGen);
-    CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
-    Action.Done(CGF);
-  };
-  emitCriticalRegion(CGF, CGF.CGM.getOpenMPRuntime().getName({"critical_memo"}),
-                     CodeGen, Loc, nullptr);
-
-  // __kmpc_barrier(loc, thread_id)
-  emitBarrierCall(CGF, Loc, OMPD_unknown, /*EmitChecks=*/false,
-                  /*ForceSimpleCall=*/false);
 }
 
 void CGOpenMPRuntime::emitApproxFastMathRegion(CodeGenFunction &CGF,
