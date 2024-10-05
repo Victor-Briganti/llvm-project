@@ -1907,7 +1907,6 @@ int __kmpc_perfo(ident_t *loc, kmp_int32 gtid,
 }
 
 void __kmpc_end_perfo(ident_t *loc, kmp_int32 gtid) {
-  return;
 }
 
 int __kmpc_memo(ident_t *loc, kmp_int32 gtid, kmp_int32 hash_loc) {
@@ -1927,9 +1926,9 @@ void __kmpc_memo_init(ident_t *loc, kmp_int32 gtid, kmp_int32 hash_loc,
 }
 
 void __kmpc_memo_in(ident_t *loc, kmp_int32 gtid, kmp_int32 hash_loc, 
-                    void *data_ptr, size_t data_size, kmp_int32 id_var) {
+                    void *data_ptr, size_t data_size, memo_num_t num_type, kmp_int32 id_var) {
   __kmp_assert_valid_gtid(gtid);
-  __kmp_memo_copy_in(gtid, loc, hash_loc, data_ptr, data_size, id_var);
+  __kmp_memo_copy_in(gtid, loc, hash_loc, data_ptr, data_size, num_type ,id_var);
 }
 
 /*!

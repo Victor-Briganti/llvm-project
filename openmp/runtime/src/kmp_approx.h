@@ -30,11 +30,12 @@ struct kmp_memo_cache {
   void **datas;
   kmp_int32 loc;
   size_t *sizes;
+  memo_num_t *types;
   kmp_int32 nvars;
   kmp_real64 thresh;
   cache_state valid; /* 1 for valid. 0 for invalid */
   void construct(kmp_int32 loc, kmp_int32 nvars, kmp_real64 threshold);
-  void insert(kmp_int32 idx, void *data, size_t size);
+  void insert(kmp_int32 idx, void *data, size_t size, memo_num_t type);
   void update_address();
   void update_cache();
   void destruct();
