@@ -1907,7 +1907,6 @@ int __kmpc_perfo(ident_t *loc, kmp_int32 gtid,
 }
 
 void __kmpc_end_perfo(ident_t *loc, kmp_int32 gtid) {
-  return;
 }
 
 int __kmpc_memo(ident_t *loc, kmp_int32 gtid, kmp_int32 hash_loc) {

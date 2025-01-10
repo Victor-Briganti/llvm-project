@@ -20,7 +20,7 @@
 
 /* This fix replaces gettimeofday with clock_gettime for better scalability on
    the Altix.  Requires user code to be linked with -lrt. */
-//#define FIX_SGI_CLOCK
+// #define FIX_SGI_CLOCK
 
 /* Defines for OpenMP 3.0 tasking and auto scheduling */
 
@@ -450,8 +450,9 @@ enum sched_type : kmp_int32 {
 #define SCHEDULE_WITHOUT_MODIFIERS(s)                                          \
   (enum sched_type)(                                                           \
       (s) & ~(kmp_sch_modifier_nonmonotonic | kmp_sch_modifier_monotonic))
-#define SCHEDULE_HAS_MONOTONIC(s) (((s)&kmp_sch_modifier_monotonic) != 0)
-#define SCHEDULE_HAS_NONMONOTONIC(s) (((s)&kmp_sch_modifier_nonmonotonic) != 0)
+#define SCHEDULE_HAS_MONOTONIC(s) (((s) & kmp_sch_modifier_monotonic) != 0)
+#define SCHEDULE_HAS_NONMONOTONIC(s)                                           \
+  (((s) & kmp_sch_modifier_nonmonotonic) != 0)
 #define SCHEDULE_HAS_NO_MODIFIERS(s)                                           \
   (((s) & (kmp_sch_modifier_nonmonotonic | kmp_sch_modifier_monotonic)) == 0)
 #define SCHEDULE_GET_MODIFIERS(s)                                              \
@@ -863,7 +864,7 @@ typedef struct kmp_affinity_attrs_t {
   unsigned reserved : 15;
 } kmp_affinity_attrs_t;
 #define KMP_AFFINITY_ATTRS_UNKNOWN                                             \
-  { KMP_HW_CORE_TYPE_UNKNOWN, kmp_hw_attr_t::UNKNOWN_CORE_EFF, 0, 0 }
+  {KMP_HW_CORE_TYPE_UNKNOWN, kmp_hw_attr_t::UNKNOWN_CORE_EFF, 0, 0}
 
 typedef struct kmp_affinity_t {
   char *proclist;
@@ -883,11 +884,20 @@ typedef struct kmp_affinity_t {
 } kmp_affinity_t;
 
 #define KMP_AFFINITY_INIT(env)                                                 \
-  {                                                                            \
-    nullptr, affinity_default, KMP_HW_UNKNOWN, -1, 0, 0,                       \
-        {TRUE, FALSE, TRUE, affinity_respect_mask_default, FALSE, FALSE}, 0,   \
-        nullptr, nullptr, nullptr, 0, nullptr, env                             \
-  }
+  {nullptr,                                                                    \
+   affinity_default,                                                           \
+   KMP_HW_UNKNOWN,                                                             \
+   -1,                                                                         \
+   0,                                                                          \
+   0,                                                                          \
+   {TRUE, FALSE, TRUE, affinity_respect_mask_default, FALSE, FALSE},           \
+   0,                                                                          \
+   nullptr,                                                                    \
+   nullptr,                                                                    \
+   nullptr,                                                                    \
+   0,                                                                          \
+   nullptr,                                                                    \
+   env}
 
 extern enum affinity_top_method __kmp_affinity_top_method;
 extern kmp_affinity_t __kmp_affinity;
@@ -1016,7 +1026,7 @@ typedef enum {
   omp_atv_blocked = 17,
   omp_atv_interleaved = 18
 } omp_alloctrait_value_t;
-#define omp_atv_default ((omp_uintptr_t)-1)
+#define omp_atv_default ((omp_uintptr_t) - 1)
 
 typedef void *omp_memspace_handle_t;
 extern omp_memspace_handle_t const omp_default_mem_space;
@@ -2591,7 +2601,8 @@ typedef struct kmp_tasking_flags { /* Total struct must be exactly 32 bits */
   unsigned freed : 1; /* 1==freed, 0==allocated        */
   unsigned native : 1; /* 1==gcc-compiled task, 0==intel */
 #if OMPX_TASKGRAPH
-  unsigned onced : 1; /* 1==ran once already, 0==never ran, record & replay purposes */
+  unsigned onced : 1; /* 1==ran once already, 0==never ran, record & replay
+                         purposes */
   unsigned reserved31 : 6; /* reserved for library use */
 #else
   unsigned reserved31 : 7; /* reserved for library use */
@@ -3726,7 +3737,8 @@ extern void __kmp_check_stack_overlap(kmp_info_t *thr);
 extern void __kmp_expand_host_name(char *buffer, size_t size);
 extern void __kmp_expand_file_name(char *result, size_t rlen, char *pattern);
 
-#if KMP_ARCH_X86 || KMP_ARCH_X86_64 || (KMP_OS_WINDOWS && (KMP_ARCH_AARCH64 || KMP_ARCH_ARM))
+#if KMP_ARCH_X86 || KMP_ARCH_X86_64 ||                                         \
+    (KMP_OS_WINDOWS && (KMP_ARCH_AARCH64 || KMP_ARCH_ARM))
 extern void
 __kmp_initialize_system_tick(void); /* Initialize timer tick value */
 #endif
@@ -3884,13 +3896,13 @@ typedef enum memo_num_t {
   memo_num_longdouble = 18,
 } memo_num_t;
 
-extern void __kmp_memo_create_cache(int gtid, ident_t *loc, kmp_int32 hash_loc, 
+extern void __kmp_memo_create_cache(int gtid, ident_t *loc, kmp_int32 hash_loc,
                                     kmp_int32 num_vars, kmp_int32 thresh);
 extern void __kmp_memo_copy_in(int gtid, ident_t *loc, kmp_int32 hash_loc, 
                                void *data, size_t size, memo_num_t num_type, kmp_int32 id_var);
 extern kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc, 
                                    kmp_int32 hash_loc);
-extern void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc, 
+extern void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc,
                                kmp_int32 hash_loc);
 
 extern int __kmp_memo_find(int gtid, ident_t *id_ref, kmp_int32 hash_loc, 
@@ -3905,9 +3917,9 @@ typedef enum perfo_t {
   perfo_fini = 3,
 } perfo_t;
 
-extern int __kmp_perforation(int gtid, ident_t *id_ref, void* inc_var, 
-                              perfo_t perfo_type, kmp_int32 induction,
-                              kmp_int32 lb, kmp_int32 ub);
+extern int __kmp_perforation(int gtid, ident_t *id_ref, void *inc_var,
+                             perfo_t perfo_type, kmp_int32 induction,
+                             kmp_int32 lb, kmp_int32 ub);
 
 extern void __kmp_initialize_bget(kmp_info_t *th);
 extern void __kmp_finalize_bget(kmp_info_t *th);
@@ -4180,10 +4192,9 @@ KMP_EXPORT void __kmpc_proxy_task_completed(kmp_int32 gtid, kmp_task_t *ptask);
 KMP_EXPORT void __kmpc_proxy_task_completed_ooo(kmp_task_t *ptask);
 KMP_EXPORT void __kmpc_taskloop(ident_t *loc, kmp_int32 gtid, kmp_task_t *task,
                                 kmp_int32 if_val, kmp_int32 drop_val,
-                                kmp_uint64 *lb, kmp_uint64 *ub, 
-                                kmp_int64 st, kmp_int32 nogroup,
-                                kmp_int32 sched, kmp_uint64 grainsize,
-                                void *task_dup);
+                                kmp_uint64 *lb, kmp_uint64 *ub, kmp_int64 st,
+                                kmp_int32 nogroup, kmp_int32 sched,
+                                kmp_uint64 grainsize, void *task_dup);
 KMP_EXPORT void __kmpc_taskloop_5(ident_t *loc, kmp_int32 gtid,
                                   kmp_task_t *task, kmp_int32 if_val,
                                   kmp_uint64 *lb, kmp_uint64 *ub, kmp_int64 st,
@@ -4237,22 +4248,21 @@ KMP_EXPORT void __kmpc_init_lock_with_hint(ident_t *loc, kmp_int32 gtid,
 KMP_EXPORT void __kmpc_init_nest_lock_with_hint(ident_t *loc, kmp_int32 gtid,
                                                 void **user_lock,
                                                 uintptr_t hint);
-KMP_EXPORT kmp_int32 __kmpc_memo(ident_t *, kmp_int32 global_tid, 
+KMP_EXPORT kmp_int32 __kmpc_memo(ident_t *, kmp_int32 global_tid,
                                  kmp_int32 hash_loc);
-KMP_EXPORT void __kmpc_end_memo(ident_t *, kmp_int32 global_tid, 
+KMP_EXPORT void __kmpc_end_memo(ident_t *, kmp_int32 global_tid,
                                 kmp_int32 hash_loc);
-KMP_EXPORT void __kmpc_memo_init(ident_t *, kmp_int32 global_tid, 
-                                 kmp_int32 hash_loc, kmp_int32 num_vars, 
+KMP_EXPORT void __kmpc_memo_init(ident_t *, kmp_int32 global_tid,
+                                 kmp_int32 hash_loc, kmp_int32 num_vars,
                                  kmp_int32 thresh);
-KMP_EXPORT void __kmpc_memo_in(ident_t *, kmp_int32 global_tid, 
+KMP_EXPORT void __kmpc_memo_in(ident_t *, kmp_int32 global_tid,
                                kmp_int32 hash_loc, void *data_in,
                                size_t data_size, memo_num_t num_type, 
                                kmp_int32 id_var);
 
-KMP_EXPORT int __kmpc_perfo(ident_t *, kmp_int32 global_tid, 
-                             void* inc_var, kmp_int32 perfo_type,
-                             kmp_int32 induction, void *lb, 
-                             void *ub);
+KMP_EXPORT int __kmpc_perfo(ident_t *, kmp_int32 global_tid, void *inc_var,
+                            kmp_int32 perfo_type, kmp_int32 induction, void *lb,
+                            void *ub);
 KMP_EXPORT void __kmpc_end_perfo(ident_t *, kmp_int32 global_tid);
 
 #if OMPX_TASKGRAPH
