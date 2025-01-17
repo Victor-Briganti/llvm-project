@@ -2589,7 +2589,7 @@ void CGOpenMPRuntime::emitErrorCall(CodeGenFunction &CGF, SourceLocation Loc,
                       Args);
 }
 
-/// Perforation types for 'omp approx for' loops (these enumerators are taken 
+/// Perforation types for 'omp approx for' loops (these enumerators are taken
 /// from the enum perfo_t in kmp.h).
 enum OpenMPPerfoType {
   OMP_perfo_undefined = -1,
@@ -2679,8 +2679,8 @@ void CGOpenMPRuntime::emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
   }
 }
 
-/// Number types for 'omp approx memo' (these enumerators are taken from the enum 
-/// memo_num_t in kmp.h).
+/// Number types for 'omp approx memo' (these enumerators are taken from the
+/// enum memo_num_t in kmp.h).
 enum OpenMPMemoNumType {
   OMP_memo_num_undefined = -1,
   OMP_memo_num_bool = 0,
@@ -2747,9 +2747,9 @@ static OpenMPMemoNumType getMemoNumType(const BuiltinType *BT) {
 }
 
 void CGOpenMPRuntime::emitApproxMemoRegion(
-    CodeGenFunction &CGF, const RegionCodeGenTy &ApproxOpGen,
-    SourceLocation Loc, ArrayRef<const VarDecl *> DeclarationVars,
-    llvm::Value *Threshold) {
+    CodeGenFunction &CGF, StringRef MemoName,
+    const RegionCodeGenTy &ApproxOpGen, SourceLocation Loc,
+    ArrayRef<const VarDecl *> DeclarationVars, llvm::Value *Threshold) {
   if (!CGF.HaveInsertPoint())
     return;
 
@@ -2762,7 +2762,6 @@ void CGOpenMPRuntime::emitApproxMemoRegion(
 
   llvm::Value *Ident = emitUpdateLocation(CGF, Loc);
   llvm::Value *ThreadID = getThreadID(CGF, Loc);
-
 
   Address LocID = Address::invalid();
   QualType KmpInt32Ty = C.getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1);
@@ -2797,53 +2796,60 @@ void CGOpenMPRuntime::emitApproxMemoRegion(
     Thresh =
         CGF.Builder.CreateIntCast(Threshold, CGF.Int32Ty, /*isSigned*/ true);
 
-  llvm::Value *ArgsInit[] = {Ident, ThreadID, LocHash, NumVars, Thresh};
-  CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
-                          CGM.getModule(), OMPRTL___kmpc_memo_init),
-                      ArgsInit);
-
   IdVarIdx = 0;
-  CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
 
-  for (auto DV : DeclarationVars) {
-    Address Addr = CGF.GetAddrOfLocalVar(DV);
-    const VarDecl *CDV = DV->getCanonicalDecl();
+  auto CodeGen = [=](CodeGenFunction &CGF, PrePostActionTy &Action) {
+    Action.Enter(CGF);
 
-    enum OpenMPMemoNumType NumType;
-    if (const BuiltinType *BT = CDV->getType()->getAs<BuiltinType>()) {
-      NumType = getMemoNumType(BT);
-    } else {
-      unsigned DiagID = CGM.getDiags().getCustomDiagID(
-          DiagnosticsEngine::Error,
-          "'memo' clause needs a valid builtin type number to work.");
-      CGM.getDiags().Report(DiagID);
-      return;
-    }
-
-    llvm::Value *IdVarVal = CGF.Builder.CreateLoad(IdVar);
-
-    llvm::Value *Args[] = {
-        Ident,
-        ThreadID,
-        LocHash,
-        CGF.Builder.CreatePointerCast(Addr.getPointer(), CGM.VoidPtrTy),
-        CGF.getTypeSize(CDV->getType()),
-        CGF.Builder.getInt32(NumType),
-        IdVarVal};
+    llvm::Value *ArgsInit[] = {Ident, ThreadID, LocHash, NumVars, Thresh};
     CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
-                            CGM.getModule(), OMPRTL___kmpc_memo_in),
-                        Args);
+                            CGM.getModule(), OMPRTL___kmpc_memo_init),
+                        ArgsInit);
+    auto LocalIdVarIdx = IdVarIdx;
 
-    IdVarIdx++;
-    CGF.Builder.CreateStore(CGF.Builder.getInt32(IdVarIdx), IdVar);
-  }
-  IdVarIdx = 0;
+    CGF.Builder.CreateStore(CGF.Builder.getInt32(LocalIdVarIdx), IdVar);
+
+    for (const auto *DV : DeclarationVars) {
+      Address Addr = CGF.GetAddrOfLocalVar(DV);
+      const VarDecl *CDV = DV->getCanonicalDecl();
+
+      enum OpenMPMemoNumType NumType;
+      if (const BuiltinType *BT = CDV->getType()->getAs<BuiltinType>()) {
+        NumType = getMemoNumType(BT);
+      } else {
+        unsigned DiagID = CGM.getDiags().getCustomDiagID(
+            DiagnosticsEngine::Error,
+            "'memo' clause needs a valid builtin type number to work.");
+        CGM.getDiags().Report(DiagID);
+        return;
+      }
+
+      llvm::Value *IdVarVal = CGF.Builder.CreateLoad(IdVar);
+
+      llvm::Value *Args[] = {
+          Ident,
+          ThreadID,
+          LocHash,
+          CGF.Builder.CreatePointerCast(Addr.getPointer(), CGM.VoidPtrTy),
+          CGF.getTypeSize(CDV->getType()),
+          CGF.Builder.getInt32(NumType),
+          IdVarVal};
+      CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(
+                              CGM.getModule(), OMPRTL___kmpc_memo_in),
+                          Args);
+
+      LocalIdVarIdx++;
+      CGF.Builder.CreateStore(CGF.Builder.getInt32(LocalIdVarIdx), IdVar);
+    }
+  };
+
+  CGOpenMPRuntime &RT = CGF.CGM.getOpenMPRuntime();
+  RT.emitCriticalRegion(CGF, MemoName, CodeGen, Loc);
 
   // if(__kmpc_memo(ident_t *, gtid, hash_loc)) {
   //     ApproxOpGen();
   //     __kmpc_end_memo(ident_t *, gtid, hash_loc);
   // }
-  // __kmpc_end_critical(ident_t *, gtid, Lock);
   llvm::Value *Args[] = {Ident, ThreadID, LocHash};
   CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
                             CGM.getModule(), OMPRTL___kmpc_memo),
@@ -2858,8 +2864,8 @@ void CGOpenMPRuntime::emitApproxMemoRegion(
   Action.Done(CGF);
 }
 
-void CGOpenMPRuntime::emitApproxFastMathRegion(CodeGenFunction &CGF,
-                                        const RegionCodeGenTy &FastMathOpGen) {
+void CGOpenMPRuntime::emitApproxFastMathRegion(
+    CodeGenFunction &CGF, const RegionCodeGenTy &FastMathOpGen) {
   if (!CGF.HaveInsertPoint())
     return;
 
@@ -12726,8 +12732,9 @@ void CGOpenMPSIMDRuntime::emitApproxPerfo(
 }
 
 void CGOpenMPSIMDRuntime::emitApproxMemoRegion(
-    CodeGenFunction &CGF, const RegionCodeGenTy &ApproxGen, SourceLocation Loc,
-    ArrayRef<const VarDecl *> DeclarationVars, llvm::Value *Threshold) {
+    CodeGenFunction &CGF, StringRef MemoName, const RegionCodeGenTy &ApproxGen,
+    SourceLocation Loc, ArrayRef<const VarDecl *> DeclarationVars,
+    llvm::Value *Threshold) {
   llvm_unreachable("No supported in SIMD-only mode");
 }
 

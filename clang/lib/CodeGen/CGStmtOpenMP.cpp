@@ -7341,8 +7341,8 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
 
   if (Memo && Fast) {
     unsigned DiagID = CGM.getDiags().getCustomDiagID(
-        DiagnosticsEngine::Error,
-        "Only one approximated clause can be used alongside 'approx' directive.");
+        DiagnosticsEngine::Error, "Only one approximated clause can be used "
+                                  "alongside 'approx' directive.");
     this->CGM.getDiags().Report(DiagID);
     return;
   }
@@ -7384,7 +7384,8 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
       Threshold = EmitScalarExpr(ThresholdClause->getThreshold(),
                                  /*IgnoreResultAssign=*/true);
 
-    CGM.getOpenMPRuntime().emitApproxMemoRegion(*this, CodeGen, S.getBeginLoc(),
+    CGM.getOpenMPRuntime().emitApproxMemoRegion(*this, S.getStmtClassName(),
+                                                CodeGen, S.getBeginLoc(),
                                                 VarDeclarations, Threshold);
   }
 

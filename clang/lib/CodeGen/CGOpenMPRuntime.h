@@ -403,7 +403,7 @@ protected:
   static unsigned getDefaultFlagsForBarriers(OpenMPDirectiveKind Kind);
 
   /// Get the LLVM type for the critical name.
-  llvm::ArrayType *getKmpCriticalNameTy() const {return KmpCriticalNameTy;}
+  llvm::ArrayType *getKmpCriticalNameTy() const { return KmpCriticalNameTy; }
 
   /// Returns corresponding lock object for the specified critical region
   /// name. If the lock object does not exist it is created, otherwise the
@@ -467,7 +467,8 @@ protected:
   /// <mangled_name_for_global_var> + ".cache." for cache for threadprivate
   /// variables.
   llvm::StringMap<llvm::AssertingVH<llvm::GlobalVariable>,
-                  llvm::BumpPtrAllocator> InternalVars;
+                  llvm::BumpPtrAllocator>
+      InternalVars;
   /// Type typedef kmp_int32 (* kmp_routine_entry_t)(kmp_int32, void *);
   llvm::Type *KmpRoutineEntryPtrTy = nullptr;
   QualType KmpRoutineEntryPtrQTy;
@@ -861,28 +862,27 @@ public:
   /// checks).
   ///
   virtual void emitBarrierCall(CodeGenFunction &CGF, SourceLocation Loc,
-                               OpenMPDirectiveKind Kind,
-                               bool EmitChecks = true,
+                               OpenMPDirectiveKind Kind, bool EmitChecks = true,
                                bool ForceSimpleCall = false);
 
   /// Emit approximatted region
-    virtual void emitApproxMemoRegion(CodeGenFunction &CGF, 
-                                  const RegionCodeGenTy &ApproxGen,
-                                  SourceLocation Loc,
-                                  ArrayRef<const VarDecl *> DeclarationVars,
-                                  llvm::Value *Threshold);
+  virtual void emitApproxMemoRegion(CodeGenFunction &CGF, StringRef MemoName,
+                                    const RegionCodeGenTy &ApproxGen,
+                                    SourceLocation Loc,
+                                    ArrayRef<const VarDecl *> DeclarationVars,
+                                    llvm::Value *Threshold);
 
   /// Emit an approximatted fastmath region.
   /// \param OrderedOpGen Generator for the statement associated with the given
   /// approx region.
   virtual void emitApproxFastMathRegion(CodeGenFunction &CGF,
-                                 const RegionCodeGenTy &OrderedOpGen);
+                                        const RegionCodeGenTy &OrderedOpGen);
 
   /// Emit approximatted region
   virtual void emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
                                VarDecl *IncVar, OpenMPPerfoTy PerfoKind,
                                llvm::Value *Induction,
-                               llvm::SmallVector<Address, 8>LoopAddrs,
+                               llvm::SmallVector<Address, 8> LoopAddrs,
                                const Expr *IncExpr);
 
   /// Check if the specified \a ScheduleKind is static non-chunked.
@@ -1056,9 +1056,8 @@ public:
   /// \param ST Address of the output variable in which the stride value is
   /// returned.
   virtual llvm::Value *emitForNext(CodeGenFunction &CGF, SourceLocation Loc,
-                                   unsigned IVSize, bool IVSigned,
-                                   Address IL, Address LB,
-                                   Address UB, Address ST);
+                                   unsigned IVSize, bool IVSigned, Address IL,
+                                   Address LB, Address UB, Address ST);
 
   /// Emits call to void __kmpc_push_num_threads(ident_t *loc, kmp_int32
   /// global_tid, kmp_int32 num_threads) to generate code for 'num_threads'
@@ -1081,8 +1080,7 @@ public:
   /// \param Loc Location of the reference to threadprivate var.
   /// \return Address of the threadprivate variable for the current thread.
   virtual Address getAddrOfThreadPrivate(CodeGenFunction &CGF,
-                                         const VarDecl *VD,
-                                         Address VDAddr,
+                                         const VarDecl *VD, Address VDAddr,
                                          SourceLocation Loc);
 
   /// Returns the address of the variable marked as declare target with link
@@ -1526,15 +1524,16 @@ public:
 
   /// Choose default schedule type and chunk value for the
   /// dist_schedule clause.
-  virtual void getDefaultDistScheduleAndChunk(CodeGenFunction &CGF,
-      const OMPLoopDirective &S, OpenMPDistScheduleClauseKind &ScheduleKind,
-      llvm::Value *&Chunk) const {}
+  virtual void getDefaultDistScheduleAndChunk(
+      CodeGenFunction &CGF, const OMPLoopDirective &S,
+      OpenMPDistScheduleClauseKind &ScheduleKind, llvm::Value *&Chunk) const {}
 
   /// Choose default schedule type and chunk value for the
   /// schedule clause.
-  virtual void getDefaultScheduleAndChunk(CodeGenFunction &CGF,
-      const OMPLoopDirective &S, OpenMPScheduleClauseKind &ScheduleKind,
-      const Expr *&ChunkExpr) const;
+  virtual void
+  getDefaultScheduleAndChunk(CodeGenFunction &CGF, const OMPLoopDirective &S,
+                             OpenMPScheduleClauseKind &ScheduleKind,
+                             const Expr *&ChunkExpr) const;
 
   /// Emits call of the outlined function with the provided arguments,
   /// translating these arguments to correct target-specific arguments.
@@ -1815,24 +1814,23 @@ public:
                        bool ForceSimpleCall = false) override;
 
   /// Emit approx directive
-  virtual void
-  emitApproxMemoRegion(CodeGenFunction &CGF, const RegionCodeGenTy &ApproxGen,
-                 SourceLocation Loc,
-                 ArrayRef<const VarDecl *> DeclarationVars,
-                 llvm::Value *Threshold) override;
+  void emitApproxMemoRegion(CodeGenFunction &CGF, StringRef MemoName,
+                            const RegionCodeGenTy &ApproxGen,
+                            SourceLocation Loc,
+                            ArrayRef<const VarDecl *> DeclarationVars,
+                            llvm::Value *Threshold);
 
   /// Emit an approx region.
   /// \param OrderedOpGen Generator for the statement associated with the given
   /// approx region.
   void emitApproxFastMathRegion(CodeGenFunction &CGF,
-                         const RegionCodeGenTy &OrderedOpGen) override;
+                                const RegionCodeGenTy &OrderedOpGen) override;
 
-    /// Emit approx directive
+  /// Emit approx directive
   virtual void emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
-                               VarDecl *IncVar,
-                               OpenMPPerfoTy PerfoKind,
+                               VarDecl *IncVar, OpenMPPerfoTy PerfoKind,
                                llvm::Value *Induction,
-                               llvm::SmallVector<Address, 8>LoopAddrs,
+                               llvm::SmallVector<Address, 8> LoopAddrs,
                                const Expr *IncExpr) override;
 
   /// This is used for non static scheduled types and when the ordered
