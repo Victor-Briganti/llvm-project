@@ -10,162 +10,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "kmp_approx.h"
 #include "kmp.h"
+#include "kmp_lock.h"
+
 #include <math.h>
 
-/* ------------------------------------------------------------------------ */
-/* Memoization                                                              */
-/* ------------------------------------------------------------------------ */
+#define KMP_MAP_INIT_SIZE 40
+#define KMP_MAP_LOAD 0.75
 
-// TODO: Enable read/write locks on the structure. Following:
-// https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock#Using_two_mutexes
-kmp_memo_map kmap;
+namespace {
 
-void kmp_memo_cache::construct(kmp_int32 location, kmp_int32 num_vars,
-                               kmp_real64 threshold) {
-  loc = location;
-  nvars = num_vars;
-  sizes = (size_t *)kmpc_malloc(sizeof(size_t) * num_vars);
-  types = (memo_num_t *)kmpc_malloc(sizeof(memo_num_t) * num_vars);
-  types = (memo_num_t *)kmpc_malloc(sizeof(memo_num_t) * num_vars);
-  datas = (void **)kmpc_malloc(sizeof(void *) * num_vars);
-  addresses = (void **)kmpc_malloc(sizeof(void *) * num_vars);
-
-  for (kmp_int32 i = 0; i < num_vars; i++) {
-    sizes[i] = 0;
-    types[i] = memo_num_undefined;
-    datas[i] = NULL;
-    addresses[i] = NULL;
-  }
-
-  thresh = threshold <= 0 ? 0 : threshold;
-  valid = threshold <= 0 ? INVALID : UNINITIALIZED;
-}
-
-void kmp_memo_cache::insert(kmp_int32 idx, void *var, size_t size, memo_num_t type) {
-  types[idx] = type;
-  sizes[idx] = size;
-  datas[idx] = kmpc_malloc(size);
-  datas[idx] = NULL;
-  addresses[idx] = var;
-}
-
-void kmp_memo_cache::update_cache() {
-  for (kmp_int32 i = 0; i < nvars; i++)
-    memcpy(datas[i], addresses[i], sizes[i]);
-}
-
-void kmp_memo_cache::update_address() {
-  for (kmp_int32 i = 0; i < nvars; i++)
-    memcpy(addresses[i], datas[i], sizes[i]);
-}
-
-void kmp_memo_cache::destruct() {
-  kmpc_free(types);
-  kmpc_free(sizes);
-  for (kmp_int32 i = 0; i < nvars; i++)
-    kmpc_free(datas[i]);
-  kmpc_free(datas);
-}
-
-/*----------------------------------------------------------------------------*/
-
-kmp_memo_map::kmp_memo_map() {
-  buckets = (kmp_memo_cache **)kmpc_malloc(KMP_MAP_INIT_SIZE *
-                                           sizeof(kmp_memo_cache *));
-  for (kmp_int32 i = 0; i < KMP_MAP_INIT_SIZE; i++)
-    buckets[i] = NULL;
-
-  nbuckets = KMP_MAP_INIT_SIZE;
-  entries = 0;
-}
-
-kmp_memo_map::~kmp_memo_map() {
-  for (kmp_int32 i = 0; i < nbuckets; i++) {
-    if (this->buckets[i] != NULL) {
-      this->buckets[i]->destruct();
-      kmpc_free(this->buckets[i]);
-    }
-  }
-
-  kmpc_free(this->buckets);
-}
-
-// This hash implementation is based on the sdbm algorithm.
-// More about it can be found:
-// http://www.cse.yorku.ca/~oz/hash.html#sdbm
-// https://github.com/davidar/sdbm/blob/29d5ed2b5297e51125ee45f6efc5541851aab0fb/hash.c#L18-L47
-kmp_int32 kmp_memo_map::bucket_index(kmp_int32 loc) {
-  kmp_int32 hash = 0;
-  hash = loc + (loc << 6) + (hash << 16) - loc;
-  return (hash % this->nbuckets);
-}
-
-void kmp_memo_map::rehash() {
-  kmp_memo_cache **old_buckets = buckets;
-  kmp_int32 old_nbuckets = nbuckets;
-
-  nbuckets *= 2;
-  entries = 0;
-
-  buckets =
-      (kmp_memo_cache **)kmpc_malloc(sizeof(kmp_memo_cache *) * nbuckets * 2);
-  for (kmp_int32 i = 0; i < nbuckets; i++)
-    buckets[i] = NULL;
-
-  for (kmp_int32 i = 0; i < old_nbuckets; i++) {
-    if (old_buckets[i] != NULL) {
-      insert(old_buckets[i]);
-    }
-  }
-
-  kmpc_free(old_buckets);
-}
-
-void kmp_memo_map::insert(kmp_memo_cache *cache) {
-  kmp_int32 idx = bucket_index(cache->loc);
-
-  kmp_int32 aux_idx = idx;
-  while (buckets[aux_idx] != NULL) {
-    aux_idx = (aux_idx + 1) % nbuckets;
-    if (aux_idx == idx) {
-      rehash();
-      insert(cache);
-      return;
-    }
-  }
-
-  buckets[aux_idx] = cache;
-  entries++;
-
-  auto placeholder = ((float)entries / (float)nbuckets);
-  if (placeholder >= KMP_MAP_LOAD)
-    rehash();
-}
-
-kmp_memo_cache *kmp_memo_map::search(kmp_int32 loc) {
-  kmp_int32 idx = bucket_index(loc);
-  if (buckets[idx] == NULL)
-    return NULL;
-
-  if (buckets[idx]->loc == loc)
-    return buckets[idx];
-
-  kmp_int32 i = (idx + 1) % nbuckets;
-  while (buckets[i] != NULL && i != idx) {
-    if (buckets[i]->loc == loc)
-      return buckets[i];
-
-    i = (i + 1) % nbuckets;
-  }
-
-  return NULL;
-}
-
-/*----------------------------------------------------------------------------*/
-
-static kmp_real64 convert(void *value, memo_num_t type) {
+kmp_real64 convert(void *value, memo_num_t type) {
   switch (type) {
   case (memo_num_bool):
     return (kmp_real64)(*(bool *)value);
@@ -203,82 +58,319 @@ static kmp_real64 convert(void *value, memo_num_t type) {
     return (kmp_real64)(*(double *)value);
   case (memo_num_longdouble):
     return (kmp_real64)(*(long double *)value);
-  default:
-    KMP_ASSERT(0 && "Invalid number type");
-  }
-}
-
-// Percentage difference formula:
-// fabs(x - y) / y
-static void compare(kmp_memo_cache *cache) {
-  kmp_real64 final = 0.0f;
-  kmp_real64 res[cache->nvars];
-
-  kmp_int32 i;
-  for (i = 0; i < cache->nvars; i++) {
-    kmp_real64 data = convert( cache->datas[i], cache->types[i]); 
-    kmp_real64 address = convert( cache->addresses[i], cache->types[i]); 
-    res[i] = fabs(address - data) / data;
   }
 
-  for (i = 0; i < cache->nvars; i++)
-    final += res[i];
-
-  final = final / (kmp_real64)cache->nvars;
-  cache->valid = (cache_state)islessequal(final, cache->thresh);
+  KMP_ASSERT(0 && "Invalid number type");
+  return 0;
 }
 
 /*----------------------------------------------------------------------------*/
 
-void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
-                             kmp_int32 num_vars, kmp_int32 tresh) {
-  kmp_memo_cache *cache = kmap.search(hash_loc);
-  if (cache != NULL)
-    return;
+enum cache_state {
+  VALID = 1,
+  INVALID = 0,
+  UNINITIALIZED = -1,
+};
 
-  cache = (kmp_memo_cache *)kmpc_malloc(sizeof(kmp_memo_cache));
-  cache->construct(hash_loc, num_vars, tresh);
-  kmap.insert(cache);
+struct kmp_memo_cache {
+  void **addresses;
+  void **datas;
+
+  size_t *sizes;
+  memo_num_t *types;
+
+  kmp_int32 loc;
+  kmp_int32 nvars;
+  kmp_real64 thresh;
+  cache_state state; /* 1 for valid. 0 for invalid */
+
+  void construct(kmp_int32 loc, kmp_int32 nvars, kmp_real64 threshold) {
+    this->loc = loc;
+    this->nvars = nvars;
+
+    this->sizes =
+        static_cast<size_t *>(kmpc_malloc(sizeof(size_t) * this->nvars));
+    KMP_ASSERT2(this->sizes != NULL, "fail to allocate");
+    this->types = static_cast<memo_num_t *>(
+        kmpc_malloc(sizeof(memo_num_t) * this->nvars));
+    KMP_ASSERT2(this->types != NULL, "fail to allocate");
+    this->datas =
+        static_cast<void **>(kmpc_malloc(sizeof(void *) * this->nvars));
+    KMP_ASSERT2(this->datas != NULL, "fail to allocate");
+    this->addresses =
+        static_cast<void **>(kmpc_malloc(sizeof(void *) * this->nvars));
+    KMP_ASSERT2(this->addresses != NULL, "fail to allocate");
+
+    for (kmp_int32 i = 0; i < nvars; i++) {
+      this->sizes[i] = 0;
+      this->types[i] = memo_num_undefined;
+      this->datas[i] = NULL;
+      this->addresses[i] = NULL;
+    }
+
+    this->thresh = threshold <= 0 ? 0 : threshold;
+    this->state = UNINITIALIZED;
+  }
+
+  void destruct() {
+    for (kmp_int32 i = 0; i < nvars; ++i) {
+      kmpc_free(datas[i]);
+    }
+
+    kmpc_free(sizes);
+    kmpc_free(types);
+    kmpc_free(datas);
+    kmpc_free(addresses);
+    sizes = NULL;
+    types = NULL;
+    datas = NULL;
+    addresses = NULL;
+  }
+
+  void insert(kmp_int32 idx, void *var, size_t size, memo_num_t type) {
+    types[idx] = type;
+    sizes[idx] = size;
+    datas[idx] = kmpc_malloc(size);
+    addresses[idx] = var;
+  }
+
+  void update_address() {
+    for (kmp_int32 i = 0; i < this->nvars; i++)
+      memcpy(addresses[i], datas[i], sizes[i]);
+  }
+
+  void update_cache() {
+    for (kmp_int32 i = 0; i < this->nvars; i++)
+      memcpy(datas[i], addresses[i], sizes[i]);
+  }
+
+  // Percentage difference formula:
+  // fabs(x - y) / y
+  void verify_validity() {
+    kmp_real64 final = 0.0f;
+    kmp_real64 *res =
+        static_cast<kmp_real64 *>(kmpc_malloc(sizeof(kmp_real64) * nvars));
+    KMP_ASSERT2(res == NULL, "fail to allocate");
+
+    for (kmp_int32 i = 0; i < nvars; i++) {
+      kmp_real64 data = convert(datas[i], types[i]);
+      kmp_real64 address = convert(addresses[i], types[i]);
+      res[i] = fabs(address - data) / data;
+    }
+
+    for (kmp_int32 i = 0; i < nvars; i++)
+      final += res[i];
+
+    final = final / (kmp_real64)nvars;
+    state = (cache_state)islessequal(final, thresh);
+  }
+};
+
+/*----------------------------------------------------------------------------*/
+
+class kmp_memo_map {
+  kmp_memo_cache **buckets;
+  kmp_int32 nbuckets;
+  kmp_int32 entries;
+
+  kmp_int32 bucket_index(kmp_int32 loc) {
+    kmp_int32 hash = 0;
+    hash = loc + (loc << 6) + (hash << 16) - loc;
+    return (hash % nbuckets);
+  }
+
+  void rehash() {
+    kmp_memo_cache **old_buckets = buckets;
+    kmp_int32 old_nbuckets = nbuckets;
+
+    nbuckets *= 2;
+    entries = 0;
+
+    size_t bucket_size = sizeof(kmp_memo_cache *) * nbuckets;
+    buckets = static_cast<kmp_memo_cache **>(kmpc_malloc(bucket_size));
+    KMP_ASSERT2(buckets == NULL, "fail to allocate");
+
+    for (kmp_int32 i = 0; i < nbuckets; i++)
+      buckets[i] = NULL;
+
+    for (kmp_int32 i = 0; i < old_nbuckets; i++) {
+      if (old_buckets[i] != NULL) {
+        insert(old_buckets[i]);
+      }
+    }
+
+    kmpc_free(old_buckets);
+  }
+
+public:
+  kmp_memo_map() {
+    nbuckets = KMP_MAP_INIT_SIZE;
+    entries = 0;
+
+    size_t bucket_size = sizeof(kmp_memo_cache *) * KMP_MAP_INIT_SIZE;
+    buckets = static_cast<kmp_memo_cache **>(kmpc_malloc(bucket_size));
+    KMP_ASSERT2(buckets != NULL, "fail to allocate");
+
+    for (kmp_int32 i = 0; i < KMP_MAP_INIT_SIZE; i++) {
+      buckets[i] = NULL;
+    }
+  }
+
+  ~kmp_memo_map() {
+    for (kmp_int32 i = 0; i < nbuckets; i++) {
+      if (buckets[i] != NULL) {
+        buckets[i]->destruct();
+        kmpc_free(buckets[i]);
+        buckets[i] = NULL;
+      }
+    }
+
+    kmpc_free(buckets);
+    buckets = NULL;
+  }
+
+  void insert(kmp_memo_cache *cache) {
+    kmp_int32 idx = bucket_index(cache->loc);
+    kmp_int32 aidx = idx;
+
+    while (buckets[aidx] != NULL) {
+      aidx = (aidx + 1) % nbuckets;
+      if (aidx == idx) {
+        rehash();
+        idx = bucket_index(cache->loc);
+        aidx = idx;
+      }
+    }
+
+    buckets[aidx] = cache;
+    entries++;
+
+    float fentries = static_cast<float>(entries);
+    float fnbuckets = static_cast<float>(nbuckets);
+
+    if ((fentries / fnbuckets) >= KMP_MAP_LOAD)
+      rehash();
+  }
+
+  kmp_memo_cache *search(kmp_int32 loc) {
+    kmp_int32 idx = bucket_index(loc);
+
+    kmp_memo_cache *cache = buckets[idx];
+    while (cache != NULL) {
+      if (cache->loc == loc)
+        return cache;
+
+      idx = (idx + 1) % nbuckets;
+      cache = buckets[idx];
+    }
+
+    return NULL;
+  }
+};
+
+kmp_memo_map map;
+
+/*----------------------------------------------------------------------------*/
+
+class kmp_map_lock {
+  kmp_lock_t lock;
+
+public:
+  kmp_map_lock() { __kmp_init_lock(&lock); }
+
+  ~kmp_map_lock() { __kmp_destroy_lock(&lock); }
+
+  int acquire(kmp_int32 gtid) { return __kmp_acquire_lock(&lock, gtid); }
+
+  void release(kmp_int32 gtid) { __kmp_release_lock(&lock, gtid); }
+};
+
+kmp_map_lock map_lock;
+
+} // namespace
+
+/* -------------------------------------------------------------------------- */
+/* Memoization                                                                */
+/* -------------------------------------------------------------------------- */
+
+void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
+                             kmp_int32 num_vars, kmp_int32 thresh) {
+
+  map_lock.acquire(gtid);
+  kmp_memo_cache *cache = map.search(hash_loc);
+
+  if (cache == NULL) {
+    cache = static_cast<kmp_memo_cache *>(kmpc_malloc(sizeof(kmp_memo_cache)));
+    cache->construct(hash_loc, num_vars, thresh);
+    map.insert(cache);
+  }
+  map_lock.release(gtid);
 }
 
 void __kmp_memo_copy_in(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
-                        void *data, size_t size, memo_num_t num_type,
+                        void *data_in, size_t size, memo_num_t num_type,
                         kmp_int32 id_var) {
-  kmp_memo_cache *cache = kmap.search(hash_loc);
-  if (cache->valid == UNINITIALIZED)
-    cache->insert(id_var, data, size, num_type);
+  map_lock.acquire(gtid);
+  kmp_memo_cache *cache = map.search(hash_loc);
+  KMP_ASSERT2(cache != NULL, "cache not found");
+
+  if (cache->state == UNINITIALIZED)
+    cache->insert(id_var, data_in, size, num_type);
+
+  map_lock.release(gtid);
 }
 
 kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
-  kmp_memo_cache *cache = kmap.search(hash_loc);
-  switch (cache->valid) {
+  map_lock.acquire(gtid);
+  kmp_memo_cache *cache = map.search(hash_loc);
+  KMP_ASSERT2(cache != NULL, "cache not found");
+
+  switch (cache->state) {
   case UNINITIALIZED:
   case INVALID:
+    map_lock.release(gtid);
     return 1;
   case VALID:
     cache->update_address();
+    map_lock.release(gtid);
+    return 0;
   }
-  return 0;
+
+  return 1;
 }
 
 void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
-  kmp_memo_cache *cache = kmap.search(hash_loc);
-  if (cache->valid == UNINITIALIZED) {
-    cache->valid = INVALID;
+  map_lock.acquire(gtid);
+  kmp_memo_cache *cache = map.search(hash_loc);
+  KMP_ASSERT2(cache != NULL, "cache not found");
+
+  if (cache->state == UNINITIALIZED) {
+    cache->state = INVALID;
     cache->update_cache();
+
+    map_lock.release(gtid);
     return;
   }
 
-  if (cache->valid == INVALID && cache->thresh) {
-    compare(cache);
-    if (cache->valid == VALID)
+  if (cache->state == INVALID && cache->thresh) {
+    cache->verify_validity();
+    if (cache->state == INVALID)
       cache->update_cache();
+
+    map_lock.release(gtid);
+    return;
   }
 
-  if (cache->valid == INVALID && !cache->thresh) {
+  if (cache->state == INVALID && !cache->thresh) {
     cache->update_cache();
-    cache->valid = VALID;
+    cache->state = VALID;
+
+    map_lock.release(gtid);
+    return;
   }
+
+  map_lock.release(gtid);
+  KMP_ASSERT2(cache->state == VALID, "invalid cache state");
 }
 
 /* ------------------------------------------------------------------------ */
