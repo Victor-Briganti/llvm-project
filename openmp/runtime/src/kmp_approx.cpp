@@ -108,7 +108,12 @@ struct kmp_memo_cache {
       this->addresses[i] = NULL;
     }
 
-    this->thresh = threshold <= 0 ? 0 : threshold;
+    if (threshold) {
+      this->thresh = threshold / 100;
+    } else {
+      this->thresh = 0;
+    }
+
     this->state = UNINITIALIZED;
   }
 
@@ -150,7 +155,7 @@ struct kmp_memo_cache {
     kmp_real64 final = 0.0f;
     kmp_real64 *res =
         static_cast<kmp_real64 *>(kmpc_malloc(sizeof(kmp_real64) * nvars));
-    KMP_ASSERT2(res == NULL, "fail to allocate");
+    KMP_ASSERT2(res != NULL, "fail to allocate");
 
     for (kmp_int32 i = 0; i < nvars; i++) {
       kmp_real64 data = convert(datas[i], types[i]);
