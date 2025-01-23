@@ -10,9 +10,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Transforms/Scalar/LoopPerforation.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/PriorityWorklist.h"
-#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Analysis/AssumptionCache.h"
 #include "llvm/Analysis/CodeMetrics.h"
@@ -33,12 +30,10 @@
 #include "llvm/IR/PassManager.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Scalar/LoopPerforation.h"
-#include "llvm/Transforms/Utils/LoopPeel.h"
 #include "llvm/Transforms/Utils/LoopSimplify.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/Utils/UnrollLoop.h"
@@ -53,21 +48,29 @@ static cl::opt<bool>
     AllowPerforation("allow-perforation", cl::Hidden,
                      cl::desc("Allows loops to be perforated."));
 
-// Returns the loop hint metadata node with the given name (for example,
-// "llvm.loop.unroll.count").  If no such metadata node exists, then nullptr is
-// returned.
-static MDNode *getMetadataForLoop(const Loop *L, StringRef Name) {
-  if (MDNode *LoopID = L->getLoopID())
-    return GetUnrollMetadata(LoopID, Name);
+// Returns true if the loop hint metadata node with the given name (for example,
+// "llvm.loop.perforation.enable").  If no such metadata node exists, then false
+// is returned.
+static bool hasPerforationEnablePragma(const Loop *L) {
+  if (!GetUnrollMetadata(L->getLoopID(), "llvm.loop.perforation.enable"))
+    return false;
 
+  return true;
+}
+
+// Find the canonical induction variable for this loop
+static PHINode *getCanonicalVariable(Loop &L) {
+  BasicBlock *H = L.getHeader();
+
+  for (auto It = H->begin(); isa<PHINode>(It); It) {
+    return cast<PHINode>(It);
+  }
+
+  errs() << "[FAIL] PHI\n";
   return nullptr;
 }
 
-// Returns true if the loop has an unroll(enable) pragma.
-static bool hasPerforationEnablePragma(const Loop *L) {
-  return getMetadataForLoop(L, "llvm.loop.perforation.enable");
-}
-
+// Verifies if the loop has all the properties to be perforable
 static bool isLoopPerforable(Loop &L, ScalarEvolution &SE) {
   if (!hasPerforationEnablePragma(&L)) {
     errs() << "[FAIL] Pragma\n";
@@ -75,36 +78,12 @@ static bool isLoopPerforable(Loop &L, ScalarEvolution &SE) {
   }
 
   if (!L.isLoopSimplifyForm()) {
-    errs() << "[FAIL] Simplify Form\n";
+    errs() << "[FAIL] Simple Form\n";
     return false;
   }
 
-  PHINode *PHI = L.getCanonicalInductionVariable();
-  if (PHI == nullptr) {
-    errs() << "[FAIL] PHI\n";
-    return false;
-  }
-
-  // Find where the induction varialbe is modified by finding a user that is
-  // also a incoming value to the phi
-  Value *ValueToChange = nullptr;
-
-  for (auto *User : PHI->users()) {
-    for (auto &Incoming : PHI->incoming_values()) {
-      if (Incoming == User) {
-        ValueToChange = Incoming;
-        break;
-      }
-    }
-  }
-
-  if (ValueToChange == nullptr) {
-    errs() << "[FAIL] Value to Change\n";
-    return false;
-  }
-
-  if (!isa<BinaryOperator>(ValueToChange)) {
-    errs() << "[FAIL] Binary Operator\n";
+  PHINode *PN = getCanonicalVariable(L);
+  if (!PN) {
     return false;
   }
 
@@ -115,12 +94,11 @@ PreservedAnalyses LoopPerforationPass::run(Loop &L, LoopAnalysisManager &AM,
                                            LoopStandardAnalysisResults &AR,
                                            LPMUpdater &U) {
   if (!isLoopPerforable(L, AR.SE)) {
-    errs() << "Not Perforated\n";
     return PreservedAnalyses::all();
   }
 
   // Find the canonical induction variable for this loop
-  PHINode *PHI = L.getCanonicalInductionVariable();
+  PHINode *PHI = getCanonicalVariable(L);
 
   // Find where the induction variable is modified by finding a user that
   // is also an incoming value to the phi
@@ -136,22 +114,36 @@ PreservedAnalyses LoopPerforationPass::run(Loop &L, LoopAnalysisManager &AM,
   }
 
   BinaryOperator *Increment = dyn_cast<BinaryOperator>(ValueToChange);
+  if (!Increment) {
+    errs() << "[FAIL] Not a binary operator\n";
+    return PreservedAnalyses::all();
+  }
+  
   for (auto &Op : Increment->operands()) {
     if (Op == PHI)
       continue;
+    
+    ConstantInt *CI = dyn_cast<ConstantInt>(Op);
+    if (!CI) {
+      errs() << "[FAIL] Not a integer constant\n";
+      return PreservedAnalyses::all();
+    }
 
-    int LoopRate = 2;
+    int64_t LoopRate = CI->getSExtValue();
+    if (LoopRate < 0) {
+      LoopRate -= 1;
+    } else {
+      LoopRate += 1;
+    }
+
     Type *ConstType = Op->getType();
     Constant *NewInc =
         ConstantInt::get(ConstType, LoopRate /*value*/, true /*issigned*/);
 
-    errs() << "Changing [" << *Op << "] to [" << *NewInc << "]!\n";
-
     Op = NewInc;
-    errs() << "Perforated\n";
     return getLoopPassPreservedAnalyses();
   }
 
-  errs() << "Something went wrong\n";
+  errs() << "[FAIL] Could not perforate\n";
   return PreservedAnalyses::all();
 }
