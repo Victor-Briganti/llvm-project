@@ -57,6 +57,7 @@ static_library("Scalar") {
     "LoopUnrollAndJamPass.cpp",
     "LoopUnrollPass.cpp",
     "LoopVersioningLICM.cpp",
+    "LoopPerforation.cpp",
     "LowerAtomicPass.cpp",
     "LowerConstantIntrinsics.cpp",
     "LowerExpectIntrinsic.cpp",
