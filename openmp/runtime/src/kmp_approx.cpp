@@ -152,7 +152,7 @@ struct kmp_memo_cache {
   // Percentage difference formula:
   // fabs(x - y) / y
   void verify_validity() {
-    kmp_real64 final = 0.0f;
+    kmp_real64 final = 0.0;
     kmp_real64 *res =
         static_cast<kmp_real64 *>(kmpc_malloc(sizeof(kmp_real64) * nvars));
     KMP_ASSERT2(res != NULL, "fail to allocate");
@@ -160,14 +160,24 @@ struct kmp_memo_cache {
     for (kmp_int32 i = 0; i < nvars; i++) {
       kmp_real64 data = convert(datas[i], types[i]);
       kmp_real64 address = convert(addresses[i], types[i]);
-      res[i] = fabs(address - data) / data;
+
+      if (!data) {
+        res[i] = 0.0;
+      } else {
+        res[i] = fabs(address - data) / data;
+      }
     }
 
     for (kmp_int32 i = 0; i < nvars; i++)
       final += res[i];
 
     final = final / (kmp_real64)nvars;
-    state = (cache_state)islessequal(final, thresh);
+
+    if (!final) {
+      state = INVALID;
+    } else {
+      state = (cache_state)islessequal(final, thresh);
+    }
   }
 };
 
