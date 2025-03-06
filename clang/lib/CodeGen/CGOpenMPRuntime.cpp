@@ -2628,13 +2628,16 @@ void CGOpenMPRuntime::emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
   llvm::Value *ThreadID = getThreadID(CGF, Loc);
   Address IncAddr = CGF.GetAddrOfLocalVar(IncVar);
   OpenMPPerfoType Perforation = getRuntimePerfo(PerfoKind.Perforation);
+  
+  // TODO: Add two versions of the perfo. One for 32 int and other for 64 int.
+  llvm::Value *Induction32 = CGF.Builder.CreateTruncOrBitCast(Induction, CGF.Builder.getInt32Ty());
 
   llvm::Value *Args[] = {
       Ident,
       ThreadID,
       CGF.Builder.CreatePointerCast(IncAddr.getPointer(), CGM.VoidPtrTy),
       CGF.Builder.getInt32(Perforation),
-      Induction,
+      Induction32,
       CGF.Builder.CreatePointerCast(LoopAddrs[0].getPointer(),
                                     CGM.VoidPtrTy), // LB
       CGF.Builder.CreatePointerCast(LoopAddrs[1].getPointer(),
