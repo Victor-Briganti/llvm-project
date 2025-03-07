@@ -1818,7 +1818,7 @@ public:
                             const RegionCodeGenTy &ApproxGen,
                             SourceLocation Loc,
                             ArrayRef<const VarDecl *> DeclarationVars,
-                            llvm::Value *Threshold);
+                            llvm::Value *Threshold) override;
 
   /// Emit an approx region.
   /// \param OrderedOpGen Generator for the statement associated with the given

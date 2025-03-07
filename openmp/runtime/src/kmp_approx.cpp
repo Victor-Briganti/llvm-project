@@ -90,22 +90,22 @@ struct kmp_memo_cache {
 
     this->sizes =
         static_cast<size_t *>(kmpc_malloc(sizeof(size_t) * this->nvars));
-    KMP_ASSERT2(this->sizes != NULL, "fail to allocate");
+    KMP_ASSERT2(this->sizes != nullptr, "fail to allocate");
     this->types = static_cast<memo_num_t *>(
         kmpc_malloc(sizeof(memo_num_t) * this->nvars));
-    KMP_ASSERT2(this->types != NULL, "fail to allocate");
+    KMP_ASSERT2(this->types != nullptr, "fail to allocate");
     this->datas =
         static_cast<void **>(kmpc_malloc(sizeof(void *) * this->nvars));
-    KMP_ASSERT2(this->datas != NULL, "fail to allocate");
+    KMP_ASSERT2(this->datas != nullptr, "fail to allocate");
     this->addresses =
         static_cast<void **>(kmpc_malloc(sizeof(void *) * this->nvars));
-    KMP_ASSERT2(this->addresses != NULL, "fail to allocate");
+    KMP_ASSERT2(this->addresses != nullptr, "fail to allocate");
 
     for (kmp_int32 i = 0; i < nvars; i++) {
       this->sizes[i] = 0;
       this->types[i] = memo_num_undefined;
-      this->datas[i] = NULL;
-      this->addresses[i] = NULL;
+      this->datas[i] = nullptr;
+      this->addresses[i] = nullptr;
     }
 
     if (threshold) {
@@ -126,10 +126,10 @@ struct kmp_memo_cache {
     kmpc_free(types);
     kmpc_free(datas);
     kmpc_free(addresses);
-    sizes = NULL;
-    types = NULL;
-    datas = NULL;
-    addresses = NULL;
+    sizes = nullptr;
+    types = nullptr;
+    datas = nullptr;
+    addresses = nullptr;
   }
 
   void insert(kmp_int32 idx, void *var, size_t size, memo_num_t type) {
@@ -155,7 +155,7 @@ struct kmp_memo_cache {
     kmp_real64 final = 0.0;
     kmp_real64 *res =
         static_cast<kmp_real64 *>(kmpc_malloc(sizeof(kmp_real64) * nvars));
-    KMP_ASSERT2(res != NULL, "fail to allocate");
+    KMP_ASSERT2(res != nullptr, "fail to allocate");
 
     for (kmp_int32 i = 0; i < nvars; i++) {
       kmp_real64 data = convert(datas[i], types[i]);
@@ -184,7 +184,7 @@ struct kmp_memo_cache {
 /*----------------------------------------------------------------------------*/
 
 class kmp_memo_map {
-  kmp_memo_cache **buckets;
+  kmp_memo_cache **buckets = nullptr;
   kmp_int32 nbuckets;
   kmp_int32 entries;
 
@@ -203,13 +203,13 @@ class kmp_memo_map {
 
     size_t bucket_size = sizeof(kmp_memo_cache *) * nbuckets;
     buckets = static_cast<kmp_memo_cache **>(kmpc_malloc(bucket_size));
-    KMP_ASSERT2(buckets == NULL, "fail to allocate");
+    KMP_ASSERT2(buckets == nullptr, "fail to allocate");
 
     for (kmp_int32 i = 0; i < nbuckets; i++)
-      buckets[i] = NULL;
+      buckets[i] = nullptr;
 
     for (kmp_int32 i = 0; i < old_nbuckets; i++) {
-      if (old_buckets[i] != NULL) {
+      if (old_buckets[i] != nullptr) {
         insert(old_buckets[i]);
       }
     }
@@ -224,31 +224,18 @@ public:
 
     size_t bucket_size = sizeof(kmp_memo_cache *) * KMP_MAP_INIT_SIZE;
     buckets = static_cast<kmp_memo_cache **>(kmpc_malloc(bucket_size));
-    KMP_ASSERT2(buckets != NULL, "fail to allocate");
+    KMP_ASSERT2(buckets != nullptr, "fail to allocate");
 
     for (kmp_int32 i = 0; i < KMP_MAP_INIT_SIZE; i++) {
-      buckets[i] = NULL;
+      buckets[i] = nullptr;
     }
-  }
-
-  ~kmp_memo_map() {
-    for (kmp_int32 i = 0; i < nbuckets; i++) {
-      if (buckets[i] != NULL) {
-        buckets[i]->destruct();
-        kmpc_free(buckets[i]);
-        buckets[i] = NULL;
-      }
-    }
-
-    kmpc_free(buckets);
-    buckets = NULL;
   }
 
   void insert(kmp_memo_cache *cache) {
     kmp_int32 idx = bucket_index(cache->loc);
     kmp_int32 aidx = idx;
 
-    while (buckets[aidx] != NULL) {
+    while (buckets[aidx] != nullptr) {
       aidx = (aidx + 1) % nbuckets;
       if (aidx == idx) {
         rehash();
@@ -271,7 +258,7 @@ public:
     kmp_int32 idx = bucket_index(loc);
 
     kmp_memo_cache *cache = buckets[idx];
-    while (cache != NULL) {
+    while (cache != nullptr) {
       if (cache->loc == loc)
         return cache;
 
@@ -279,7 +266,7 @@ public:
       cache = buckets[idx];
     }
 
-    return NULL;
+    return nullptr;
   }
 };
 
@@ -314,7 +301,7 @@ void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
   map_lock.acquire(gtid);
   kmp_memo_cache *cache = map.search(hash_loc);
 
-  if (cache == NULL) {
+  if (cache == nullptr) {
     cache = static_cast<kmp_memo_cache *>(kmpc_malloc(sizeof(kmp_memo_cache)));
     cache->construct(hash_loc, num_vars, thresh);
     map.insert(cache);
@@ -327,7 +314,7 @@ void __kmp_memo_copy_in(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
                         kmp_int32 id_var) {
   map_lock.acquire(gtid);
   kmp_memo_cache *cache = map.search(hash_loc);
-  KMP_ASSERT2(cache != NULL, "cache not found");
+  KMP_ASSERT2(cache != nullptr, "cache not found");
 
   if (cache->state == UNINITIALIZED)
     cache->insert(id_var, data_in, size, num_type);
@@ -338,7 +325,7 @@ void __kmp_memo_copy_in(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
 kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
   map_lock.acquire(gtid);
   kmp_memo_cache *cache = map.search(hash_loc);
-  KMP_ASSERT2(cache != NULL, "cache not found");
+  KMP_ASSERT2(cache != nullptr, "cache not found");
 
   switch (cache->state) {
   case UNINITIALIZED:
@@ -357,7 +344,7 @@ kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
 void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
   map_lock.acquire(gtid);
   kmp_memo_cache *cache = map.search(hash_loc);
-  KMP_ASSERT2(cache != NULL, "cache not found");
+  KMP_ASSERT2(cache != nullptr, "cache not found");
 
   if (cache->state == UNINITIALIZED) {
     cache->state = INVALID;
