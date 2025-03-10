@@ -931,6 +931,14 @@ public:
   tileLoops(DebugLoc DL, ArrayRef<CanonicalLoopInfo *> Loops,
             ArrayRef<Value *> TileSizes);
 
+  /// Perforate the loop.
+  ///
+  /// Defer the perforation to LLVM's LoopPerforatPass by adding loop metadata.
+  ///
+  /// \param DL Debug location for instructions added by unrolling.
+  /// \param Loop The loop to perforate. The loop will be invalidated.
+  void perforateLoopFull(DebugLoc DL, CanonicalLoopInfo *Loop);
+
   /// Fully unroll a loop.
   ///
   /// Instead of unrolling the loop immediately (and duplicating its body

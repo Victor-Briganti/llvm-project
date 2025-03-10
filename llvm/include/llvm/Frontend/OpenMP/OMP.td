@@ -2196,3 +2196,4 @@ def OMP_ApproxTaskLoop : Directive<"approx taskloop"> {
     VersionedClause<OMPC_NumTasks>
   ];
 }
+def OMP_Perfo : Directive<"perfo"> {}

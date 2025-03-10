@@ -132,6 +132,6 @@ struct LCSSAVerificationPass : public FunctionPass {
   }
 };
 
-} // End llvm namespace
+} // namespace llvm
 
 #endif

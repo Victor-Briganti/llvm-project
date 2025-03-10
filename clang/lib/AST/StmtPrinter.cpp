@@ -1143,6 +1143,11 @@ void StmtPrinter::VisitOMPApproxTaskLoopDirective(
   PrintOMPExecutableDirective(Node);
 }
 
+void StmtPrinter::VisitOMPPerfoDirective(OMPPerfoDirective *Node) {
+  Indent() << "#pragma omp perfo";
+  PrintOMPExecutableDirective(Node);
+}
+
 //===----------------------------------------------------------------------===//
 //  Expr printing methods.
 //===----------------------------------------------------------------------===//

@@ -42,6 +42,20 @@ def LinkageAttr : LLVM_Attr<"Linkage", "linkage"> {
 // Loop Attributes
 //===----------------------------------------------------------------------===//
 
+def LoopPerforationAttr : LLVM_Attr<"LoopPerforation", "loop_perforation"> {
+  let description = [{
+    This attribute defines perforation specific loop annotations that map to
+    the "!llvm.loop.perforation" metadata.
+  }];
+
+  let parameters = (ins
+    OptionalParameter<"BoolAttr">:$disable,
+    OptionalParameter<"LoopAnnotationAttr">:$followupAll
+  );
+
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
 def LoopVectorizeAttr : LLVM_Attr<"LoopVectorize", "loop_vectorize"> {
   let description = [{
     This attribute defines vectorization specific loop annotations that map to

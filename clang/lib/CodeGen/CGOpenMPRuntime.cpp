@@ -2589,7 +2589,7 @@ void CGOpenMPRuntime::emitErrorCall(CodeGenFunction &CGF, SourceLocation Loc,
                       Args);
 }
 
-/// Perforation types for 'omp approx for' loops (these enumerators are taken 
+/// Perforation types for 'omp approx for' loops (these enumerators are taken
 /// from the enum perfo_t in kmp.h).
 enum OpenMPPerfoType {
   OMP_perfo_undefined = -1,
@@ -2679,8 +2679,8 @@ void CGOpenMPRuntime::emitApproxPerfo(CodeGenFunction &CGF, SourceLocation Loc,
   }
 }
 
-/// Number types for 'omp approx memo' (these enumerators are taken from the enum 
-/// memo_num_t in kmp.h).
+/// Number types for 'omp approx memo' (these enumerators are taken from the
+/// enum memo_num_t in kmp.h).
 enum OpenMPMemoNumType {
   OMP_memo_num_undefined = -1,
   OMP_memo_num_bool = 0,
@@ -2762,7 +2762,6 @@ void CGOpenMPRuntime::emitApproxMemoRegion(
 
   llvm::Value *Ident = emitUpdateLocation(CGF, Loc);
   llvm::Value *ThreadID = getThreadID(CGF, Loc);
-
 
   Address LocID = Address::invalid();
   QualType KmpInt32Ty = C.getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1);
@@ -2858,8 +2857,8 @@ void CGOpenMPRuntime::emitApproxMemoRegion(
   Action.Done(CGF);
 }
 
-void CGOpenMPRuntime::emitApproxFastMathRegion(CodeGenFunction &CGF,
-                                        const RegionCodeGenTy &FastMathOpGen) {
+void CGOpenMPRuntime::emitApproxFastMathRegion(
+    CodeGenFunction &CGF, const RegionCodeGenTy &FastMathOpGen) {
   if (!CGF.HaveInsertPoint())
     return;
 

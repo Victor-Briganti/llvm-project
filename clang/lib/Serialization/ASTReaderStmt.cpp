@@ -2743,6 +2743,10 @@ void ASTStmtReader::VisitOMPApproxTaskLoopDirective(
   D->setHasCancel(Record.readBool());
 }
 
+void ASTStmtReader::VisitOMPPerfoDirective(OMPPerfoDirective *D) {
+  VisitOMPLoopTransformationDirective(D);
+}
+
 //===----------------------------------------------------------------------===//
 // ASTReader Implementation
 //===----------------------------------------------------------------------===//
@@ -3791,6 +3795,13 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPApproxTaskLoopDirective::CreateEmpty(Context, NumClauses, 
                                                   CollapsedNum, Empty);
+      break;
+    }
+
+    case STMT_OMP_PERFO_DIRECTIVE: {
+      assert(Record[ASTStmtReader::NumStmtFields] == 1 && "Perfo directive accepts only a single loop");
+      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      S = OMPPerfoDirective::CreateEmpty(Context, NumClauses);
       break;
     }
 

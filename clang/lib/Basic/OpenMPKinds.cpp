@@ -580,7 +580,7 @@ bool clang::isOpenMPLoopDirective(OpenMPDirectiveKind DKind) {
          DKind == OMPD_unroll || DKind == OMPD_loop ||
          DKind == OMPD_teams_loop || DKind == OMPD_target_teams_loop ||
          DKind == OMPD_parallel_loop || DKind == OMPD_target_parallel_loop ||
-         DKind == OMPD_approx_for || DKind == OMPD_approx_taskloop;
+         DKind == OMPD_approx_for || DKind == OMPD_approx_taskloop || DKind == OMPD_perfo;
 }
 
 bool clang::isOpenMPWorksharingDirective(OpenMPDirectiveKind DKind) {
@@ -727,7 +727,7 @@ bool clang::isOpenMPLoopBoundSharingDirective(OpenMPDirectiveKind Kind) {
 }
 
 bool clang::isOpenMPLoopTransformationDirective(OpenMPDirectiveKind DKind) {
-  return DKind == OMPD_tile || DKind == OMPD_unroll;
+  return DKind == OMPD_tile || DKind == OMPD_unroll ||  DKind == OMPD_perfo;
 }
 
 bool clang::isOpenMPCombinedParallelADirective(OpenMPDirectiveKind DKind) {
@@ -855,6 +855,7 @@ void clang::getOpenMPCaptureRegions(
     break;
   case OMPD_tile:
   case OMPD_unroll:
+  case OMPD_perfo:
     // loop transformations do not introduce captures.
     break;
   case OMPD_threadprivate:

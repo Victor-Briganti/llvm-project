@@ -4,10 +4,14 @@
 
 int main() {
   int x = 0;
-  
-  #pragma omp perfo
-  for (int i = 0; i < 1024; i += 2)
+  int y = 0;
+
+#pragma unroll
+  for (int i = 0; i < 100; i++) {
     x++;
+    y++;
+  }
 
   printf("%d\n", x);
+  printf("%d\n", y);
 }

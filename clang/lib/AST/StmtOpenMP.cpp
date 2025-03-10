@@ -2632,3 +2632,27 @@ OMPApproxTaskLoopDirective *OMPApproxTaskLoopDirective::CreateEmpty(const ASTCon
       C, NumClauses, /*HasAssociatedStmt=*/true,
       numLoopChildren(CollapsedNum, OMPD_approx_taskloop), CollapsedNum);
 }
+
+OMPPerfoDirective *
+OMPPerfoDirective::Create(const ASTContext &C, SourceLocation StartLoc,
+                          SourceLocation EndLoc, ArrayRef<OMPClause *> Clauses,
+                          Stmt *AssociatedStmt, unsigned NumGeneratedLoops,
+                          Stmt *TransformedStmt, Stmt *PreInits) {
+  assert(NumGeneratedLoops <= 1 && "Perforation generates at most one loop");
+
+ auto *Dir = createDirective<OMPPerfoDirective>(
+      C, Clauses, AssociatedStmt, TransformedStmtOffset + 1, StartLoc, EndLoc);
+
+  Dir->setNumGeneratedLoops(NumGeneratedLoops);
+  Dir->setTransformedStmt(TransformedStmt);
+  Dir->setPreInits(PreInits);
+
+  return Dir;
+}
+
+OMPPerfoDirective *OMPPerfoDirective::CreateEmpty(const ASTContext &C,
+                                                  unsigned NumClauses) {
+  return createEmptyDirective<OMPPerfoDirective>(
+      C, NumClauses, true, TransformedStmtOffset + 1, SourceLocation(),
+      SourceLocation());
+}

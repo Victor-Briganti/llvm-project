@@ -3588,6 +3588,7 @@ public:
   void EmitOMPApproxDirective(const OMPApproxDirective &S);
   void EmitOMPApproxForDirective(const OMPApproxForDirective &S);
   void EmitOMPApproxTaskLoopDirective(const OMPApproxTaskLoopDirective &S);
+  void EmitOMPPerfoDirective(const OMPPerfoDirective &S);
 
   /// Emit device code for the target directive.
   static void EmitOMPTargetDeviceFunction(CodeGenModule &CGM,

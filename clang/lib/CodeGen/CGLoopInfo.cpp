@@ -11,11 +11,13 @@
 #include "clang/AST/Attr.h"
 #include "clang/AST/Expr.h"
 #include "clang/Basic/CodeGenOptions.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Metadata.h"
 #include <optional>
 using namespace clang::CodeGen;
@@ -325,6 +327,49 @@ LoopInfo::createLoopVectorizeMetadata(const LoopAttributes &Attrs,
   return LoopID;
 }
 
+MDNode *LoopInfo::createPerforateMetadata(const LoopAttributes &Attrs,
+                                          ArrayRef<Metadata *> LoopProperties,
+                                          bool &HasUserTransforms) {
+  LLVMContext &Ctx = Header->getContext();
+
+  std::optional<bool> Enabled;
+  if (Attrs.PerforationEnable == LoopAttributes::Disable)
+    Enabled = false;
+  else if (Attrs.PerforationEnable == LoopAttributes::Enable)
+    Enabled = true;
+
+  if (Enabled != true) {
+    SmallVector<Metadata *, 4> NewLoopProperties;
+    if (Enabled == false) {
+      NewLoopProperties.append(LoopProperties.begin(), LoopProperties.end());
+      NewLoopProperties.push_back(MDNode::get(
+          Ctx, MDString::get(Ctx, "llvm.loop.perforation.disable")));
+      LoopProperties = NewLoopProperties;
+    }
+    return createLoopVectorizeMetadata(Attrs, LoopProperties, HasUserTransforms);
+  }
+
+  bool FollowupHasTransforms = false;
+  MDNode *Followup =
+      createLoopVectorizeMetadata(Attrs, LoopProperties, FollowupHasTransforms);
+
+  SmallVector<Metadata *, 4> Args;
+  Args.push_back(nullptr);
+  Args.append(LoopProperties.begin(), LoopProperties.end());
+  Args.push_back(
+      MDNode::get(Ctx, MDString::get(Ctx, "llvm.loop.perforation.enable")));
+
+  if (FollowupHasTransforms)
+    Args.push_back(MDNode::get(
+        Ctx,
+        {MDString::get(Ctx, "llvm.loop.perforation.followup_all"), Followup}));
+
+  MDNode *LoopID = MDNode::getDistinct(Ctx, Args);
+  LoopID->replaceOperandWith(0, LoopID);
+  HasUserTransforms = true;
+  return LoopID;
+}
+
 MDNode *
 LoopInfo::createLoopDistributeMetadata(const LoopAttributes &Attrs,
                                        ArrayRef<Metadata *> LoopProperties,
@@ -347,13 +392,13 @@ LoopInfo::createLoopDistributeMetadata(const LoopAttributes &Attrs,
                                 llvm::Type::getInt1Ty(Ctx), 0))}));
       LoopProperties = NewLoopProperties;
     }
-    return createLoopVectorizeMetadata(Attrs, LoopProperties,
+    return createPerforateMetadata(Attrs, LoopProperties,
                                        HasUserTransforms);
   }
 
   bool FollowupHasTransforms = false;
   MDNode *Followup =
-      createLoopVectorizeMetadata(Attrs, LoopProperties, FollowupHasTransforms);
+      createPerforateMetadata(Attrs, LoopProperties, FollowupHasTransforms);
 
   SmallVector<Metadata *, 4> Args;
   Args.push_back(nullptr);
@@ -469,6 +514,7 @@ void LoopAttributes::clear() {
   DistributeEnable = LoopAttributes::Unspecified;
   PipelineDisabled = false;
   PipelineInitiationInterval = 0;
+  PerforationEnable = LoopAttributes::Unspecified;
   MustProgress = false;
 }
 
@@ -493,8 +539,9 @@ LoopInfo::LoopInfo(BasicBlock *Header, const LoopAttributes &Attrs,
       Attrs.VectorizeEnable == LoopAttributes::Unspecified &&
       Attrs.UnrollEnable == LoopAttributes::Unspecified &&
       Attrs.UnrollAndJamEnable == LoopAttributes::Unspecified &&
-      Attrs.DistributeEnable == LoopAttributes::Unspecified && !StartLoc &&
-      !EndLoc && !Attrs.MustProgress)
+      Attrs.DistributeEnable == LoopAttributes::Unspecified && 
+      Attrs.PerforationEnable == LoopAttributes::Unspecified &&
+      !StartLoc && !EndLoc && !Attrs.MustProgress)
     return;
 
   TempLoopID = MDNode::getTemporary(Header->getContext(), std::nullopt);
@@ -663,6 +710,9 @@ void LoopInfoStack::push(BasicBlock *Header, clang::ASTContext &Ctx,
       case LoopHintAttr::PipelineDisabled:
         setPipelineDisabled(true);
         break;
+      case LoopHintAttr::Perforation:
+        setPerforationState(LoopAttributes::Disable);
+        break;
       case LoopHintAttr::UnrollCount:
       case LoopHintAttr::UnrollAndJamCount:
       case LoopHintAttr::VectorizeWidth:
@@ -689,6 +739,9 @@ void LoopInfoStack::push(BasicBlock *Header, clang::ASTContext &Ctx,
         break;
       case LoopHintAttr::Distribute:
         setDistributeState(true);
+        break;
+      case LoopHintAttr::Perforation:
+        setPerforationState(LoopAttributes::Enable);
         break;
       case LoopHintAttr::UnrollCount:
       case LoopHintAttr::UnrollAndJamCount:
@@ -718,6 +771,7 @@ void LoopInfoStack::push(BasicBlock *Header, clang::ASTContext &Ctx,
       case LoopHintAttr::Distribute:
       case LoopHintAttr::PipelineDisabled:
       case LoopHintAttr::PipelineInitiationInterval:
+      case LoopHintAttr::Perforation:
         llvm_unreachable("Options cannot be used to assume mem safety.");
         break;
       }
@@ -740,6 +794,7 @@ void LoopInfoStack::push(BasicBlock *Header, clang::ASTContext &Ctx,
       case LoopHintAttr::PipelineDisabled:
       case LoopHintAttr::PipelineInitiationInterval:
       case LoopHintAttr::VectorizePredicate:
+      case LoopHintAttr::Perforation:
         llvm_unreachable("Options cannot be used with 'full' hint.");
         break;
       }
@@ -781,6 +836,7 @@ void LoopInfoStack::push(BasicBlock *Header, clang::ASTContext &Ctx,
       case LoopHintAttr::Interleave:
       case LoopHintAttr::Distribute:
       case LoopHintAttr::PipelineDisabled:
+      case LoopHintAttr::Perforation:
         llvm_unreachable("Options cannot be assigned a value.");
         break;
       }

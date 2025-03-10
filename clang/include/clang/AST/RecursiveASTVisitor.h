@@ -3169,6 +3169,9 @@ DEF_TRAVERSE_STMT(OMPApproxForDirective,
 DEF_TRAVERSE_STMT(OMPApproxTaskLoopDirective,
                   { TRY_TO(TraverseOMPExecutableDirective(S)); })
 
+DEF_TRAVERSE_STMT(OMPPerfoDirective,
+                  { TRY_TO(TraverseOMPExecutableDirective(S)); })
+
 // OpenMP clauses.
 template <typename Derived>
 bool RecursiveASTVisitor<Derived>::TraverseOMPClause(OMPClause *C) {

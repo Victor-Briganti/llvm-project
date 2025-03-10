@@ -30,6 +30,7 @@
 #include "clang/Sema/EnterExpressionEvaluationContext.h"
 #include "clang/Sema/Initialization.h"
 #include "clang/Sema/Lookup.h"
+#include "clang/Sema/Ownership.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/ScopeInfo.h"
 #include "clang/Sema/SemaInternal.h"
@@ -4287,6 +4288,7 @@ void Sema::ActOnOpenMPRegionStart(OpenMPDirectiveKind DKind, Scope *CurScope) {
   case OMPD_masked:
   case OMPD_tile:
   case OMPD_unroll:
+  case OMPD_perfo:
     break;
   case OMPD_loop:
     // TODO: 'loop' may require additional parameters depending on the binding.
@@ -6676,6 +6678,10 @@ StmtResult Sema::ActOnOpenMPExecutableDirective(
                                              StartLoc, EndLoc, 
                                              VarsWithInheritedDSA);
     AllowedNameModifiers.push_back(OMPD_approx_taskloop);
+    break;
+  case OMPD_perfo:
+    Res = ActOnOpenMPPerfoDirective(ClausesWithImplicit, AStmt, StartLoc,
+                                     EndLoc);
     break;
   case OMPD_declare_target:
   case OMPD_end_declare_target:
@@ -14695,6 +14701,8 @@ bool Sema::checkTransformableLoopNest(
           DependentPreInits = Dir->getPreInits();
         else if (auto *Dir = dyn_cast<OMPUnrollDirective>(Transform))
           DependentPreInits = Dir->getPreInits();
+        else if (auto *Dir = dyn_cast<OMPPerfoDirective>(Transform))
+          DependentPreInits = Dir->getPreInits();
         else
           llvm_unreachable("Unhandled loop transformation");
         if (!DependentPreInits)
@@ -15289,6 +15297,29 @@ StmtResult Sema::ActOnOpenMPApproxTaskLoopDirective(
                                       DSAStack->isCancelRegion());
 }
 
+StmtResult Sema::ActOnOpenMPPerfoDirective(ArrayRef<OMPClause *> Clauses,
+                                           Stmt *AStmt, SourceLocation StartLoc,
+                                           SourceLocation EndLoc) {
+  // Empty statement should only be possible if there already was an error
+  if (!AStmt)
+    return StmtError();
+
+  constexpr unsigned NumLoops = 1;
+  Stmt *Body = nullptr;
+  SmallVector<OMPLoopBasedDirective::HelperExprs, NumLoops> LoopHelpers(
+      NumLoops);
+  SmallVector<SmallVector<llvm::PointerUnion<Stmt *, Decl *>, 0>, NumLoops + 1>
+      OriginalInits;
+
+  if (!checkTransformableLoopNest(OMPD_perfo, AStmt, NumLoops, LoopHelpers,
+                                  Body, OriginalInits))
+    return StmtError();
+
+  unsigned NumGeneratedLoops = 1;
+  return OMPPerfoDirective::Create(Context, StartLoc, EndLoc, Clauses, AStmt,
+                                   NumGeneratedLoops, nullptr, nullptr);
+}
+
 OMPClause *Sema::ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind, Expr *Expr,
                                              SourceLocation StartLoc,
                                              SourceLocation LParenLoc,
@@ -15615,6 +15646,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_metadirective:
     case OMPD_approx:
     case OMPD_approx_for:
+    case OMPD_perfo:
       llvm_unreachable("Unexpected OpenMP directive with if-clause");
     case OMPD_unknown:
     default:
@@ -15712,6 +15744,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_requires:
     case OMPD_metadirective:
     case OMPD_approx:
+    case OMPD_perfo:
       llvm_unreachable("Unexpected OpenMP directive with num_threads-clause");
     case OMPD_unknown:
     default:
@@ -15807,6 +15840,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_metadirective:
     case OMPD_approx:
     case OMPD_approx_for:
+    case OMPD_perfo:
       llvm_unreachable("Unexpected OpenMP directive with num_teams-clause");
     case OMPD_unknown:
     default:
@@ -15902,6 +15936,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_metadirective:
     case OMPD_approx:
     case OMPD_approx_for:
+    case OMPD_perfo:
       llvm_unreachable("Unexpected OpenMP directive with thread_limit-clause");
     case OMPD_unknown:
     default:
@@ -15999,6 +16034,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_requires:
     case OMPD_metadirective:
     case OMPD_approx:
+    case OMPD_perfo:
       llvm_unreachable("Unexpected OpenMP directive with schedule clause");
     case OMPD_unknown:
     default:
@@ -16094,6 +16130,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_metadirective:
     case OMPD_approx:
     case OMPD_approx_for:
+    case OMPD_perfo:
       llvm_unreachable("Unexpected OpenMP directive with dist_schedule clause");
     case OMPD_unknown:
     default:
@@ -16211,6 +16248,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_metadirective:
     case OMPD_approx:
     case OMPD_approx_for:
+    case OMPD_perfo:
       llvm_unreachable("Unexpected OpenMP directive with device-clause");
     case OMPD_unknown:
     default:
@@ -16308,6 +16346,7 @@ static OpenMPDirectiveKind getOpenMPCaptureRegionForClause(
     case OMPD_metadirective:
     case OMPD_approx:
     case OMPD_approx_for:
+    case OMPD_perfo:
       llvm_unreachable("Unexpected OpenMP directive with grainsize-clause");
     case OMPD_unknown:
     default:
