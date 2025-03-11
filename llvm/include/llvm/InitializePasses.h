@@ -200,6 +200,7 @@ void initializeLoopPredicationLegacyPassPass(PassRegistry&);
 void initializeLoopRotateLegacyPassPass(PassRegistry&);
 void initializeLoopSimplifyCFGLegacyPassPass(PassRegistry&);
 void initializeLoopSimplifyPass(PassRegistry&);
+void initializeLoopPerforationPass(PassRegistry&);
 void initializeLoopStrengthReducePass(PassRegistry&);
 void initializeLoopUnrollPass(PassRegistry&);
 void initializeLowerAtomicLegacyPassPass(PassRegistry&);

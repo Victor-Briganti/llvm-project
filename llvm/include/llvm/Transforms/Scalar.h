@@ -40,7 +40,6 @@ Pass *createRedundantDbgInstEliminationPass();
 //
 FunctionPass *createDeadCodeEliminationPass();
 
-
 //===----------------------------------------------------------------------===//
 //
 // CallSiteSplitting - This pass split call-site based on its known argument
@@ -55,7 +54,6 @@ FunctionPass *createCallSiteSplittingPass();
 //
 FunctionPass *createGuardWideningPass();
 
-
 //===----------------------------------------------------------------------===//
 //
 // LoopGuardWidening - Analogous to the GuardWidening pass, but restricted to a
@@ -64,7 +62,6 @@ FunctionPass *createGuardWideningPass();
 // possible.
 //
 Pass *createLoopGuardWideningPass();
-
 
 //===----------------------------------------------------------------------===//
 //
@@ -242,6 +239,13 @@ Pass *createMergeICmpsLegacyPass();
 
 //===----------------------------------------------------------------------===//
 //
+// LooopPeforation - This pass changes the induction variable of the loop, to
+// perforate some iterations.
+//
+Pass *createLoopPeforationPass();
+
+//===----------------------------------------------------------------------===//
+//
 // InferAddressSpaces - Modify users of addrspacecast instructions with values
 // in the source address space if using the destination address space is slower
 // on the target. If AddressSpace is left to its default value, it will be
@@ -343,13 +347,12 @@ Pass *createLoopSimplifyCFGPass();
 //
 FunctionPass *createInstSimplifyLegacyPass();
 
-
 //===----------------------------------------------------------------------===//
 //
 // createScalarizeMaskedMemIntrinPass - Replace masked load, store, gather
 // and scatter intrinsics with scalar code when target doesn't support them.
 //
 FunctionPass *createScalarizeMaskedMemIntrinLegacyPass();
-} // End llvm namespace
+} // namespace llvm
 
 #endif

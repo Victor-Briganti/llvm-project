@@ -98,6 +98,7 @@
 #include "llvm/Transforms/Scalar/LoopInterchange.h"
 #include "llvm/Transforms/Scalar/LoopLoadElimination.h"
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
+#include "llvm/Transforms/Scalar/LoopPerforation.h"
 #include "llvm/Transforms/Scalar/LoopRotation.h"
 #include "llvm/Transforms/Scalar/LoopSimplifyCFG.h"
 #include "llvm/Transforms/Scalar/LoopSink.h"
@@ -614,6 +615,8 @@ PassBuilder::buildFunctionSimplificationPipeline(OptimizationLevel Level,
       SimpleLoopUnswitchPass(/* NonTrivial */ Level == OptimizationLevel::O3));
   if (EnableLoopFlatten)
     LPM1.addPass(LoopFlattenPass());
+  
+  LPM1.addPass(LoopPerforationPass());
 
   LPM2.addPass(LoopIdiomRecognizePass());
   LPM2.addPass(IndVarSimplifyPass());

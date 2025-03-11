@@ -20,7 +20,6 @@ class Loop;
 
 /// A simple loop perforation transformation.
 class LoopPerforationPass : public PassInfoMixin<LoopPerforationPass> {
-
 public:
   PreservedAnalyses run(Loop &L, LoopAnalysisManager &AM,
                         LoopStandardAnalysisResults &AR, LPMUpdater &U);
