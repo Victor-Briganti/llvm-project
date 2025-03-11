@@ -12,6 +12,7 @@
 #include "llvm/Transforms/Scalar/LoopPerforation.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Analysis/AssumptionCache.h"
+#include "llvm/Analysis/BranchProbabilityInfo.h"
 #include "llvm/Analysis/CodeMetrics.h"
 #include "llvm/Analysis/DependenceAnalysis.h"
 #include "llvm/Analysis/LoopAnalysisManager.h"
@@ -21,6 +22,7 @@
 #include "llvm/Analysis/OptimizationRemarkEmitter.h"
 #include "llvm/Analysis/ScalarEvolution.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
+#include "llvm/CodeGen/RDFGraph.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Dominators.h"
@@ -54,31 +56,6 @@ static cl::opt<bool>
 static bool hasPerforationEnablePragma(const Loop &L) {
   if (!GetUnrollMetadata(L.getLoopID(), "llvm.loop.perforation.enable"))
     return false;
-
-  return true;
-}
-
-// Find the canonical induction variable for this loop
-static PHINode *getCanonicalVariable(Loop &L) {
-  BasicBlock *H = L.getHeader();
-
-  for (auto It = H->begin(); isa<PHINode>(It); It) {
-    return cast<PHINode>(It);
-  }
-
-  errs() << "[FAIL] PHI\n";
-  return nullptr;
-}
-
-static bool isLoopSimplify(Loop &L, ScalarEvolution &SE) {
-  if (!L.isLoopSimplifyForm()) {
-    return false;
-  }
-
-  PHINode *PN = getCanonicalVariable(L);
-  if (!PN) {
-    return false;
-  }
 
   return true;
 }
@@ -117,8 +94,8 @@ static bool changeInductionVariable(PHINode *PHI, BinaryOperator *Increment,
 PreservedAnalyses LoopPerforationPass::run(Loop &L, LoopAnalysisManager &AM,
                                            LoopStandardAnalysisResults &AR,
                                            LPMUpdater &U) {
-  if (!isLoopSimplify(L, AR.SE)) {
-    errs() << "[FAIL] Simple Form\n";
+  if (!L.isLoopSimplifyForm()) {
+    errs() << "[FAIL] Loop is not im simplify form\n";
     return PreservedAnalyses::all();
   }
 
@@ -135,7 +112,7 @@ PreservedAnalyses LoopPerforationPass::run(Loop &L, LoopAnalysisManager &AM,
     IncrementValue = CI->getSExtValue();
   } else {
     if (!hasPerforationEnablePragma(L)) {
-      errs() << "[FAIL] Pragma does not exists\n";
+      errs() << "[FAIL] Annotation does not exists\n";
       return PreservedAnalyses::all();
     }
 
@@ -143,7 +120,11 @@ PreservedAnalyses LoopPerforationPass::run(Loop &L, LoopAnalysisManager &AM,
   }
 
   // Find the canonical induction variable for this loop
-  PHINode *PHI = getCanonicalVariable(L);
+  PHINode *PHI = L.getCanonicalInductionVariable();
+  if (PHI == nullptr) {
+    errs() << "[FAIL] Could not extract the induction variable\n";
+    return PreservedAnalyses::all();
+  }    
 
   // Find where the induction variable is modified by finding a user that
   // is also an incoming value to the phi

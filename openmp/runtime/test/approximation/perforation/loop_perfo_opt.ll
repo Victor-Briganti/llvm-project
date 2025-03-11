@@ -1,5 +1,5 @@
-; ModuleID = 'omp_unroll.ll'
-source_filename = "omp_unroll.c"
+; ModuleID = 'loop_common_opt.ll'
+source_filename = "loop_common.c"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-pc-linux-gnu"
 
@@ -9,24 +9,17 @@ target triple = "x86_64-pc-linux-gnu"
 define dso_local i32 @main() #0 {
   br label %1
 
-1:                                                ; preds = %3, %0
-  %.02 = phi i32 [ 0, %0 ], [ %5, %3 ]
-  %.01 = phi i32 [ 0, %0 ], [ %4, %3 ]
-  %.0 = phi i32 [ 0, %0 ], [ %6, %3 ]
-  %2 = icmp ult i32 %.0, 100
-  br i1 %2, label %3, label %7
+1:                                                ; preds = %1, %0
+  %.03 = phi i32 [ 0, %0 ], [ %3, %1 ]
+  %.012 = phi i32 [ 0, %0 ], [ %2, %1 ]
+  %2 = add nuw nsw i32 %.012, 1
+  %3 = add nuw nsw i32 %.03, 2
+  %4 = icmp ult i32 %.03, 99
+  br i1 %4, label %1, label %5, !llvm.loop !6
 
-3:                                                ; preds = %1
-  %4 = add nuw nsw i32 %.01, 1
-  %5 = add nuw nsw i32 %.02, 2
-  %6 = add nuw nsw i32 %.0, 1
-  br label %1, !llvm.loop !6
-
-7:                                                ; preds = %1
-  %.02.lcssa = phi i32 [ %.02, %1 ]
-  %.01.lcssa = phi i32 [ %.01, %1 ]
-  %8 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str, i32 noundef %.01.lcssa) #2
-  %9 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str, i32 noundef %.02.lcssa) #2
+5:                                                ; preds = %1
+  %.lcssa = phi i32 [ %2, %1 ]
+  %6 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str, i32 noundef %.lcssa) #2
   ret i32 0
 }
 
