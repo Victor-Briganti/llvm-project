@@ -15,6 +15,7 @@
 #include "llvm/Analysis/BranchProbabilityInfo.h"
 #include "llvm/Analysis/CodeMetrics.h"
 #include "llvm/Analysis/DependenceAnalysis.h"
+#include "llvm/Analysis/IVDescriptors.h"
 #include "llvm/Analysis/LoopAnalysisManager.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/LoopNestAnalysis.h"
@@ -22,6 +23,7 @@
 #include "llvm/Analysis/MemorySSA.h"
 #include "llvm/Analysis/OptimizationRemarkEmitter.h"
 #include "llvm/Analysis/ScalarEvolution.h"
+#include "llvm/Analysis/ScalarEvolutionExpressions.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/CodeGen/RDFGraph.h"
 #include "llvm/IR/BasicBlock.h"
@@ -37,9 +39,9 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Scalar/LoopPerforation.h"
-#include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils/LoopSimplify.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/Utils/UnrollLoop.h"
@@ -95,7 +97,7 @@ static bool changeInductionVariable(PHINode *PHI, BinaryOperator *Increment,
   return false;
 }
 
-static bool tryToPerforateLoop(Loop &L) {
+static bool tryToPerforateLoop(Loop &L, ScalarEvolution &SE) {
   if (!L.isLoopSimplifyForm()) {
     errs() << "[FAIL] Loop is not in simplify form\n";
     return false;
@@ -117,37 +119,41 @@ static bool tryToPerforateLoop(Loop &L) {
       errs() << "[FAIL] Annotation does not exists\n";
       return false;
     }
-
+    
     IncrementValue = 1;
   }
+  
+  for (PHINode &PN : L.getHeader()->phis()) {
+    const SCEV *S = SE.getSCEV(&PN);
+    
+    // Check to see if the variable is a recurrence
+    if (const SCEVAddRecExpr * AR = dyn_cast<SCEVAddRecExpr>(S)) {
+      // Ensure that the recurrence belongs to this loop
+      if (AR->getLoop() == &L) {
+        Value *ValueToChange = nullptr;
 
-  // Find the canonical induction variable for this loop
-  PHINode *PHI = L.getCanonicalInductionVariable();
-  if (PHI == nullptr) {
-    errs() << "[FAIL] Could not extract the induction variable\n";
-    return false;
-  }
+        // Verify its incoming values
+        for (const auto *User : PN.users()) {
+          for (const auto &Incoming : PN.incoming_values()) {
+            if (Incoming == User) {
+              ValueToChange = Incoming;
+              break;
+            }
+          }
+        }
+        
+        if (BinaryOperator *Increment = dyn_cast<BinaryOperator>(ValueToChange)) {
+          return changeInductionVariable(&PN, Increment, IncrementValue);
+        }
 
-  // Find where the induction variable is modified by finding a user that
-  // is also an incoming value to the phi
-  Value *ValueToChange = nullptr;
-
-  for (const auto *User : PHI->users()) {
-    for (const auto &Incoming : PHI->incoming_values()) {
-      if (Incoming == User) {
-        ValueToChange = Incoming;
-        break; // TODO: what if there are multiple?
+        errs() << "[FAIL] Not a binary operator\n";
+        return false;
       }
     }
   }
-
-  BinaryOperator *Increment = dyn_cast<BinaryOperator>(ValueToChange);
-  if (!Increment) {
-    errs() << "[FAIL] Not a binary operator\n";
-    return false;
-  }
-
-  return changeInductionVariable(PHI, Increment, IncrementValue);
+  
+  errs() << "[FAIL] Could not extract induction variable\n";
+  return false;
 }
 
 namespace {
@@ -164,10 +170,12 @@ public:
       return false;
     }
 
-    return tryToPerforateLoop(*L);
+    ScalarEvolution *SE = &getAnalysis<ScalarEvolutionWrapperPass>().getSE();
+    return tryToPerforateLoop(*L, *SE);
   }
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
+    AU.addRequired<ScalarEvolutionWrapperPass>();
     AU.addRequired<AssumptionCacheTracker>();
     AU.addRequired<TargetTransformInfoWrapperPass>();
     AU.addRequired<MemorySSAWrapperPass>();
@@ -180,20 +188,20 @@ public:
 char LoopPerforation::ID = 0;
 
 INITIALIZE_PASS_BEGIN(LoopPerforation, "loop-perforation",
-                "Perforate canonical loops", false, false)
+                      "Perforate canonical loops", false, false)
 INITIALIZE_PASS_DEPENDENCY(AssumptionCacheTracker)
 INITIALIZE_PASS_DEPENDENCY(LoopPass)
 INITIALIZE_PASS_DEPENDENCY(LoopInfoWrapperPass)
 INITIALIZE_PASS_DEPENDENCY(MemorySSAWrapperPass)
 INITIALIZE_PASS_END(LoopPerforation, "loop-perforation",
-                "Perforate canonical loops", false, false)
+                    "Perforate canonical loops", false, false)
 
 Pass *llvm::createLoopPeforationPass() { return new LoopPerforation(); }
 
 PreservedAnalyses LoopPerforationPass::run(Loop &L, LoopAnalysisManager &AM,
                                            LoopStandardAnalysisResults &AR,
                                            LPMUpdater &U) {
-  if (tryToPerforateLoop(L)) {
+  if (tryToPerforateLoop(L, AR.SE)) {
     auto PA = getLoopPassPreservedAnalyses();
     PA.preserve<MemorySSAAnalysis>();
     return PA;
