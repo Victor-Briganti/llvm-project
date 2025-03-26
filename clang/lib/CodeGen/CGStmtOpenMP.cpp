@@ -7442,6 +7442,26 @@ void CodeGenFunction::EmitOMPApproxTaskLoopDirective(
   EmitOMPTaskLoopBasedDirective(S);
 }
 
+void CodeGenFunction::EmitOMPPerfoDirective(const OMPPerfoDirective &S) {
+  bool UseOMPIRBuilder = CGM.getLangOpts().OpenMPIRBuilder;
+
+  if (UseOMPIRBuilder) {
+    auto DL = SourceLocToDebugLoc(S.getBeginLoc());
+    const Stmt *Inner = S.getRawStmt();
+
+    // Consume nested loop. Clear the entire remainig loop stack because a fully perforated loop is non-transformable. For partial perforating the generated outer loop is pushed back to the stack.
+    llvm::CanonicalLoopInfo *CLI = EmitOMPCollapsedCanonicalLoopNest(Inner, 1);
+    OMPLoopNestStack.clear();
+
+    llvm::OpenMPIRBuilder &OMPBuilder = CGM.getOpenMPRuntime().getOMPBuilder();
+    OMPBuilder.perforateLoop(DL, CLI);
+  }
+
+  // Set the perforation metadata for the next emitted loop.
+  LoopStack.setPerforationState(LoopAttributes::Enable);
+  EmitStmt(S.getAssociatedStmt());
+}
+
 void CodeGenFunction::EmitOMPCancellationPointDirective(
     const OMPCancellationPointDirective &S) {
   CGM.getOpenMPRuntime().emitCancellationPointCall(*this, S.getBeginLoc(),

@@ -2229,6 +2229,7 @@ public:
   void VisitOMPApproxDirective(const OMPApproxDirective *D);
   void VisitOMPApproxForDirective(const OMPApproxForDirective *D);
   void VisitOMPApproxTaskLoopDirective(const OMPApproxTaskLoopDirective *D);
+  void VisitOMPPerfoDirective(const OMPPerfoDirective *D);
 
 private:
   void AddDeclarationNameInfo(const Stmt *S);
@@ -3355,6 +3356,10 @@ void EnqueueVisitor::VisitOMPApproxForDirective(
 void EnqueueVisitor::VisitOMPApproxTaskLoopDirective(
     const OMPApproxTaskLoopDirective *D) {
   VisitOMPLoopDirective(D);
+}
+
+void EnqueueVisitor::VisitOMPPerfoDirective(const OMPPerfoDirective *D) {
+  VisitOMPLoopTransformationDirective(D);
 }
 
 void CursorVisitor::EnqueueWorkList(VisitorWorkList &WL, const Stmt *S) {
@@ -6042,6 +6047,8 @@ CXString clang_getCursorKindSpelling(enum CXCursorKind Kind) {
     return cxstring::createRef("OMPApproxForDirective");
   case CXCursor_OMPApproxTaskLoopDirective:
     return cxstring::createRef("OMPApproxTaskLoopDirective");
+  case CXCursor_OMPPerfoDirective:
+    return cxstring::createRef("OMPPerfoDirective");
   case CXCursor_OverloadCandidate:
     return cxstring::createRef("OverloadCandidate");
   case CXCursor_TypeAliasTemplateDecl:

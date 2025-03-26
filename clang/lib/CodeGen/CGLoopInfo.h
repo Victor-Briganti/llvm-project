@@ -55,6 +55,9 @@ struct LoopAttributes {
   /// Value for llvm.loop.vectorize.predicate metadata
   LVEnableState VectorizePredicateEnable;
 
+  /// Value for llvm.loop.perforation.* metadata (enable, disable).
+  LVEnableState PerforationEnable;
+
   /// Value for llvm.loop.vectorize.width metadata.
   unsigned VectorizeWidth;
 
@@ -172,6 +175,10 @@ private:
   createFullUnrollMetadata(const LoopAttributes &Attrs,
                            llvm::ArrayRef<llvm::Metadata *> LoopProperties,
                            bool &HasUserTransforms);
+  llvm::MDNode *
+  createPerforateMetadata(const LoopAttributes &Attrs,
+                           llvm::ArrayRef<llvm::Metadata *> LoopProperties,
+                           bool &HasUserTransforms);
   /// @}
 
   /// Create a LoopID for this loop, including transformation-unspecific
@@ -246,6 +253,11 @@ public:
   /// Set the next pushed loop unroll state.
   void setUnrollState(const LoopAttributes::LVEnableState &State) {
     StagedAttrs.UnrollEnable = State;
+  }
+
+  /// Set the next pushed loop perforeate state.
+  void setPerforationState(const LoopAttributes::LVEnableState &State) {
+    StagedAttrs.PerforationEnable = State;
   }
 
   /// Set the next pushed vectorize predicate state.

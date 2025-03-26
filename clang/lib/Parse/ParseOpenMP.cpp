@@ -2440,6 +2440,7 @@ Parser::DeclGroupPtrTy Parser::ParseOpenMPDeclarativeDirectiveWithExtDecl(
   case OMPD_target_parallel_loop:
   case OMPD_approx:
   case OMPD_approx_for:
+  case OMPD_perfo:
     Diag(Tok, diag::err_omp_unexpected_directive)
         << 1 << getOpenMPDirectiveName(DKind);
     break;
@@ -2845,6 +2846,7 @@ StmtResult Parser::ParseOpenMPDeclarativeOrExecutableDirective(
   case OMPD_dispatch:
   case OMPD_approx:
   case OMPD_approx_for:
+  case OMPD_perfo:
   case OMPD_masked: {
     // Special processing for flush and depobj clauses.
     Token ImplicitTok;

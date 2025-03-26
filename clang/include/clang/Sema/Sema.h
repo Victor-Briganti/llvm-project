@@ -11800,6 +11800,11 @@ public:
                                SourceLocation StartLoc, SourceLocation EndLoc,
                                VarsWithInheritedDSAType &VarsWithImplicitDSA);
 
+  /// Called on well-formed '#pragma omp perfo' after parsing of its clauses
+  /// and the associated statement.
+  StmtResult ActOnOpenMPPerfoDirective(ArrayRef<OMPClause *> Clauses,
+                                        Stmt *AStmt, SourceLocation StartLoc,
+                                        SourceLocation EndLoc);
 
   OMPClause *ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind,
                                          Expr *Expr,

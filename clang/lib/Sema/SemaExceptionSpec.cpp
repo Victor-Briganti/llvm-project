@@ -1514,6 +1514,7 @@ CanThrowResult Sema::canThrow(const Stmt *S) {
   case Stmt::OMPApproxDirectiveClass:
   case Stmt::OMPApproxForDirectiveClass:
   case Stmt::OMPApproxTaskLoopDirectiveClass:
+  case Stmt::OMPPerfoDirectiveClass:
   case Stmt::ReturnStmtClass:
   case Stmt::SEHExceptStmtClass:
   case Stmt::SEHFinallyStmtClass:

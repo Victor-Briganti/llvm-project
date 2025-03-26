@@ -2718,6 +2718,11 @@ void ASTStmtWriter::VisitOMPApproxTaskLoopDirective(
   Code = serialization::STMT_OMP_APPROX_TASKLOOP_DIRECTIVE;
 }
 
+void ASTStmtWriter::VisitOMPPerfoDirective(OMPPerfoDirective *D) {
+  VisitOMPLoopTransformationDirective(D);
+  Code = serialization::STMT_OMP_PERFO_DIRECTIVE;
+}
+
 //===----------------------------------------------------------------------===//
 // ASTWriter Implementation
 //===----------------------------------------------------------------------===//

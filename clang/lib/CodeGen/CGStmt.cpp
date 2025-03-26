@@ -439,6 +439,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   case Stmt::OMPApproxTaskLoopDirectiveClass:
     EmitOMPApproxTaskLoopDirective(cast<OMPApproxTaskLoopDirective>(*S));
     break;
+  case Stmt::OMPPerfoDirectiveClass:
+    EmitOMPPerfoDirective(cast<OMPPerfoDirective>(*S));
+    break;
   }
 }
 
