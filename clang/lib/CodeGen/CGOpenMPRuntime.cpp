@@ -2597,6 +2597,7 @@ enum OpenMPPerfoType {
   OMP_perfo_large = 1,
   OMP_perfo_init = 2,
   OMP_perfo_fini = 3,
+  OMP_perfo_default = 4,
 };
 
 /// Map the OpenMP loop perforation to the runtime enumeration.
@@ -2610,6 +2611,8 @@ static OpenMPPerfoType getRuntimePerfo(OpenMPPerfoClauseKind PerfoKind) {
     return OMP_perfo_init;
   case OMPC_PERFO_fini:
     return OMP_perfo_fini;
+  case OMPC_PERFO_default:
+    return OMP_perfo_default;
   case OMPC_PERFO_unknown:
     return OMP_perfo_undefined;
   }

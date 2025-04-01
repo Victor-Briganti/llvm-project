@@ -2186,6 +2186,10 @@ void CodeGenFunction::EmitOMPInnerLoop(
 
     if (PerfoKind.Perforation == OMPC_PERFO_init)
       emitPerforation(*this, S, PerfoKind, Induction, IncVar, LoopAddrs, NULL);
+    else if (PerfoKind.Perforation == OMPC_PERFO_default) { 
+      // Set the perforation metadata for the next emitted loop.
+      LoopStack.setPerforationState(LoopAttributes::Enable);
+    }
   }
 
   auto LoopExit = getJumpDestInCurrentScope("omp.inner.for.end");

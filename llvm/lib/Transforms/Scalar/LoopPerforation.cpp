@@ -103,7 +103,7 @@ static bool tryToPerforateLoop(Loop &L, ScalarEvolution &SE) {
     return false;
   }
 
-  int64_t IncrementValue = 0;
+  int64_t IncrementValue = 1;
   if (MDNode *PerforationCount =
           GetUnrollMetadata(L.getLoopID(), "llvm.loop.perforation.count")) {
     ConstantInt *CI =
@@ -119,15 +119,13 @@ static bool tryToPerforateLoop(Loop &L, ScalarEvolution &SE) {
       errs() << "[FAIL] Annotation does not exists\n";
       return false;
     }
-    
-    IncrementValue = 1;
   }
-  
+
   for (PHINode &PN : L.getHeader()->phis()) {
     const SCEV *S = SE.getSCEV(&PN);
-    
+
     // Check to see if the variable is a recurrence
-    if (const SCEVAddRecExpr * AR = dyn_cast<SCEVAddRecExpr>(S)) {
+    if (const SCEVAddRecExpr *AR = dyn_cast<SCEVAddRecExpr>(S)) {
       // Ensure that the recurrence belongs to this loop
       if (AR->getLoop() == &L) {
         Value *ValueToChange = nullptr;
@@ -141,8 +139,9 @@ static bool tryToPerforateLoop(Loop &L, ScalarEvolution &SE) {
             }
           }
         }
-        
-        if (BinaryOperator *Increment = dyn_cast<BinaryOperator>(ValueToChange)) {
+
+        if (BinaryOperator *Increment =
+                dyn_cast<BinaryOperator>(ValueToChange)) {
           return changeInductionVariable(&PN, Increment, IncrementValue);
         }
 
@@ -151,7 +150,7 @@ static bool tryToPerforateLoop(Loop &L, ScalarEvolution &SE) {
       }
     }
   }
-  
+
   errs() << "[FAIL] Could not extract induction variable\n";
   return false;
 }
