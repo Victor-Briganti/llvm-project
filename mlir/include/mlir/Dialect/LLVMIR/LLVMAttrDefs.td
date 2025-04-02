@@ -50,6 +50,7 @@ def LoopPerforationAttr : LLVM_Attr<"LoopPerforation", "loop_perforation"> {
 
   let parameters = (ins
     OptionalParameter<"BoolAttr">:$disable,
+    OptionalParameter<"IntegerAttr">:$count,
     OptionalParameter<"LoopAnnotationAttr">:$followupAll
   );
 

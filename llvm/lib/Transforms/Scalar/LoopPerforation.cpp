@@ -60,7 +60,8 @@ static cl::opt<bool>
 // "llvm.loop.perforation.enable").  If no such metadata node exists, then false
 // is returned.
 static bool hasPerforationEnablePragma(const Loop &L) {
-  if (!GetUnrollMetadata(L.getLoopID(), "llvm.loop.perforation.enable"))
+  if (!GetUnrollMetadata(L.getLoopID(), "llvm.loop.perforation.enable") ||
+      !GetUnrollMetadata(L.getLoopID(), "llvm.loop.perforation.count"))
     return false;
 
   return true;
@@ -75,7 +76,7 @@ static bool changeInductionVariable(PHINode *PHI, BinaryOperator *Increment,
 
     ConstantInt *CI = dyn_cast<ConstantInt>(Op);
     if (!CI) {
-      errs() << "[FAIL] Not a integer constant\n";
+      // errs() << "[FAIL] Not a integer constant\n";
       return false;
     }
 
@@ -99,7 +100,7 @@ static bool changeInductionVariable(PHINode *PHI, BinaryOperator *Increment,
 
 static bool tryToPerforateLoop(Loop &L, ScalarEvolution &SE) {
   if (!L.isLoopSimplifyForm()) {
-    errs() << "[FAIL] Loop is not in simplify form\n";
+    // errs() << "[FAIL] Loop is not in simplify form\n";
     return false;
   }
 
@@ -109,14 +110,14 @@ static bool tryToPerforateLoop(Loop &L, ScalarEvolution &SE) {
     ConstantInt *CI =
         mdconst::extract<ConstantInt>(PerforationCount->getOperand(1));
     if (!CI) {
-      errs() << "[FAIL] Could not extract the int\n";
+      // errs() << "[FAIL] Could not extract the int\n";
       return false;
     }
 
     IncrementValue = CI->getSExtValue();
   } else {
     if (!hasPerforationEnablePragma(L)) {
-      errs() << "[FAIL] Annotation does not exists\n";
+      // errs() << "[FAIL] Annotation does not exists\n";
       return false;
     }
   }
@@ -145,13 +146,13 @@ static bool tryToPerforateLoop(Loop &L, ScalarEvolution &SE) {
           return changeInductionVariable(&PN, Increment, IncrementValue);
         }
 
-        errs() << "[FAIL] Not a binary operator\n";
+        // errs() << "[FAIL] Not a binary operator\n";
         return false;
       }
     }
   }
 
-  errs() << "[FAIL] Could not extract induction variable\n";
+  // errs() << "[FAIL] Could not extract induction variable\n";
   return false;
 }
 
@@ -206,6 +207,6 @@ PreservedAnalyses LoopPerforationPass::run(Loop &L, LoopAnalysisManager &AM,
     return PA;
   }
 
-  errs() << "[FAIL] Could not perforate\n";
+  // errs() << "[FAIL] Could not perforate\n";
   return PreservedAnalyses::all();
 }
