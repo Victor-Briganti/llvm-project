@@ -99,11 +99,11 @@ static bool changeInductionVariable(PHINode *PHI, BinaryOperator *Increment,
 }
 
 static bool tryToPerforateLoop(Loop &L, ScalarEvolution &SE) {
-  if (!L.isLoopSimplifyForm()) {
+  if (!L.isLoopSimplifyForm() || !L.getLoopID()) {
     // errs() << "[FAIL] Loop is not in simplify form\n";
     return false;
   }
-
+  
   int64_t IncrementValue = 1;
   if (MDNode *PerforationCount =
           GetUnrollMetadata(L.getLoopID(), "llvm.loop.perforation.count")) {
