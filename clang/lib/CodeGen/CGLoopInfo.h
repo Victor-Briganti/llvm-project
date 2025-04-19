@@ -73,6 +73,9 @@ struct LoopAttributes {
   /// llvm.unroll.
   unsigned UnrollAndJamCount;
 
+  /// llvm.perforation.
+  unsigned PerforationCount;
+
   /// Value for llvm.loop.distribute.enable metadata.
   LVEnableState DistributeEnable;
 
@@ -176,7 +179,7 @@ private:
                            llvm::ArrayRef<llvm::Metadata *> LoopProperties,
                            bool &HasUserTransforms);
   llvm::MDNode *
-  createPerforateMetadata(const LoopAttributes &Attrs,
+  createLoopPerforateMetadata(const LoopAttributes &Attrs,
                            llvm::ArrayRef<llvm::Metadata *> LoopProperties,
                            bool &HasUserTransforms);
   /// @}
@@ -283,8 +286,11 @@ public:
   /// Set the unroll count for the next loop pushed.
   void setUnrollCount(unsigned C) { StagedAttrs.UnrollCount = C; }
 
-  /// \brief Set the unroll count for the next loop pushed.
+  /// Set the unroll count for the next loop pushed.
   void setUnrollAndJamCount(unsigned C) { StagedAttrs.UnrollAndJamCount = C; }
+  
+  /// Set the perforation count for the next loop pushed.
+  void setPerforationCount(unsigned C) { StagedAttrs.PerforationCount = C; }
 
   /// Set the pipeline disabled state.
   void setPipelineDisabled(bool S) { StagedAttrs.PipelineDisabled = S; }

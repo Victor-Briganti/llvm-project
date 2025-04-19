@@ -460,6 +460,7 @@ def OMP_PERFO_Small : ClauseVal<"small", 1, 1> {}
 def OMP_PERFO_Large : ClauseVal<"large", 2, 1> { let isDefault = 1; }
 def OMP_PERFO_Init : ClauseVal<"init", 3, 1> {}
 def OMP_PERFO_Finish : ClauseVal<"finish", 4, 1> {}
+def OMP_PERFO_Default : ClauseVal<"default", 5, 1> {}
 
 def OMPC_Perfo : Clause<"perfo"> {
   let clangClass = "OMPPerfoClause";
@@ -469,6 +470,7 @@ def OMPC_Perfo : Clause<"perfo"> {
     OMP_PERFO_Large,
     OMP_PERFO_Init,
     OMP_PERFO_Finish,
+    OMP_PERFO_Default,
   ];
 }
 

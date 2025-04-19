@@ -2177,15 +2177,28 @@ void CodeGenFunction::EmitOMPInnerLoop(
         CGM.getDiags().Report(DiagID);
         return;
       }
+
+      if (PerfoKind.Perforation == OMPC_PERFO_init)
+        emitPerforation(*this, S, PerfoKind, Induction, IncVar, LoopAddrs,
+                        NULL);
+      else if (PerfoKind.Perforation == OMPC_PERFO_default) {
+        uint64_t Factor = 1;
+        if (const Expr *FactorExpr = C->getInductionSize()) {
+          Factor =
+              FactorExpr->EvaluateKnownConstInt(getContext()).getZExtValue();
+          assert(Factor >= 1 && "Only positive factors are valid");
+        }
+
+        // Set the perforation metadata for the next emitted loop.
+        LoopStack.setPerforationState(LoopAttributes::Enable);
+        LoopStack.setPerforationCount(Factor);
+      }
     } else {
       unsigned DiagID = CGM.getDiags().getCustomDiagID(
           DiagnosticsEngine::Error, "'perfo' clause needs a valid type.");
       CGM.getDiags().Report(DiagID);
       return;
     }
-
-    if (PerfoKind.Perforation == OMPC_PERFO_init)
-      emitPerforation(*this, S, PerfoKind, Induction, IncVar, LoopAddrs, NULL);
   }
 
   auto LoopExit = getJumpDestInCurrentScope("omp.inner.for.end");
@@ -7296,9 +7309,9 @@ void CodeGenFunction::EmitOMPApproxForDirective(
     const OMPApproxForDirective &S) {
   bool HasLastprivates = false;
 
-  auto *Perfo = S.getSingleClause<OMPPerfoClause>();
+  auto *PerfoClause = S.getSingleClause<OMPPerfoClause>();
 
-  if (!Perfo) {
+  if (!PerfoClause) {
     unsigned DiagID = CGM.getDiags().getCustomDiagID(
         DiagnosticsEngine::Error,
         "'approx for' directive needs the definition of the clause 'perfo'.");
@@ -7449,7 +7462,9 @@ void CodeGenFunction::EmitOMPPerfoDirective(const OMPPerfoDirective &S) {
     auto DL = SourceLocToDebugLoc(S.getBeginLoc());
     const Stmt *Inner = S.getRawStmt();
 
-    // Consume nested loop. Clear the entire remainig loop stack because a fully perforated loop is non-transformable. For partial perforating the generated outer loop is pushed back to the stack.
+    // Consume nested loop. Clear the entire remainig loop stack because a fully
+    // perforated loop is non-transformable. For partial perforating the
+    // generated outer loop is pushed back to the stack.
     llvm::CanonicalLoopInfo *CLI = EmitOMPCollapsedCanonicalLoopNest(Inner, 1);
     OMPLoopNestStack.clear();
 
@@ -7459,6 +7474,9 @@ void CodeGenFunction::EmitOMPPerfoDirective(const OMPPerfoDirective &S) {
 
   // Set the perforation metadata for the next emitted loop.
   LoopStack.setPerforationState(LoopAttributes::Enable);
+
+  // #TODO: Add the the count clause to verify the number of iterations that
+  // need to be perforated
   EmitStmt(S.getAssociatedStmt());
 }
 
