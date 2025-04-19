@@ -14,6 +14,7 @@
 #include "kmp_lock.h"
 
 #include <math.h>
+#include <algorithm>
 
 #define KMP_MAP_INIT_SIZE 40
 #define KMP_MAP_LOAD 0.75
@@ -64,6 +65,8 @@ kmp_real64 convert(void *value, memo_num_t type) {
   return 0;
 }
 
+/*----------------------------------------------------------------------------*/
+/* Hashmap                                                                    */
 /*----------------------------------------------------------------------------*/
 
 enum cache_state {
@@ -218,7 +221,7 @@ class kmp_memo_map {
   }
 
 public:
-  kmp_memo_map() {
+  void construct() {
     nbuckets = KMP_MAP_INIT_SIZE;
     entries = 0;
 
@@ -270,24 +273,301 @@ public:
   }
 };
 
-kmp_memo_map map;
-
+/*----------------------------------------------------------------------------*/
+/* AVL                                                                        */
 /*----------------------------------------------------------------------------*/
 
-class kmp_map_lock {
+class kmp_memo_node {
+  kmp_int32 height;
+
+public:
+  kmp_int32 key;
+  kmp_memo_map *data;
+  kmp_memo_node *parent;
+  kmp_memo_node *left;
+  kmp_memo_node *right;
+
+  void construct(kmp_int32 key, kmp_memo_map *data) {
+    this->key = key;
+    this->data = data;
+    this->height = 1;
+    this->parent = nullptr;
+    this->left = nullptr;
+    this->right = nullptr;
+  }
+
+  inline kmp_int32 max(kmp_int32 x, kmp_int32 y) { return x > y ? x : y; }
+
+  kmp_int32 get_height(kmp_memo_node *node) {
+    if (node == nullptr)
+      return 0;
+
+    return node->height;
+  }
+
+  kmp_int32 load_balance(kmp_memo_node *node) {
+    if (node == nullptr) {
+      return 0;
+    }
+
+    return get_height(node->left) - get_height(node->right);
+  }
+
+  void update_height() {
+    height = 1 + max(get_height(left), get_height(right));
+  }
+
+  bool insert_child(kmp_int32 key, kmp_memo_map *data) {
+    if (this->key > key && this->left == nullptr) {
+      this->left =
+          static_cast<kmp_memo_node *>(kmpc_malloc(sizeof(kmp_memo_node)));
+      this->left->construct(key, data);
+      this->left->parent = this;
+      return true;
+    }
+
+    if (this->key < key && this->right == nullptr) {
+      this->right =
+          static_cast<kmp_memo_node *>(kmpc_malloc(sizeof(kmp_memo_node)));
+      this->right->construct(key, data);
+      this->right->parent = this;
+      return true;
+    }
+
+    return false;
+  }
+
+  void parent_update(kmp_memo_node *node, kmp_memo_node *parent) {
+    if (node == nullptr)
+      return;
+
+    node->parent = parent;
+  }
+
+  /* Perform a rotation of the node to the left side.
+   *
+   *        root                       pivot
+   *        /   \                      /   \
+   *    subroot pivot      =>        root   X
+   *             /  \                /  \
+   *            /    \              /    \
+   *        subpivot  X         subroot subpivot
+   */
+  void rotate_left(kmp_memo_node *node) {
+    kmp_memo_node *root = node;
+    kmp_memo_node *pivot = root->right;
+    kmp_memo_node *subRoot = root->left;
+    kmp_memo_node *subPivot = pivot->left;
+
+    // To perform the rotation between the pivot and the root, only the key and
+    // the data are swapped. In this way it's not necessary to change the
+    // parent's node of the root.
+    std::swap(root->key, pivot->key);
+    std::swap(root->data, pivot->data);
+
+    root->right = pivot->right;
+
+    pivot->right = subPivot;
+    pivot->left = subRoot;
+
+    root->left = pivot;
+
+    parent_update(subRoot, pivot);
+    parent_update(root->right, root);
+
+    pivot->update_height();
+    root->update_height();
+  }
+
+  /* Perform a rotation of the node to the right side.
+   *
+   *       root                 pivot
+   *       /   \                /   \
+   *    pivot  subtroot  =>    X   root
+   *     / \                        / \
+   *    /   \                      /   \
+   *   X  subpivot            subpivot subtroot
+   */
+  void rotate_right(kmp_memo_node *node) {
+    kmp_memo_node *root = node;
+    kmp_memo_node *pivot = root->left;
+    kmp_memo_node *subRoot = root->right;
+    kmp_memo_node *subPivot = pivot->right;
+
+    // To perform the rotation between the pivot and the root, only the key and
+    // the data are swapped. In this way it's not necessary to change the
+    // parent's node of the root.
+    std::swap(root->key, pivot->key);
+    std::swap(root->data, pivot->data);
+
+    root->left = pivot->left;
+
+    pivot->left = subPivot;
+    pivot->right = subRoot;
+
+    root->right = pivot;
+
+    parent_update(subRoot, pivot);
+    parent_update(root->left, root);
+
+    pivot->update_height();
+    root->update_height();
+  }
+
+  /* Handles the growth of the tree after a insertion. There are four cases that
+   * make the need to rebalance the tree:
+   *
+   * 1. Left-Left Case:
+   *        z                                      y
+   *       / \                                   /   \
+   *      y   T4      Right Rotate (z)          x      z
+   *     / \          - - - - - - - - ->      /  \    /  \
+   *    x   T3                               T1  T2  T3  T4
+   *   / \
+   * T1   T2
+   *
+   * 2. Left-Right Case:
+   *     z                               z                           x
+   *    / \                            /   \                        /  \
+   *   y   T4  Left Rotate (y)        x    T4  Right Rotate(z)    y      z
+   *  / \      - - - - - - - - ->    /  \      - - - - - - - ->  / \    / \
+   * T1  x                          y    T3                     T1 T2  T3  T4
+   *    / \                        / \
+   *  T2   T3                    T1   T2
+   *
+   * 3. Right-Right Case:
+   *    z                               y
+   *  /  \                            /   \
+   * T1   y     Left Rotate(z)      z      x
+   *    /  \   - - - - - - - ->    / \    / \
+   *   T2   x                     T1  T2 T3  T4
+   *       / \
+   *     T3  T4
+   *
+   * 4. Right-Left Case:
+   *    z                            z                            x
+   *   / \                          / \                          /  \
+   * T1   y   Right Rotate (y)    T1   x      Left Rotate(z)   z      y
+   *     / \  - - - - - - - - ->     /  \   - - - - - - - ->  / \    / \
+   *    x   T4                      T2   y                  T1  T2  T3  T4
+   *   / \                              /  \
+   * T2   T3                           T3   T4
+   *
+   */
+  void rebalance(kmp_int32 key) {
+    kmp_memo_node *node = this;
+    do {
+      node->update_height();
+      int balance = load_balance(node);
+
+      // 1. Left-Left case
+      if (balance > 1 && node->left->key > key) {
+        rotate_right(node);
+        break;
+      }
+
+      // 2. Left-Right case
+      if (balance > 1 && node->left->key < key) {
+        rotate_left(node->left);
+        parent_update(node->left, node);
+        rotate_right(node);
+        break;
+      }
+
+      // 3. Right-Right case
+      if (balance < -1 && node->right->key < key) {
+        rotate_left(node);
+        break;
+      }
+
+      // 4. Right-Left case
+      if (balance < -1 && node->right->key > key) {
+        rotate_right(node->right);
+        parent_update(node->right, node);
+        rotate_left(node);
+        break;
+      }
+
+      node = node->parent;
+    } while (node != nullptr);
+  }
+};
+
+class kmp_memo_tree {
+  kmp_memo_node *head;
+  kmp_int32 size;
+
+public:
+  kmp_memo_tree() {
+    head = nullptr;
+    size = 0;
+  }
+
+  kmp_memo_map *search(kmp_int32 key) {
+    kmp_memo_node *iter = head;
+
+    while (iter != nullptr) {
+      if (iter->key == key) {
+        return iter->data;
+      }
+
+      if (iter->key < key)
+        iter = iter->right;
+      else
+        iter = iter->left;
+    }
+
+    return nullptr;
+  }
+
+  bool insert(kmp_int32 key, kmp_memo_map *data) {
+    if (head == nullptr) {
+      head = static_cast<kmp_memo_node *>(kmpc_malloc(sizeof(kmp_memo_node)));
+      head->construct(key, data);
+      size++;
+      return true;
+    }
+
+    kmp_memo_node *iter = head;
+    while (true) {
+      if (iter->key == key)
+        return false;
+
+      if (iter->insert_child(key, data))
+        break;
+
+      if (iter->key > key)
+        iter = iter->left;
+      else
+        iter = iter->right;
+    }
+
+    iter->rebalance(key);
+    size++;
+    return true;
+  }
+};
+
+kmp_memo_tree global_map;
+
+/* -------------------------------------------------------------------------- */
+/* Lock                                                                       */
+/* -------------------------------------------------------------------------- */
+
+class kmp_memo_lock {
   kmp_lock_t lock;
 
 public:
-  kmp_map_lock() { __kmp_init_lock(&lock); }
+  kmp_memo_lock() { __kmp_init_lock(&lock); }
 
-  ~kmp_map_lock() { __kmp_destroy_lock(&lock); }
+  ~kmp_memo_lock() { __kmp_destroy_lock(&lock); }
 
   int acquire(kmp_int32 gtid) { return __kmp_acquire_lock(&lock, gtid); }
 
   void release(kmp_int32 gtid) { __kmp_release_lock(&lock, gtid); }
 };
 
-kmp_map_lock map_lock;
+kmp_memo_lock memo_lock;
 
 } // namespace
 
@@ -297,44 +577,70 @@ kmp_map_lock map_lock;
 
 void __kmp_memo_create_cache(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
                              kmp_int32 num_vars, kmp_int32 thresh) {
+  memo_lock.acquire(gtid);
+  kmp_memo_map *map = global_map.search(gtid);
+  if (map == nullptr) {
+    map = static_cast<kmp_memo_map *>(kmpc_malloc(sizeof(kmp_memo_map)));
+    KMP_ASSERT2(map != nullptr, "cache not found");
+    map->construct();
+    if (!global_map.insert(gtid, map)) {
+      KMP_ASSERT2(false, "duplicate key");
+    }
+  }
+  memo_lock.release(gtid);
 
-  map_lock.acquire(gtid);
-  kmp_memo_cache *cache = map.search(hash_loc);
-
+  kmp_memo_cache *cache = map->search(hash_loc);
   if (cache == nullptr) {
     cache = static_cast<kmp_memo_cache *>(kmpc_malloc(sizeof(kmp_memo_cache)));
     cache->construct(hash_loc, num_vars, thresh);
-    map.insert(cache);
+    map->insert(cache);
   }
-  map_lock.release(gtid);
 }
 
 void __kmp_memo_copy_in(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc,
                         void *data_in, size_t size, memo_num_t num_type,
                         kmp_int32 id_var) {
-  map_lock.acquire(gtid);
-  kmp_memo_cache *cache = map.search(hash_loc);
+  memo_lock.acquire(gtid);
+  kmp_memo_map *map = global_map.search(gtid);
+  if (map == nullptr) {
+    map = static_cast<kmp_memo_map *>(kmpc_malloc(sizeof(kmp_memo_map)));
+    KMP_ASSERT2(map != nullptr, "cache not found");
+    map->construct();
+    if (!global_map.insert(gtid, map)) {
+      KMP_ASSERT2(false, "duplicate key");
+    }
+  }
+  memo_lock.release(gtid);
+
+  kmp_memo_cache *cache = map->search(hash_loc);
   KMP_ASSERT2(cache != nullptr, "cache not found");
 
   if (cache->state == UNINITIALIZED)
     cache->insert(id_var, data_in, size, num_type);
-
-  map_lock.release(gtid);
 }
 
 kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
-  map_lock.acquire(gtid);
-  kmp_memo_cache *cache = map.search(hash_loc);
+  memo_lock.acquire(gtid);
+  kmp_memo_map *map = global_map.search(gtid);
+  if (map == nullptr) {
+    map = static_cast<kmp_memo_map *>(kmpc_malloc(sizeof(kmp_memo_map)));
+    KMP_ASSERT2(map != nullptr, "cache not found");
+    map->construct();
+    if (!global_map.insert(gtid, map)) {
+      KMP_ASSERT2(false, "duplicate key");
+    }
+  }
+  memo_lock.release(gtid);
+
+  kmp_memo_cache *cache = map->search(hash_loc);
   KMP_ASSERT2(cache != nullptr, "cache not found");
 
   switch (cache->state) {
   case UNINITIALIZED:
   case INVALID:
-    map_lock.release(gtid);
     return 1;
   case VALID:
     cache->update_address();
-    map_lock.release(gtid);
     return 0;
   }
 
@@ -342,15 +648,24 @@ kmp_int32 __kmp_memo_verify(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
 }
 
 void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
-  map_lock.acquire(gtid);
-  kmp_memo_cache *cache = map.search(hash_loc);
+  memo_lock.acquire(gtid);
+  kmp_memo_map *map = global_map.search(gtid);
+  if (map == nullptr) {
+    map = static_cast<kmp_memo_map *>(kmpc_malloc(sizeof(kmp_memo_map)));
+    KMP_ASSERT2(map != nullptr, "cache not found");
+    map->construct();
+    if (!global_map.insert(gtid, map)) {
+      KMP_ASSERT2(false, "duplicate key");
+    }
+  }
+  memo_lock.release(gtid);
+
+  kmp_memo_cache *cache = map->search(hash_loc);
   KMP_ASSERT2(cache != nullptr, "cache not found");
 
   if (cache->state == UNINITIALIZED) {
     cache->state = INVALID;
     cache->update_cache();
-
-    map_lock.release(gtid);
     return;
   }
 
@@ -359,19 +674,15 @@ void __kmp_memo_compare(kmp_int32 gtid, ident_t *loc, kmp_int32 hash_loc) {
     if (cache->state == INVALID)
       cache->update_cache();
 
-    map_lock.release(gtid);
     return;
   }
 
   if (cache->state == INVALID && !cache->thresh) {
     cache->update_cache();
     cache->state = VALID;
-
-    map_lock.release(gtid);
     return;
   }
 
-  map_lock.release(gtid);
   KMP_ASSERT2(cache->state == VALID, "invalid cache state");
 }
 
