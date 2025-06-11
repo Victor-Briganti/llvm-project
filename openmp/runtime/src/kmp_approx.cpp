@@ -181,6 +181,8 @@ struct kmp_memo_cache {
     } else {
       state = (cache_state)islessequal(final, thresh);
     }
+
+    kmpc_free(res);
   }
 };
 
