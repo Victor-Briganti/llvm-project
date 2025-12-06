@@ -12010,9 +12010,7 @@ void CGOpenMPRuntime::emitLastprivateConditionalFinalUpdate(
 
 void CGOpenMPRuntime::emitApproxRegion(CodeGenFunction &CGF,
                                        const RegionCodeGenTy &ApproxOpGen,
-                                       SourceLocation Loc) {
-  ApproxOpGen(CGF);
-}
+                                       SourceLocation Loc) {}
 
 llvm::Function *CGOpenMPSIMDRuntime::emitParallelOutlinedFunction(
     CodeGenFunction &CGF, const OMPExecutableDirective &D,
