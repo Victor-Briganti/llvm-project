@@ -1739,6 +1739,31 @@ def OMP_ParallelFor : Directive<[Spelling<"parallel for">]> {
   let category = CA_Executable;
   let languages = [L_C];
 }
+def OMP_ParallelForApprox : Directive<[Spelling<"parallel for approx">]> {
+  let allowedClauses = [
+    VersionedClause<OMPC_Allocate>,
+    VersionedClause<OMPC_Collapse>,
+    VersionedClause<OMPC_Copyin>,
+    VersionedClause<OMPC_Default>,
+    VersionedClause<OMPC_FirstPrivate>,
+    VersionedClause<OMPC_If>,
+    VersionedClause<OMPC_LastPrivate>,
+    VersionedClause<OMPC_Linear>,
+    VersionedClause<OMPC_NumThreads>,
+    VersionedClause<OMPC_OMPX_Attribute>,
+    VersionedClause<OMPC_Order, 50>,
+    VersionedClause<OMPC_Ordered>,
+    VersionedClause<OMPC_Private>,
+    VersionedClause<OMPC_ProcBind>,
+    VersionedClause<OMPC_Reduction>,
+    VersionedClause<OMPC_Schedule>,
+    VersionedClause<OMPC_Shared>,
+  ];
+  let leafConstructs = [OMP_Parallel, OMP_For, OMP_Approx];
+  let association = AS_Loop;
+  let category = CA_Executable;
+  let languages = [L_C];
+}
 def OMP_ParallelForSimd : Directive<[Spelling<"parallel for simd">]> {
   let allowedClauses = [
     VersionedClause<OMPC_Aligned>,

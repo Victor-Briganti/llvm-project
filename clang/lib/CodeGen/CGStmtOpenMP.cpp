@@ -1397,6 +1397,9 @@ void CodeGenFunction::EmitOMPReductionClauseInit(
       TaskRedRef = cast<OMPTargetTeamsDistributeParallelForDirective>(D)
                        .getTaskReductionRefExpr();
       break;
+    case OMPD_parallel_for_approx:
+      TaskRedRef = cast<OMPParallelForApproxDirective>(D).getTaskReductionRefExpr();
+      break;
     case OMPD_simd:
     // TODO: I think that 'for approx' could use task reduction, but need to
     // test.
@@ -4128,12 +4131,7 @@ static void emitOMPForDirective(const OMPLoopDirective &S, CodeGenFunction &CGF,
     auto LPCRegion =
         CGOpenMPRuntime::LastprivateConditionalRAII::disable(CGF, S);
     
-    // TODO: The approx directive should be treated in its own Emit. This is only temporary
-    if (auto *FAD = dyn_cast<OMPForApproxDirective>(&S)) {
-      OMPLexicalScope Scope(CGF, S, OMPD_approx);
-    } else {
-      OMPLexicalScope Scope(CGF, S, OMPD_unknown);
-    }
+    OMPLexicalScope Scope(CGF, S, OMPD_unknown);
     CGM.getOpenMPRuntime().emitInlinedDirective(CGF, OMPD_for, CodeGen,
                                                 HasCancel);
   }
@@ -4681,6 +4679,40 @@ void CodeGenFunction::EmitOMPParallelForDirective(
     auto LPCRegion =
         CGOpenMPRuntime::LastprivateConditionalRAII::disable(*this, S);
     emitCommonOMPParallelDirective(*this, S, OMPD_for, CodeGen,
+                                   emitEmptyBoundParameters);
+    if (IsInscan)
+      emitScanBasedDirectiveFinals(*this, S, NumIteratorsGen);
+  }
+  // Check for outer lastprivate conditional update.
+  checkForLastprivateConditionalUpdate(*this, S);
+}
+
+void CodeGenFunction::EmitOMPParallelForApproxDirective(
+    const OMPParallelForApproxDirective &S) {
+  // Emit directive as a combined directive that consists of two implicit
+  // directives: 'parallel' with 'for' directive.
+  auto &&CodeGen = [&S](CodeGenFunction &CGF, PrePostActionTy &Action) {
+    Action.Enter(CGF);
+    emitOMPCopyinClause(CGF, S);
+    (void)emitWorksharingDirective(CGF, S, S.hasCancel());
+  };
+  {
+    const auto &&NumIteratorsGen = [&S](CodeGenFunction &CGF) {
+      CodeGenFunction::OMPLocalDeclMapRAII Scope(CGF);
+      CGCapturedStmtInfo CGSI(CR_OpenMP);
+      CodeGenFunction::CGCapturedStmtRAII CapInfoRAII(CGF, &CGSI);
+      OMPLoopScope LoopScope(CGF, S);
+      return CGF.EmitScalarExpr(S.getNumIterations());
+    };
+    bool IsInscan = llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
+                     [](const OMPReductionClause *C) {
+                       return C->getModifier() == OMPC_REDUCTION_inscan;
+                     });
+    if (IsInscan)
+      emitScanBasedDirectiveDecls(*this, S, NumIteratorsGen);
+    auto LPCRegion =
+        CGOpenMPRuntime::LastprivateConditionalRAII::disable(*this, S);
+    emitCommonOMPParallelDirective(*this, S, OMPD_for_approx, CodeGen,
                                    emitEmptyBoundParameters);
     if (IsInscan)
       emitScanBasedDirectiveFinals(*this, S, NumIteratorsGen);
@@ -7502,6 +7534,7 @@ CodeGenFunction::getOMPCancelDestination(OpenMPDirectiveKind Kind) {
     return ReturnBlock;
   assert(Kind == OMPD_for || Kind == OMPD_section || Kind == OMPD_sections ||
          Kind == OMPD_parallel_sections || Kind == OMPD_parallel_for ||
+         Kind == OMPD_parallel_for_approx ||
          Kind == OMPD_distribute_parallel_for ||
          Kind == OMPD_target_parallel_for ||
          Kind == OMPD_teams_distribute_parallel_for ||

@@ -6264,6 +6264,10 @@ StmtResult SemaOpenMP::ActOnOpenMPExecutableDirective(
     Res = ActOnOpenMPParallelForDirective(ClausesWithImplicit, AStmt, StartLoc,
                                           EndLoc, VarsWithInheritedDSA);
     break;
+  case OMPD_parallel_for_approx:
+    Res = ActOnOpenMPParallelForApproxDirective(
+        ClausesWithImplicit, AStmt, StartLoc, EndLoc, VarsWithInheritedDSA);
+    break;
   case OMPD_parallel_for_simd:
     Res = ActOnOpenMPParallelForSimdDirective(
         ClausesWithImplicit, AStmt, StartLoc, EndLoc, VarsWithInheritedDSA);
@@ -10488,9 +10492,9 @@ StmtResult SemaOpenMP::ActOnOpenMPForApproxDirective(
   if (!AStmt)
     return StmtError();
 
+  assert(isa<CapturedStmt>(AStmt) && "Captured statement expected");
   CapturedStmt *CS = setBranchProtectedScope(SemaRef, OMPD_for_approx, AStmt);
 
-  assert(isa<CapturedStmt>(AStmt) && "Captured statement expected");
   OMPLoopBasedDirective::HelperExprs B;
   // In presence of clause 'collapse' or 'ordered' with number of loops, it will
   // define the nested loops number.
@@ -10505,7 +10509,7 @@ StmtResult SemaOpenMP::ActOnOpenMPForApproxDirective(
     return StmtError();
 
   return OMPForApproxDirective::Create(getASTContext(), StartLoc, EndLoc,
-                                     NestedLoopCount, Clauses, AStmt, B);
+                                     NestedLoopCount, Clauses, CS, B);
 }
 
 StmtResult SemaOpenMP::ActOnOpenMPForSimdDirective(
@@ -10990,6 +10994,32 @@ StmtResult SemaOpenMP::ActOnOpenMPParallelForDirective(
 
   return OMPParallelForDirective::Create(
       getASTContext(), StartLoc, EndLoc, NestedLoopCount, Clauses, AStmt, B,
+      DSAStack->getTaskgroupReductionRef(), DSAStack->isCancelRegion());
+}
+
+StmtResult SemaOpenMP::ActOnOpenMPParallelForApproxDirective(
+    ArrayRef<OMPClause *> Clauses, Stmt *AStmt, SourceLocation StartLoc,
+    SourceLocation EndLoc, VarsWithInheritedDSAType &VarsWithImplicitDSA) {
+  if (!AStmt)
+    return StmtError();
+
+  CapturedStmt *CS = setBranchProtectedScope(SemaRef, OMPD_parallel_for_approx, AStmt);
+
+  OMPLoopBasedDirective::HelperExprs B;
+  // In presence of clause 'collapse' or 'ordered' with number of loops, it will
+  // define the nested loops number.
+  unsigned NestedLoopCount =
+      checkOpenMPLoop(OMPD_parallel_for_approx, getCollapseNumberExpr(Clauses),
+                      getOrderedNumberExpr(Clauses), CS, SemaRef, *DSAStack,
+                      VarsWithImplicitDSA, B);
+  if (NestedLoopCount == 0)
+    return StmtError();
+
+  if (finishLinearClauses(SemaRef, Clauses, B, DSAStack))
+    return StmtError();
+
+  return OMPParallelForApproxDirective::Create(
+      getASTContext(), StartLoc, EndLoc, NestedLoopCount, Clauses, CS, B,
       DSAStack->getTaskgroupReductionRef(), DSAStack->isCancelRegion());
 }
 
@@ -19668,9 +19698,11 @@ OMPClause *SemaOpenMP::ActOnOpenMPReductionClause(
   // worksharing-loop SIMD construct.
   if (Modifier == OMPC_REDUCTION_inscan &&
       (DSAStack->getCurrentDirective() != OMPD_for &&
+       DSAStack->getCurrentDirective() != OMPD_for_approx &&
        DSAStack->getCurrentDirective() != OMPD_for_simd &&
        DSAStack->getCurrentDirective() != OMPD_simd &&
        DSAStack->getCurrentDirective() != OMPD_parallel_for &&
+       DSAStack->getCurrentDirective() != OMPD_parallel_for_approx &&
        DSAStack->getCurrentDirective() != OMPD_parallel_for_simd)) {
     Diag(ModifierLoc, diag::err_omp_wrong_inscan_reduction);
     return nullptr;

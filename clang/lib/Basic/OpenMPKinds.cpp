@@ -615,8 +615,9 @@ bool clang::isOpenMPWorksharingDirective(OpenMPDirectiveKind DKind) {
   return DKind == OMPD_for || DKind == OMPD_for_approx ||
          DKind == OMPD_for_simd || DKind == OMPD_sections ||
          DKind == OMPD_section || DKind == OMPD_single ||
-         DKind == OMPD_parallel_for || DKind == OMPD_parallel_for_simd ||
-         DKind == OMPD_parallel_sections || DKind == OMPD_target_parallel_for ||
+         DKind == OMPD_parallel_for || DKind == OMPD_parallel_for_approx ||
+         DKind == OMPD_parallel_for_simd || DKind == OMPD_parallel_sections ||
+         DKind == OMPD_target_parallel_for ||
          DKind == OMPD_distribute_parallel_for ||
          DKind == OMPD_distribute_parallel_for_simd ||
          DKind == OMPD_target_parallel_for_simd ||
@@ -723,8 +724,8 @@ bool clang::isOpenMPLoopTransformationDirective(OpenMPDirectiveKind DKind) {
 }
 
 bool clang::isOpenMPCombinedParallelADirective(OpenMPDirectiveKind DKind) {
-  return DKind == OMPD_parallel_for || DKind == OMPD_parallel_for_simd ||
-         DKind == OMPD_parallel_master ||
+  return DKind == OMPD_parallel_for || DKind == OMPD_parallel_for_approx ||
+         DKind == OMPD_parallel_for_simd || DKind == OMPD_parallel_master ||
          DKind == OMPD_parallel_master_taskloop ||
          DKind == OMPD_parallel_master_taskloop_simd ||
          DKind == OMPD_parallel_sections;
@@ -836,9 +837,6 @@ void clang::getOpenMPCaptureRegions(
     case OMPD_taskloop:
       CaptureRegions.push_back(OMPD_taskloop);
       break;
-    case OMPD_approx:
-      CaptureRegions.push_back(OMPD_approx);
-      break;
     case OMPD_loop:
       // TODO: 'loop' may require different capture regions depending on the
       // bind clause or the parent directive when there is no bind clause.
@@ -850,6 +848,7 @@ void clang::getOpenMPCaptureRegions(
       else
         return true;
       break;
+    case OMPD_approx:
     case OMPD_dispatch:
     case OMPD_distribute:
     case OMPD_for:

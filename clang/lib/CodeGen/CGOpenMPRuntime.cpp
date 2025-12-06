@@ -1260,6 +1260,7 @@ llvm::Function *CGOpenMPRuntime::emitParallelOutlinedFunction(
     const VarDecl *ThreadIDVar, OpenMPDirectiveKind InnermostKind,
     const RegionCodeGenTy &CodeGen) {
   const CapturedStmt *CS = D.getCapturedStmt(OMPD_parallel);
+
   return emitParallelOrTeamsOutlinedFunction(
       CGM, D, CS, ThreadIDVar, InnermostKind, getOutlinedHelperName(CGF),
       CodeGen);
@@ -6337,6 +6338,7 @@ const Expr *CGOpenMPRuntime::getNumTeamsExprForTargetDirective(
   case OMPD_parallel_sections:
   case OMPD_for_approx:
   case OMPD_for_simd:
+  case OMPD_parallel_for_approx:
   case OMPD_parallel_for_simd:
   case OMPD_cancel:
   case OMPD_cancellation_point:
@@ -9263,6 +9265,7 @@ getNestedDistributeDirective(ASTContext &Ctx, const OMPExecutableDirective &D) {
     case OMPD_parallel_sections:
     case OMPD_for_approx:
     case OMPD_for_simd:
+    case OMPD_parallel_for_approx:
     case OMPD_parallel_for_simd:
     case OMPD_cancel:
     case OMPD_cancellation_point:
@@ -9910,6 +9913,7 @@ void CGOpenMPRuntime::scanForTargetRegionsFunctions(const Stmt *S,
     case OMPD_parallel_sections:
     case OMPD_for_approx:
     case OMPD_for_simd:
+    case OMPD_parallel_for_approx:
     case OMPD_parallel_for_simd:
     case OMPD_cancel:
     case OMPD_cancellation_point:
@@ -10478,6 +10482,7 @@ void CGOpenMPRuntime::emitTargetDataStandAloneCall(
     case OMPD_parallel_sections:
     case OMPD_for_approx:
     case OMPD_for_simd:
+    case OMPD_parallel_for_approx:
     case OMPD_parallel_for_simd:
     case OMPD_cancel:
     case OMPD_cancellation_point:

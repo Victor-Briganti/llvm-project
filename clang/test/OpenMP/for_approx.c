@@ -5,3 +5,12 @@ void test_for_approx() {
   for (int i = 0; i < 16; ++i) {
   }
 }
+
+void test_parallel_for_approx() {
+  int x = 0;
+
+#pragma omp parallel for approx
+  for (int i = 0; i < 16; ++i) {
+    x++;
+  }
+}

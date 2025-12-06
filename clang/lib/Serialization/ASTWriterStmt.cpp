@@ -2537,6 +2537,12 @@ void ASTStmtWriter::VisitOMPParallelForDirective(OMPParallelForDirective *D) {
   Code = serialization::STMT_OMP_PARALLEL_FOR_DIRECTIVE;
 }
 
+void ASTStmtWriter::VisitOMPParallelForApproxDirective(OMPParallelForApproxDirective *D) {
+  VisitOMPLoopDirective(D);
+  Record.writeBool(D->hasCancel());
+  Code = serialization::STMT_OMP_PARALLEL_FOR_APPROX_DIRECTIVE;
+}
+
 void ASTStmtWriter::VisitOMPParallelForSimdDirective(
     OMPParallelForSimdDirective *D) {
   VisitOMPLoopDirective(D);

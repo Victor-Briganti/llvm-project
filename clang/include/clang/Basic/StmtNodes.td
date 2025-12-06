@@ -242,6 +242,7 @@ def OMPSingleDirective : StmtNode<OMPExecutableDirective>;
 def OMPMasterDirective : StmtNode<OMPExecutableDirective>;
 def OMPCriticalDirective : StmtNode<OMPExecutableDirective>;
 def OMPParallelForDirective : StmtNode<OMPLoopDirective>;
+def OMPParallelForApproxDirective : StmtNode<OMPLoopDirective>;
 def OMPParallelForSimdDirective : StmtNode<OMPLoopDirective>;
 def OMPParallelMasterDirective : StmtNode<OMPExecutableDirective>;
 def OMPParallelSectionsDirective : StmtNode<OMPExecutableDirective>;
