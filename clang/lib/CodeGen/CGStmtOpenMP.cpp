@@ -1398,6 +1398,9 @@ void CodeGenFunction::EmitOMPReductionClauseInit(
                        .getTaskReductionRefExpr();
       break;
     case OMPD_simd:
+    // TODO: I think that 'for approx' could use task reduction, but need to
+    // test.
+    case OMPD_for_approx:
     case OMPD_for_simd:
     case OMPD_section:
     case OMPD_single:
@@ -4124,7 +4127,13 @@ static void emitOMPForDirective(const OMPLoopDirective &S, CodeGenFunction &CGF,
   {
     auto LPCRegion =
         CGOpenMPRuntime::LastprivateConditionalRAII::disable(CGF, S);
-    OMPLexicalScope Scope(CGF, S, OMPD_unknown);
+    
+    // TODO: The approx directive should be treated in its own Emit. This is only temporary
+    if (auto *FAD = dyn_cast<OMPForApproxDirective>(&S)) {
+      OMPLexicalScope Scope(CGF, S, OMPD_approx);
+    } else {
+      OMPLexicalScope Scope(CGF, S, OMPD_unknown);
+    }
     CGM.getOpenMPRuntime().emitInlinedDirective(CGF, OMPD_for, CodeGen,
                                                 HasCancel);
   }
@@ -4140,6 +4149,12 @@ static void emitOMPForDirective(const OMPLoopDirective &S, CodeGenFunction &CGF,
 
 void CodeGenFunction::EmitOMPForDirective(const OMPForDirective &S) {
   return emitOMPForDirective(S, *this, CGM, S.hasCancel());
+}
+
+void CodeGenFunction::EmitOMPForApproxDirective(const OMPForApproxDirective &S) {
+  // TODO: By now the omp for approx will not accept a cancel directive.
+  // But is important to revisit this.
+  return emitOMPForDirective(S, *this, CGM, /*HasCancel=*/false);
 }
 
 void CodeGenFunction::EmitOMPForSimdDirective(const OMPForSimdDirective &S) {

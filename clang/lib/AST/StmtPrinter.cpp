@@ -794,6 +794,11 @@ void StmtPrinter::VisitOMPForDirective(OMPForDirective *Node) {
   PrintOMPExecutableDirective(Node);
 }
 
+void StmtPrinter::VisitOMPForApproxDirective(OMPForApproxDirective *Node) {
+  Indent() << "#pragma omp for approx";
+  PrintOMPExecutableDirective(Node);
+}
+
 void StmtPrinter::VisitOMPForSimdDirective(OMPForSimdDirective *Node) {
   Indent() << "#pragma omp for simd";
   PrintOMPExecutableDirective(Node);

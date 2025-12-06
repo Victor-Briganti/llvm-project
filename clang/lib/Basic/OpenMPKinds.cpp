@@ -612,11 +612,11 @@ bool clang::isOpenMPLoopDirective(OpenMPDirectiveKind DKind) {
 }
 
 bool clang::isOpenMPWorksharingDirective(OpenMPDirectiveKind DKind) {
-  return DKind == OMPD_for || DKind == OMPD_for_simd ||
-         DKind == OMPD_sections || DKind == OMPD_section ||
-         DKind == OMPD_single || DKind == OMPD_parallel_for ||
-         DKind == OMPD_parallel_for_simd || DKind == OMPD_parallel_sections ||
-         DKind == OMPD_target_parallel_for ||
+  return DKind == OMPD_for || DKind == OMPD_for_approx ||
+         DKind == OMPD_for_simd || DKind == OMPD_sections ||
+         DKind == OMPD_section || DKind == OMPD_single ||
+         DKind == OMPD_parallel_for || DKind == OMPD_parallel_for_simd ||
+         DKind == OMPD_parallel_sections || DKind == OMPD_target_parallel_for ||
          DKind == OMPD_distribute_parallel_for ||
          DKind == OMPD_distribute_parallel_for_simd ||
          DKind == OMPD_target_parallel_for_simd ||

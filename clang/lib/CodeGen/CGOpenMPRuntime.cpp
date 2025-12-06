@@ -6335,6 +6335,7 @@ const Expr *CGOpenMPRuntime::getNumTeamsExprForTargetDirective(
   case OMPD_parallel_loop:
   case OMPD_parallel_master:
   case OMPD_parallel_sections:
+  case OMPD_for_approx:
   case OMPD_for_simd:
   case OMPD_parallel_for_simd:
   case OMPD_cancel:
@@ -9260,6 +9261,7 @@ getNestedDistributeDirective(ASTContext &Ctx, const OMPExecutableDirective &D) {
     case OMPD_parallel_for:
     case OMPD_parallel_master:
     case OMPD_parallel_sections:
+    case OMPD_for_approx:
     case OMPD_for_simd:
     case OMPD_parallel_for_simd:
     case OMPD_cancel:
@@ -9906,6 +9908,7 @@ void CGOpenMPRuntime::scanForTargetRegionsFunctions(const Stmt *S,
     case OMPD_parallel_for:
     case OMPD_parallel_master:
     case OMPD_parallel_sections:
+    case OMPD_for_approx:
     case OMPD_for_simd:
     case OMPD_parallel_for_simd:
     case OMPD_cancel:
@@ -10473,6 +10476,7 @@ void CGOpenMPRuntime::emitTargetDataStandAloneCall(
     case OMPD_parallel_for:
     case OMPD_parallel_master:
     case OMPD_parallel_sections:
+    case OMPD_for_approx:
     case OMPD_for_simd:
     case OMPD_parallel_for_simd:
     case OMPD_cancel:

@@ -2482,6 +2482,11 @@ void ASTStmtWriter::VisitOMPForDirective(OMPForDirective *D) {
   Code = serialization::STMT_OMP_FOR_DIRECTIVE;
 }
 
+void ASTStmtWriter::VisitOMPForApproxDirective(OMPForApproxDirective *D) {
+  VisitOMPLoopDirective(D);
+  Code = serialization::STMT_OMP_FOR_APPROX_DIRECTIVE;
+}
+
 void ASTStmtWriter::VisitOMPForSimdDirective(OMPForSimdDirective *D) {
   VisitOMPLoopDirective(D);
   Code = serialization::STMT_OMP_FOR_SIMD_DIRECTIVE;

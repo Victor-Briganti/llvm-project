@@ -2222,7 +2222,11 @@ enum CXCursorKind {
    */
   CXCursor_OMPApproxDirective = 334,
 
-  CXCursor_LastStmt = CXCursor_OMPApproxDirective,
+  /** OpenMP for approx directive.
+   */
+  CXCursor_OMPForApproxDirective = 335,
+
+  CXCursor_LastStmt = CXCursor_OMPForApproxDirective,
 
   /**
    * Cursor that represents the translation unit itself.

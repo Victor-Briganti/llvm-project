@@ -3860,6 +3860,7 @@ public:
   void EmitOMPReverseDirective(const OMPReverseDirective &S);
   void EmitOMPInterchangeDirective(const OMPInterchangeDirective &S);
   void EmitOMPForDirective(const OMPForDirective &S);
+  void EmitOMPForApproxDirective(const OMPForApproxDirective &S);
   void EmitOMPForSimdDirective(const OMPForSimdDirective &S);
   void EmitOMPScopeDirective(const OMPScopeDirective &S);
   void EmitOMPSectionsDirective(const OMPSectionsDirective &S);

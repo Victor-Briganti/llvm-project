@@ -1520,6 +1520,7 @@ public:
   static bool classof(const Stmt *T) {
     return T->getStmtClass() == OMPSimdDirectiveClass ||
            T->getStmtClass() == OMPForDirectiveClass ||
+           T->getStmtClass() == OMPForApproxDirectiveClass ||
            T->getStmtClass() == OMPForSimdDirectiveClass ||
            T->getStmtClass() == OMPParallelForDirectiveClass ||
            T->getStmtClass() == OMPParallelForSimdDirectiveClass ||
@@ -1709,6 +1710,69 @@ public:
 
   static bool classof(const Stmt *T) {
     return T->getStmtClass() == OMPForDirectiveClass;
+  }
+};
+
+/// This represents '#pragma omp for approx' directive.
+///
+/// \code
+/// #pragma omp for approx private(a,b) reduction(+:c,d)
+/// \endcode
+/// In this example directive '#pragma omp for approx' has clauses 'private'
+/// with the variables 'a' and 'b' and 'reduction' with operator '+' and
+/// variables 'c' and 'd'.
+///
+class OMPForApproxDirective : public OMPLoopDirective {
+  friend class ASTStmtReader;
+  friend class OMPExecutableDirective;
+  /// Build directive with the given start and end location.
+  ///
+  /// \param StartLoc Starting location of the directive kind.
+  /// \param EndLoc Ending location of the directive.
+  /// \param CollapsedNum Number of collapsed nested loops.
+  ///
+  OMPForApproxDirective(SourceLocation StartLoc, SourceLocation EndLoc,
+                      unsigned CollapsedNum)
+      : OMPLoopDirective(OMPForApproxDirectiveClass, llvm::omp::OMPD_for_approx,
+                         StartLoc, EndLoc, CollapsedNum) {}
+
+  /// Build an empty directive.
+  ///
+  /// \param CollapsedNum Number of collapsed nested loops.
+  ///
+  explicit OMPForApproxDirective(unsigned CollapsedNum)
+      : OMPLoopDirective(OMPForApproxDirectiveClass, llvm::omp::OMPD_for_approx,
+                         SourceLocation(), SourceLocation(), CollapsedNum) {}
+
+public:
+  /// Creates directive with a list of \a Clauses.
+  ///
+  /// \param C AST context.
+  /// \param StartLoc Starting location of the directive kind.
+  /// \param EndLoc Ending Location of the directive.
+  /// \param CollapsedNum Number of collapsed loops.
+  /// \param Clauses List of clauses.
+  /// \param AssociatedStmt Statement, associated with the directive.
+  /// \param Exprs Helper expressions for CodeGen.
+  ///
+  static OMPForApproxDirective *
+  Create(const ASTContext &C, SourceLocation StartLoc, SourceLocation EndLoc,
+         unsigned CollapsedNum, ArrayRef<OMPClause *> Clauses,
+         Stmt *AssociatedStmt, const HelperExprs &Exprs);
+
+  /// Creates an empty directive with the place
+  /// for \a NumClauses clauses.
+  ///
+  /// \param C AST context.
+  /// \param CollapsedNum Number of collapsed nested loops.
+  /// \param NumClauses Number of clauses.
+  ///
+  static OMPForApproxDirective *CreateEmpty(const ASTContext &C,
+                                          unsigned NumClauses,
+                                          unsigned CollapsedNum, EmptyShell);
+
+  static bool classof(const Stmt *T) {
+    return T->getStmtClass() == OMPForApproxDirectiveClass;
   }
 };
 

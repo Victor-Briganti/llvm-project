@@ -555,6 +555,7 @@ static bool hasNestedSPMDDirective(ASTContext &Ctx,
     case OMPD_parallel_for:
     case OMPD_parallel_master:
     case OMPD_parallel_sections:
+    case OMPD_for_approx:
     case OMPD_for_simd:
     case OMPD_parallel_for_simd:
     case OMPD_cancel:
@@ -643,6 +644,7 @@ static bool supportsSPMDExecutionMode(ASTContext &Ctx,
   case OMPD_parallel_for:
   case OMPD_parallel_master:
   case OMPD_parallel_sections:
+  case OMPD_for_approx:
   case OMPD_for_simd:
   case OMPD_parallel_for_simd:
   case OMPD_cancel:

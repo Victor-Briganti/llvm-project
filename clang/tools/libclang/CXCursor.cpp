@@ -690,6 +690,9 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
   case Stmt::OMPForDirectiveClass:
     K = CXCursor_OMPForDirective;
     break;
+  case Stmt::OMPForApproxDirectiveClass:
+    K = CXCursor_OMPForApproxDirective;
+    break;
   case Stmt::OMPForSimdDirectiveClass:
     K = CXCursor_OMPForSimdDirective;
     break;

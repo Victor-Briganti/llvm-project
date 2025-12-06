@@ -234,6 +234,7 @@ def OMPUnrollDirective : StmtNode<OMPLoopTransformationDirective>;
 def OMPReverseDirective : StmtNode<OMPLoopTransformationDirective>;
 def OMPInterchangeDirective : StmtNode<OMPLoopTransformationDirective>;
 def OMPForDirective : StmtNode<OMPLoopDirective>;
+def OMPForApproxDirective : StmtNode<OMPLoopDirective>;
 def OMPForSimdDirective : StmtNode<OMPLoopDirective>;
 def OMPSectionsDirective : StmtNode<OMPExecutableDirective>;
 def OMPSectionDirective : StmtNode<OMPExecutableDirective>;

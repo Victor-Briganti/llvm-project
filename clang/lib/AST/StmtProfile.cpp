@@ -1030,6 +1030,10 @@ void StmtProfiler::VisitOMPForDirective(const OMPForDirective *S) {
   VisitOMPLoopDirective(S);
 }
 
+void StmtProfiler::VisitOMPForApproxDirective(const OMPForApproxDirective *S) {
+  VisitOMPLoopDirective(S);
+}
+
 void StmtProfiler::VisitOMPForSimdDirective(const OMPForSimdDirective *S) {
   VisitOMPLoopDirective(S);
 }

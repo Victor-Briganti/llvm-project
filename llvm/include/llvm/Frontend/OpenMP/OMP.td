@@ -1485,6 +1485,25 @@ def OMP_EndDoSimd : Directive<[Spelling<"end do simd">]> {
   let category = OMP_DoSimd.category;
   let languages = [L_Fortran];
 }
+def OMP_ForApprox : Directive<[Spelling<"for approx">]> {
+  let allowedClauses = [
+    VersionedClause<OMPC_Allocate>,
+    VersionedClause<OMPC_Collapse>,
+    VersionedClause<OMPC_FirstPrivate>,
+    VersionedClause<OMPC_If, 50>,
+    VersionedClause<OMPC_LastPrivate>,
+    VersionedClause<OMPC_Linear>,
+    VersionedClause<OMPC_NonTemporal, 50>,
+    VersionedClause<OMPC_NoWait>,
+    VersionedClause<OMPC_Order, 50>,
+    VersionedClause<OMPC_Ordered>,
+    VersionedClause<OMPC_Private>,
+    VersionedClause<OMPC_Reduction>,
+    VersionedClause<OMPC_Schedule>,
+  ];
+  let leafConstructs = [OMP_For, OMP_Approx];
+  let category = CA_Executable;
+}
 def OMP_ForSimd : Directive<[Spelling<"for simd">]> {
   let allowedClauses = [
     VersionedClause<OMPC_Aligned>,
