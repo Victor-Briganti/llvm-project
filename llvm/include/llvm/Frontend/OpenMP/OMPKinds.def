@@ -1241,6 +1241,7 @@ __OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, teams)
 __OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, parallel)
 __OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, for)
 __OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, simd)
+__OMP_TRAIT_SELECTOR_AND_PROPERTY(construct, approx)
 
 __OMP_TRAIT_SET(device)
 

@@ -10441,6 +10441,17 @@ TreeTransform<Derived>::TransformOMPTargetParallelGenericLoopDirective(
   return Res;
 }
 
+template <typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformOMPApproxDirective(OMPApproxDirective *D) {
+  DeclarationNameInfo DirName;
+  getDerived().getSema().OpenMP().StartOpenMPDSABlock(
+      OMPD_approx, DirName, nullptr, D->getBeginLoc());
+  StmtResult Res = getDerived().TransformOMPExecutableDirective(D);
+  getDerived().getSema().OpenMP().EndOpenMPDSABlock(Res.get());
+  return Res;
+}
+
 //===----------------------------------------------------------------------===//
 // OpenMP clause transformation
 //===----------------------------------------------------------------------===//

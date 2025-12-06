@@ -1175,6 +1175,11 @@ void StmtPrinter::VisitOMPTargetParallelGenericLoopDirective(
   PrintOMPExecutableDirective(Node);
 }
 
+void StmtPrinter::VisitOMPApproxDirective(OMPApproxDirective *Node) {
+  Indent() << "#pragma omp approx";
+  PrintOMPExecutableDirective(Node);
+}
+
 //===----------------------------------------------------------------------===//
 //  OpenACC construct printing methods
 //===----------------------------------------------------------------------===//

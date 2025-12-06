@@ -798,6 +798,12 @@ public:
       ArrayRef<OMPClause *> Clauses, Stmt *AStmt, SourceLocation StartLoc,
       SourceLocation EndLoc, VarsWithInheritedDSAType &VarsWithImplicitDSA);
 
+  /// Called on a well-formed '\#pragma omp approx' clause after parsing of the
+  /// associated statement.
+  StmtResult ActOnOpenMPApproxDirective(ArrayRef<OMPClause *> Clauses,
+                                        Stmt *AStmt, SourceLocation StartLoc,
+                                        SourceLocation EndLoc);
+
   /// Checks correctness of linear modifiers.
   bool CheckOpenMPLinearModifier(OpenMPLinearClauseKind LinKind,
                                  SourceLocation LinLoc);

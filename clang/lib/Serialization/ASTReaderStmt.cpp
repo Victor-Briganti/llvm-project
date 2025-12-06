@@ -2833,6 +2833,10 @@ void ASTStmtReader::VisitOMPTargetParallelGenericLoopDirective(
   VisitOMPLoopDirective(D);
 }
 
+void ASTStmtReader::VisitOMPApproxDirective(OMPApproxDirective *D) {
+  VisitOMPExecutableDirective(D);
+}
+
 //===----------------------------------------------------------------------===//
 // OpenACC Constructs/Directives.
 //===----------------------------------------------------------------------===//
@@ -4054,6 +4058,12 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
     case STMT_OMP_ASSUME_DIRECTIVE: {
       unsigned NumClauses = Record[ASTStmtReader::NumStmtFields];
       S = OMPAssumeDirective::CreateEmpty(Context, NumClauses, Empty);
+      break;
+    }
+    
+    case STMT_OMP_APPROX_DIRECTIVE: {
+      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields];
+      S = OMPApproxDirective::CreateEmpty(Context, NumClauses, Empty);
       break;
     }
 

@@ -6506,6 +6506,8 @@ CXString clang_getCursorKindSpelling(enum CXCursorKind Kind) {
     return cxstring::createRef("OpenACCUpdateConstruct");
   case CXCursor_OpenACCAtomicConstruct:
     return cxstring::createRef("OpenACCAtomicConstruct");
+  case CXCursor_OMPApproxDirective:
+    return cxstring::createRef("OMPApproxDirective");
   }
 
   llvm_unreachable("Unhandled CXCursorKind");

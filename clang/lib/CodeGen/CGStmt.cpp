@@ -457,6 +457,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   case Stmt::OMPAssumeDirectiveClass:
     EmitOMPAssumeDirective(cast<OMPAssumeDirective>(*S));
     break;
+  case Stmt::OMPApproxDirectiveClass:
+    EmitOMPApproxDirective(cast<OMPApproxDirective>(*S));
+    break;
   case Stmt::OpenACCComputeConstructClass:
     EmitOpenACCComputeConstruct(cast<OpenACCComputeConstruct>(*S));
     break;

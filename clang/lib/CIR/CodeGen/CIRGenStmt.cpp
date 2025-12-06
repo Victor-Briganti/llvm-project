@@ -226,6 +226,7 @@ mlir::LogicalResult CIRGenFunction::emitStmt(const Stmt *s,
   case Stmt::OMPAssumeDirectiveClass:
   case Stmt::OMPMaskedDirectiveClass:
   case Stmt::OMPStripeDirectiveClass:
+  case Stmt::OMPApproxDirectiveClass:
   case Stmt::ObjCAtCatchStmtClass:
   case Stmt::ObjCAtFinallyStmtClass:
     cgm.errorNYI(s->getSourceRange(),

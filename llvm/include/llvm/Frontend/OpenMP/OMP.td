@@ -1309,6 +1309,10 @@ def OMP_EndWorkshare : Directive<[Spelling<"end workshare">]> {
   let category = OMP_Workshare.category;
   let languages = [L_Fortran];
 }
+def OMP_Approx : Directive<[Spelling<"approx">]> {
+  let association = AS_Block;
+  let category = CA_Executable;
+}
 
 //===----------------------------------------------------------------------===//
 // Definitions of OpenMP compound directives

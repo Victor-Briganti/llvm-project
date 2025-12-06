@@ -1669,6 +1669,13 @@ public:
 
   /// Returns true if the variable is a local variable in untied task.
   bool isLocalVarInUntiedTask(CodeGenFunction &CGF, const VarDecl *VD) const;
+
+  /// Emit approximated region.
+  /// \param ApproxOpGen Generator for the statement associated with the
+  /// given approximated region.
+  virtual void emitApproxRegion(CodeGenFunction &CGF,
+                                const RegionCodeGenTy &ApproxOpGen,
+                                SourceLocation Loc);
 };
 
 /// Class supports emissionof SIMD-only code.
@@ -2268,6 +2275,13 @@ public:
   /// \param C 'doacross' clause with 'sink|source' dependence type.
   void emitDoacrossOrdered(CodeGenFunction &CGF,
                            const OMPDoacrossClause *C) override;
+
+  /// Emit approximated region.
+  /// \param ApproxOpGen Generator for the statement associated with the
+  /// given approximated region.
+  virtual void emitApproxRegion(CodeGenFunction &CGF,
+                                const RegionCodeGenTy &ApproxOpGen,
+                                SourceLocation Loc) override;
 
   /// Translates the native parameter of outlined function if this is required
   /// for target.

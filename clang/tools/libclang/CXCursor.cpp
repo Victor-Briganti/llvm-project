@@ -936,6 +936,9 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
   case Stmt::OMPAssumeDirectiveClass:
     K = CXCursor_OMPAssumeDirective;
     break;
+  case Stmt::OMPApproxDirectiveClass:
+    K = CXCursor_OMPApproxDirective;
+    break;
   }
 
   CXCursor C = {K, 0, {Parent, S, TU}};

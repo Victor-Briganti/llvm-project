@@ -4379,6 +4379,7 @@ static void processCapturedRegions(Sema &SemaRef, OpenMPDirectiveKind DKind,
       SemaRef.ActOnCapturedRegionStart(Loc, CurScope, CR_OpenMP,
                                        getTargetRegionParams(SemaRef), Level);
       break;
+    case OMPD_approx:
     case OMPD_unknown:
       SemaRef.ActOnCapturedRegionStart(Loc, CurScope, CR_OpenMP,
                                        getUnknownRegionParams(SemaRef));
@@ -6507,6 +6508,10 @@ StmtResult SemaOpenMP::ActOnOpenMPExecutableDirective(
   case OMPD_target_parallel_loop:
     Res = ActOnOpenMPTargetParallelGenericLoopDirective(
         ClausesWithImplicit, AStmt, StartLoc, EndLoc, VarsWithInheritedDSA);
+    break;
+  case OMPD_approx:
+    Res = ActOnOpenMPApproxDirective(ClausesWithImplicit, AStmt, StartLoc,
+                                     EndLoc);
     break;
   case OMPD_declare_target:
   case OMPD_end_declare_target:
@@ -10675,6 +10680,19 @@ StmtResult SemaOpenMP::ActOnOpenMPGenericLoopDirective(
 
   return OMPGenericLoopDirective::Create(getASTContext(), StartLoc, EndLoc,
                                          NestedLoopCount, Clauses, AStmt, B);
+}
+
+StmtResult SemaOpenMP::ActOnOpenMPApproxDirective(ArrayRef<OMPClause *> Clauses,
+                                                  Stmt *AStmt,
+                                                  SourceLocation StartLoc,
+                                                  SourceLocation EndLoc) {
+  if (!AStmt)
+    return StmtError();
+
+  setBranchProtectedScope(SemaRef, OMPD_approx, AStmt);
+
+  return OMPApproxDirective::Create(getASTContext(), StartLoc, EndLoc, Clauses,
+                                    AStmt);
 }
 
 StmtResult SemaOpenMP::ActOnOpenMPTeamsGenericLoopDirective(

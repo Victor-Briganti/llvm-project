@@ -1452,6 +1452,7 @@ void CodeGenFunction::EmitOMPReductionClauseInit(
     case OMPD_declare_variant:
     case OMPD_begin_declare_variant:
     case OMPD_end_declare_variant:
+    case OMPD_approx:
     case OMPD_unknown:
     default:
       llvm_unreachable("Unexpected directive with task reductions.");
@@ -8522,5 +8523,9 @@ void CodeGenFunction::EmitSimpleOMPExecutableDirective(
 }
 
 void CodeGenFunction::EmitOMPAssumeDirective(const OMPAssumeDirective &S) {
+  EmitStmt(S.getAssociatedStmt());
+}
+
+void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
   EmitStmt(S.getAssociatedStmt());
 }
