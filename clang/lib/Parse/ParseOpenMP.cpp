@@ -3116,6 +3116,7 @@ OMPClause *Parser::ParseOpenMPClause(OpenMPDirectiveKind DKind,
   case OMPC_dist_schedule:
   case OMPC_defaultmap:
   case OMPC_order:
+  case OMPC_perfo:
     // OpenMP [2.7.1, Restrictions, p. 3]
     //  Only one schedule clause can appear on a loop directive.
     // OpenMP 4.5 [2.10.4, Restrictions, p. 106]
@@ -3889,6 +3890,19 @@ OMPClause *Parser::ParseOpenMPSingleExprWithArgClause(OpenMPDirectiveKind DKind,
       Arg.push_back(OMPC_NUMTHREADS_unknown);
       KLoc.emplace_back();
     }
+  } else if (Kind == OMPC_perfo) {
+    unsigned KindModifier = getOpenMPSimpleClauseType(
+      Kind,
+      Tok.isAnnotation() ? "" : PP.getSpelling(Tok),
+      getLangOpts()
+    );
+    Arg.push_back(KindModifier);
+    KLoc.push_back(Tok.getLocation());
+    if (Tok.isNot(tok::r_paren) && Tok.isNot(tok::comma) &&
+        Tok.isNot(tok::annot_pragma_openmp_end))
+      ConsumeAnyToken();
+    if (Tok.is(tok::comma))
+        DelimLoc = ConsumeAnyToken();
   } else {
     assert(Kind == OMPC_if);
     KLoc.push_back(Tok.getLocation());
@@ -3911,9 +3925,9 @@ OMPClause *Parser::ParseOpenMPSingleExprWithArgClause(OpenMPDirectiveKind DKind,
 
   bool NeedAnExpression = (Kind == OMPC_schedule && DelimLoc.isValid()) ||
                           (Kind == OMPC_dist_schedule && DelimLoc.isValid()) ||
-                          Kind == OMPC_if || Kind == OMPC_device ||
-                          Kind == OMPC_grainsize || Kind == OMPC_num_tasks ||
-                          Kind == OMPC_num_threads;
+                          Kind == OMPC_if || Kind == OMPC_perfo ||
+                          Kind == OMPC_device || Kind == OMPC_grainsize ||
+                          Kind == OMPC_num_tasks || Kind == OMPC_num_threads;
   if (NeedAnExpression) {
     SourceLocation ELoc = Tok.getLocation();
     ExprResult LHS(

@@ -2816,6 +2816,10 @@ void OMPClauseEnqueue::VisitOMPDoacrossClause(const OMPDoacrossClause *C) {
 void OMPClauseEnqueue::VisitOMPXAttributeClause(const OMPXAttributeClause *C) {
 }
 void OMPClauseEnqueue::VisitOMPXBareClause(const OMPXBareClause *C) {}
+void OMPClauseEnqueue::VisitOMPPerfoClause(const OMPPerfoClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  Visitor->AddStmt(C->getDropRate());
+}
 
 } // namespace
 

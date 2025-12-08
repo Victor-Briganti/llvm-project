@@ -243,6 +243,14 @@ enum OpenMPAllocateClauseModifier {
   OMPC_ALLOCATE_unknown
 };
 
+/// OpenMP attributes for 'perfo' clause.
+enum OpenMPPerfoClauseKind {
+#define OPENMP_PERFO_KIND(Name) \
+  OMPC_PERFO_##Name,
+#include "clang/Basic/OpenMPKinds.def"
+  OMPC_PERFO_unknown
+};
+
 /// Number of allowed allocate-modifiers.
 static constexpr unsigned NumberOfOMPAllocateClauseModifiers =
     OMPC_ALLOCATE_unknown;

@@ -16788,6 +16788,10 @@ OMPClause *SemaOpenMP::ActOnOpenMPSingleExprWithArgClause(
         static_cast<OpenMPNumThreadsClauseModifier>(Argument.back()), Expr,
         StartLoc, LParenLoc, ArgumentLoc.back(), EndLoc);
     break;
+  case OMPC_perfo:
+    Res = ActOnOpenMPPerfoClause(static_cast<OpenMPPerfoClauseKind>(Argument.back()), Expr, StartLoc, LParenLoc, ArgumentLoc.back(),
+                                 DelimLoc, EndLoc);
+    break;
   case OMPC_final:
   case OMPC_safelen:
   case OMPC_simdlen:
@@ -24304,6 +24308,57 @@ OMPClause *SemaOpenMP::ActOnOpenMPNullaryAssumptionClause(OpenMPClauseKind CK,
   default:
     llvm_unreachable("Unexpected OpenMP clause");
   }
+}
+
+OMPClause *SemaOpenMP::ActOnOpenMPPerfoClause(OpenMPPerfoClauseKind Kind,
+    Expr *DropRate, SourceLocation StartLoc, SourceLocation LParenLoc,
+    SourceLocation KLoc, SourceLocation CommaLoc,
+    SourceLocation EndLoc) {
+  if (Kind == OMPC_PERFO_unknown) {
+    Diag(LParenLoc, diag::err_omp_unexpected_clause_value)
+        << getListOfPossibleValues(OMPC_perfo, OMPC_PERFO_default,
+                                   OMPC_PERFO_default)
+        << getOpenMPClauseNameForDiag(OMPC_perfo);
+    return nullptr;
+  }
+
+  Expr *ValExpr = DropRate;
+  Stmt *HelperValStmt = nullptr;
+  OpenMPDirectiveKind CaptureRegion = OMPD_unknown;
+  if (!DropRate->isValueDependent() && !DropRate->isTypeDependent() &&
+      !DropRate->isInstantiationDependent() &&
+      !DropRate->containsUnexpandedParameterPack()) {
+    SourceLocation DropRateLoc = DropRate->getExprLoc();
+    ExprResult Val =
+        PerformOpenMPImplicitIntegerConversion(DropRateLoc, DropRate);
+    if (Val.isInvalid())
+      return nullptr;
+    // drop_rate must be a loop invariant integer expression with a positive
+    // value
+    ValExpr = Val.get();
+    if (std::optional<llvm::APSInt> Result =
+            ValExpr->getIntegerConstantExpr(getASTContext())) {
+      if (Result->isSigned() && !Result->isStrictlyPositive()) {
+        Diag(DropRateLoc, diag::err_omp_negative_expression_in_clause)
+            << "perfo" << 1 << DropRate->getSourceRange();
+        return nullptr;
+      }
+    } else {
+      OpenMPDirectiveKind DKind = DSAStack->getCurrentDirective();
+      CaptureRegion = getOpenMPCaptureRegionForClause(
+          DKind, OMPC_perfo, getLangOpts().OpenMP);
+      if (CaptureRegion != OMPD_unknown &&
+          !SemaRef.CurContext->isDependentContext()) {
+        ValExpr = SemaRef.MakeFullExpr(ValExpr).get();
+        llvm::MapVector<const Expr *, DeclRefExpr *> Captures;
+        ValExpr = tryBuildCapture(SemaRef, ValExpr, Captures).get();
+        HelperValStmt = buildPreInits(getASTContext(), Captures);
+      }
+    }
+  }
+  return new (getASTContext())
+      OMPPerfoClause(StartLoc, LParenLoc, KLoc, CommaLoc, EndLoc, Kind,
+                     CaptureRegion, ValExpr, HelperValStmt);
 }
 
 ExprResult SemaOpenMP::ActOnOMPArraySectionExpr(

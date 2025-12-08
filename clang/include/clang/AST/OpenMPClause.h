@@ -9963,6 +9963,131 @@ public:
   OMPXBareClause() = default;
 };
 
+/// This represents 'perfo' clause in the '#pragma omp for approx ...'
+/// directive.
+///
+/// \code
+/// #pragma omp for approx perfo(default, 10)
+/// \endcode
+/// In this example directive '#pragma omp for approx' has a 'perfo' clause with
+/// a perforation of '10' using the 'default' algorithm for that.
+class OMPPerfoClause : public OMPClause, public OMPClauseWithPreInit {
+  friend class OMPClauseReader;
+
+  /// Location of '('.
+  SourceLocation LParenLoc;
+
+  /// A kind of the 'perfo' clause.
+  OpenMPPerfoClauseKind Kind = OMPC_PERFO_unknown;
+
+  /// Name modifier location.
+  SourceLocation KindLoc;
+
+  /// Location of ','.
+  SourceLocation CommaLoc;
+
+  /// Chunk size.
+  Expr *DropRate = nullptr;
+
+  /// Sets the location of '('.
+  ///
+  /// \param Loc Location of '('.
+  void setLParenLoc(SourceLocation Loc) { LParenLoc = Loc; }
+
+  /// Set perfo kind.
+  ///
+  /// \param K Perfo kind.
+  void setPerfoKind(OpenMPPerfoClauseKind K) { Kind = K; }
+
+  /// Set perfo kind start location.
+  ///
+  /// \param KLoc Perfo kind location.
+  void setPerfoKindLoc(SourceLocation KLoc) { KindLoc = KLoc; }
+
+  /// Set location of ','.
+  ///
+  /// \param Loc Location of ','.
+  void setCommaLoc(SourceLocation Loc) { CommaLoc = Loc; }
+
+  /// Set drop rate.
+  ///
+  /// \param E Drop rate.
+  void setDropRate(Expr *E) { DropRate = E; }
+
+public:
+  /// Build 'perfo' clause with perforation kind \a Kind and drop rate
+  /// expression \a DropRate.
+  ///
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param KLoc Starting location of the argument.
+  /// \param CommaLoc Location of ','.
+  /// \param EndLoc Ending location of the clause.
+  /// \param Kind Perfo kind.
+  /// \param CaptureRegion InnerMost OpenMP region where expressions in this
+  /// clause must be captured.
+  /// \param DropRate Drop rate.
+  /// \param HelperDropRate Helper drop rate for combined directives.
+  OMPPerfoClause(SourceLocation StartLoc, SourceLocation LParenLoc,
+                 SourceLocation KLoc, SourceLocation CommaLoc,
+                 SourceLocation EndLoc, OpenMPPerfoClauseKind Kind,
+                 OpenMPDirectiveKind CaptureRegion, Expr *DropRate,
+                 Stmt *HelperDropRate)
+      : OMPClause(llvm::omp::OMPC_perfo, StartLoc, EndLoc),
+        OMPClauseWithPreInit(this), LParenLoc(LParenLoc), Kind(Kind), KindLoc(KLoc),
+        CommaLoc(CommaLoc), DropRate(DropRate) {
+    setPreInitStmt(HelperDropRate, CaptureRegion);
+  }
+
+  /// Build an empty clause.
+  OMPPerfoClause()
+      : OMPClause(llvm::omp::OMPC_perfo, SourceLocation(), SourceLocation()),
+        OMPClauseWithPreInit(this) {}
+
+  /// Get kind of the clause.
+  OpenMPPerfoClauseKind getPerfoKind() const { return Kind; }
+
+  /// Get kind location.
+  SourceLocation getPerfoKindLoc() { return KindLoc; }
+
+  /// Get the location of '('.
+  SourceLocation getLParenLoc() { return LParenLoc; }
+
+  /// Returns the location of '('.
+  SourceLocation getLParenLoc() const { return LParenLoc; }
+
+  /// Get location of ','.
+  SourceLocation getCommaLoc() const { return CommaLoc; }
+
+  /// Get drop rate.
+  Expr *getDropRate() { return DropRate; }
+
+  /// Returns drop rate.
+  const Expr *getDropRate() const { return DropRate; }
+
+  child_range children() {
+    return child_range(reinterpret_cast<Stmt **>(&DropRate),
+                       reinterpret_cast<Stmt **>(&DropRate) + 1);
+  }
+
+  const_child_range children() const {
+    auto Children = const_cast<OMPPerfoClause *>(this)->children();
+    return const_child_range(Children.begin(), Children.end());
+  }
+
+  child_range used_children() {
+    return child_range(child_iterator(), child_iterator());
+  }
+
+  const_child_range used_children() const {
+    return const_child_range(const_child_iterator(), const_child_iterator());
+  }
+
+  static bool classof(const OMPClause *T) {
+    return T->getClauseKind() == llvm::omp::OMPC_perfo;
+  }
+};
+
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_OPENMPCLAUSE_H

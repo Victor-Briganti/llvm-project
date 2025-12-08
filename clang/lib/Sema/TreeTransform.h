@@ -2451,6 +2451,19 @@ public:
     return getSema().OpenMP().ActOnOpenMPXBareClause(StartLoc, EndLoc);
   }
 
+  /// Build a new OpenMP 'perfo' clause.
+  ///
+  /// By default, performs semantic analysis to build the new OpenMP clause.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPPerfoClause(Expr *DropRate, SourceLocation StartLoc,
+                                   SourceLocation LParenLoc, SourceLocation KindLoc,
+                                   OpenMPPerfoClauseKind Kind,
+                                   SourceLocation CommaLoc,
+                                   SourceLocation EndLoc) {
+    return getSema().OpenMP().ActOnOpenMPPerfoClause(
+        Kind, DropRate, StartLoc, LParenLoc, KindLoc, CommaLoc, EndLoc);
+  }
+
   /// Build a new OpenMP 'align' clause.
   ///
   /// By default, performs semantic analysis to build the new OpenMP clause.
@@ -13427,6 +13440,16 @@ TreeTransform<Derived>::TransformOMPIteratorExpr(OMPIteratorExpr *E) {
     getDerived().transformedLocalDecl(E->getIteratorDecl(I),
                                       IE->getIteratorDecl(I));
   return Res;
+}
+
+template <typename Derived>
+OMPClause *TreeTransform<Derived>::TransformOMPPerfoClause(OMPPerfoClause *C) {
+  ExprResult E = getDerived().TransformExpr(C->getDropRate());
+  if (E.isInvalid())
+    return nullptr;
+  return getDerived().RebuildOMPPerfoClause(
+      E.get(), C->getBeginLoc(), C->getLParenLoc(), C->getPerfoKindLoc(),
+      C->getPerfoKind(), C->getCommaLoc(), C->getEndLoc());
 }
 
 template<typename Derived>

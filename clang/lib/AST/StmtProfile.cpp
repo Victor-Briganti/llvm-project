@@ -963,6 +963,11 @@ void OMPClauseProfiler::VisitOMPDoacrossClause(const OMPDoacrossClause *C) {
 void OMPClauseProfiler::VisitOMPXAttributeClause(const OMPXAttributeClause *C) {
 }
 void OMPClauseProfiler::VisitOMPXBareClause(const OMPXBareClause *C) {}
+void OMPClauseProfiler::VisitOMPPerfoClause(const OMPPerfoClause *C) {
+  VistOMPClauseWithPreInit(C);
+  if (C->getDropRate())
+    Profiler->VisitStmt(C->getDropRate());
+}
 } // namespace
 
 void

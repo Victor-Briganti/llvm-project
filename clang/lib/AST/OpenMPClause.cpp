@@ -104,6 +104,8 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
     return static_cast<const OMPFilterClause *>(C);
   case OMPC_ompx_dyn_cgroup_mem:
     return static_cast<const OMPXDynCGroupMemClause *>(C);
+  case OMPC_perfo:
+    return static_cast<const OMPPerfoClause *>(C);
   case OMPC_default:
   case OMPC_proc_bind:
   case OMPC_safelen:
@@ -278,6 +280,7 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_bind:
+  case OMPC_perfo:
     break;
   default:
     break;
@@ -2763,6 +2766,14 @@ void OMPClausePrinter::VisitOMPXAttributeClause(OMPXAttributeClause *Node) {
 
 void OMPClausePrinter::VisitOMPXBareClause(OMPXBareClause *Node) {
   OS << "ompx_bare";
+}
+
+void OMPClausePrinter::VisitOMPPerfoClause(OMPPerfoClause *Node) {
+  OS << "perfo(";
+  OS << getOpenMPSimpleClauseTypeName(OMPC_perfo, Node->getPerfoKind());
+  OS << ", ";
+  Node->getDropRate()->printPretty(OS, nullptr, Policy, 0);
+  OS << ")";
 }
 
 void OMPTraitInfo::getAsVariantMatchInfo(ASTContext &ASTCtx,

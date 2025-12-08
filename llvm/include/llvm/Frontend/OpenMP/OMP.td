@@ -562,6 +562,14 @@ def OMPC_When: Clause<[Spelling<"when">]> {
 def OMPC_Write : Clause<[Spelling<"write">]> {
   let clangClass = "OMPWriteClause";
 }
+def OMP_PERFO_Default : EnumVal<"default", 1, 1> { let isDefault = 1; }
+def OMPC_Perfo : Clause<[Spelling<"perfo">]> {
+  let clangClass = "OMPPerfoClause";
+  let enumClauseValue = "PerfoKind";
+  let allowedClauseValues = [
+    OMP_PERFO_Default
+  ];
+}
 
 //===----------------------------------------------------------------------===//
 // Definitions of OpenMP leaf directives
@@ -1500,6 +1508,7 @@ def OMP_ForApprox : Directive<[Spelling<"for approx">]> {
     VersionedClause<OMPC_Private>,
     VersionedClause<OMPC_Reduction>,
     VersionedClause<OMPC_Schedule>,
+    VersionedClause<OMPC_Perfo>,
   ];
   let leafConstructs = [OMP_For, OMP_Approx];
   let category = CA_Executable;
@@ -1758,6 +1767,7 @@ def OMP_ParallelForApprox : Directive<[Spelling<"parallel for approx">]> {
     VersionedClause<OMPC_Reduction>,
     VersionedClause<OMPC_Schedule>,
     VersionedClause<OMPC_Shared>,
+    VersionedClause<OMPC_Perfo>,
   ];
   let leafConstructs = [OMP_Parallel, OMP_For, OMP_Approx];
   let association = AS_Loop;

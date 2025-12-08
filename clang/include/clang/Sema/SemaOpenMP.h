@@ -1419,6 +1419,14 @@ public:
   OMPClause *ActOnOpenMPXBareClause(SourceLocation StartLoc,
                                     SourceLocation EndLoc);
 
+  /// Called on well-formed 'perfo' clause.
+  OMPClause *ActOnOpenMPPerfoClause(OpenMPPerfoClauseKind Kind, Expr *DropRate,
+                                    SourceLocation StartLoc,
+                                    SourceLocation LParenLoc,
+                                    SourceLocation KindLoc,
+                                    SourceLocation CommaLoc,
+                                    SourceLocation EndLoc);
+
   ExprResult ActOnOMPArraySectionExpr(Expr *Base, SourceLocation LBLoc,
                                       Expr *LowerBound,
                                       SourceLocation ColonLocFirst,

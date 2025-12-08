@@ -194,6 +194,11 @@ unsigned clang::getOpenMPSimpleClauseType(OpenMPClauseKind Kind, StringRef Str,
       return OMPC_NUMTHREADS_unknown;
     return Type;
   }
+  case OMPC_perfo:
+    return llvm::StringSwitch<unsigned>(Str)
+#define OMP_PERFO_KIND(Enum, Name) .Case(Name, unsigned(Enum))
+#include "llvm/Frontend/OpenMP/OMPKinds.def"
+        .Default(unsigned(OMPC_PERFO_unknown));
   case OMPC_unknown:
   case OMPC_threadprivate:
   case OMPC_if:
@@ -538,6 +543,16 @@ const char *clang::getOpenMPSimpleClauseTypeName(OpenMPClauseKind Kind,
 #include "clang/Basic/OpenMPKinds.def"
     }
     llvm_unreachable("Invalid OpenMP 'num_threads' clause modifier");
+  case OMPC_perfo:
+  switch (Type) {
+    case OMPC_PERFO_unknown:
+      return "unknown";
+#define OPENMP_PERFO_MODIFIER(Name)                                       \
+  case OMPC_PERFO_##Name:                                                 \
+    return #Name;
+#include "clang/Basic/OpenMPKinds.def"
+    }
+    llvm_unreachable("Invalid OpenMP 'perfo' clause modifier");
   case OMPC_unknown:
   case OMPC_threadprivate:
   case OMPC_if:

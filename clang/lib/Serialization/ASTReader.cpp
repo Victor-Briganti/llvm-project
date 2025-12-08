@@ -11429,6 +11429,9 @@ OMPClause *OMPClauseReader::readClause() {
   case llvm::omp::OMPC_ompx_bare:
     C = new (Context) OMPXBareClause();
     break;
+  case llvm::omp::OMPC_perfo:
+    C = new (Context) OMPPerfoClause();
+    break;
 #define OMP_CLAUSE_NO_CLASS(Enum, Str)                                         \
   case llvm::omp::Enum:                                                        \
     break;
@@ -12609,6 +12612,15 @@ void OMPClauseReader::VisitOMPXAttributeClause(OMPXAttributeClause *C) {
 }
 
 void OMPClauseReader::VisitOMPXBareClause(OMPXBareClause *C) {}
+
+void OMPClauseReader::VisitOMPPerfoClause(OMPPerfoClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  C->setPerfoKind(static_cast<OpenMPPerfoClauseKind>(Record.readInt()));
+  C->setDropRate(Record.readSubExpr());
+  C->setLParenLoc(Record.readSourceLocation());
+  C->setPerfoKindLoc(Record.readSourceLocation());
+  C->setCommaLoc(Record.readSourceLocation());
+}
 
 OMPTraitInfo *ASTRecordReader::readOMPTraitInfo() {
   OMPTraitInfo &TI = getContext().getNewOMPTraitInfo();
