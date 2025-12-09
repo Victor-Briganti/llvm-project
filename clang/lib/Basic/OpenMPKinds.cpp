@@ -196,8 +196,9 @@ unsigned clang::getOpenMPSimpleClauseType(OpenMPClauseKind Kind, StringRef Str,
   }
   case OMPC_perfo:
     return llvm::StringSwitch<unsigned>(Str)
-#define OMP_PERFO_KIND(Enum, Name) .Case(Name, unsigned(Enum))
-#include "llvm/Frontend/OpenMP/OMPKinds.def"
+#define OPENMP_PERFO_KIND(Name)                                             \
+  .Case(#Name, static_cast<unsigned>(OMPC_PERFO_##Name))
+#include "clang/Basic/OpenMPKinds.def"
         .Default(unsigned(OMPC_PERFO_unknown));
   case OMPC_unknown:
   case OMPC_threadprivate:

@@ -6,10 +6,26 @@ void test_for_approx() {
   }
 }
 
+void test_for_approx_schedule() {
+#pragma omp for approx schedule(static, 4)
+  for (int i = 0; i < 16; ++i) {
+  }
+}
+
+
 void test_parallel_for_approx() {
   int x = 0;
 
 #pragma omp parallel for approx
+  for (int i = 0; i < 16; ++i) {
+    x++;
+  }
+}
+
+void test_parallel_for_approx_schedule() {
+  int x = 0;
+
+#pragma omp parallel for approx schedule(static, 4)
   for (int i = 0; i < 16; ++i) {
     x++;
   }

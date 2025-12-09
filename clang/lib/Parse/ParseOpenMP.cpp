@@ -3891,18 +3891,17 @@ OMPClause *Parser::ParseOpenMPSingleExprWithArgClause(OpenMPDirectiveKind DKind,
       KLoc.emplace_back();
     }
   } else if (Kind == OMPC_perfo) {
-    unsigned KindModifier = getOpenMPSimpleClauseType(
-      Kind,
-      Tok.isAnnotation() ? "" : PP.getSpelling(Tok),
-      getLangOpts()
-    );
+    OpenMPPerfoClauseKind KindModifier =
+        static_cast<OpenMPPerfoClauseKind>(getOpenMPSimpleClauseType (
+            Kind, Tok.isAnnotation() ? "" : PP.getSpelling(Tok),
+            getLangOpts()));
     Arg.push_back(KindModifier);
     KLoc.push_back(Tok.getLocation());
     if (Tok.isNot(tok::r_paren) && Tok.isNot(tok::comma) &&
         Tok.isNot(tok::annot_pragma_openmp_end))
       ConsumeAnyToken();
     if (Tok.is(tok::comma))
-        DelimLoc = ConsumeAnyToken();
+      DelimLoc = ConsumeAnyToken();
   } else {
     assert(Kind == OMPC_if);
     KLoc.push_back(Tok.getLocation());
