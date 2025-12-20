@@ -2167,7 +2167,7 @@ void CodeGenFunction::EmitOMPInnerLoop(
   auto LoopExit = getJumpDestInCurrentScope("omp.inner.for.end");
 
   // Start the loop with a block that tests the condition.
-  auto CondBlock = createBasicBlock("omp.inner.for.cond");
+  auto *CondBlock = createBasicBlock("omp.inner.for.cond");
   EmitBlock(CondBlock);
   const SourceRange R = S.getSourceRange();
 
@@ -2177,6 +2177,13 @@ void CodeGenFunction::EmitOMPInnerLoop(
   const Stmt *SS = ICS->getCapturedStmt();
   const AttributedStmt *AS = dyn_cast_or_null<AttributedStmt>(SS);
   OMPLoopNestStack.clear();
+
+  if (auto *C = S.getSingleClause<OMPPerfoClause>()) {
+    LoopStack.setPerforationState(LoopAttributes::Enable);
+    uint64_t DropRate = C->getDropRate()->EvaluateKnownConstInt(getContext()).getZExtValue();
+    LoopStack.setPerforationCount(DropRate);
+  }
+
   if (AS)
     LoopStack.push(CondBlock, CGM.getContext(), CGM.getCodeGenOpts(),
                    AS->getAttrs(), SourceLocToDebugLoc(R.getBegin()),

@@ -48,27 +48,33 @@ struct LoopAttributes {
 
   /// Value for llvm.loop.unroll.* metadata (enable, disable, or full).
   LVEnableState UnrollEnable;
-
+  
   /// Value for llvm.loop.unroll_and_jam.* metadata (enable, disable, or full).
   LVEnableState UnrollAndJamEnable;
-
+  
   /// Value for llvm.loop.vectorize.predicate metadata
   LVEnableState VectorizePredicateEnable;
-
+  
   /// Value for llvm.loop.vectorize.width metadata.
   unsigned VectorizeWidth;
-
+  
   // Value for llvm.loop.vectorize.scalable.enable
   LVEnableState VectorizeScalable;
+
+  /// Value for llvm.loop.perforate.* metadata.
+  LVEnableState PerforationEnable;
 
   /// Value for llvm.loop.interleave.count metadata.
   unsigned InterleaveCount;
 
   /// llvm.unroll.
   unsigned UnrollCount;
-
+  
   /// llvm.unroll.
   unsigned UnrollAndJamCount;
+  
+  /// llvm.perforate.
+  unsigned PerforationCount;
 
   /// Value for llvm.loop.distribute.enable metadata.
   LVEnableState DistributeEnable;
@@ -181,6 +187,10 @@ private:
   createFullUnrollMetadata(const LoopAttributes &Attrs,
                            llvm::ArrayRef<llvm::Metadata *> LoopProperties,
                            bool &HasUserTransforms);
+  llvm::SmallVector<llvm::Metadata *, 4>
+  createLoopPerforationMetadata(const LoopAttributes &Attrs,
+                           llvm::ArrayRef<llvm::Metadata *> LoopProperties,
+                           bool &HasUserTransforms);
 
   /// @}
 
@@ -267,12 +277,17 @@ public:
   void setUnrollAndJamState(const LoopAttributes::LVEnableState &State) {
     StagedAttrs.UnrollAndJamEnable = State;
   }
-
+  
   /// Set the vectorize width for the next loop pushed.
   void setVectorizeWidth(unsigned W) { StagedAttrs.VectorizeWidth = W; }
-
+  
   void setVectorizeScalable(const LoopAttributes::LVEnableState &State) {
     StagedAttrs.VectorizeScalable = State;
+  }
+
+  /// Set the next pushed loop perforation state.
+  void setPerforationState(const LoopAttributes::LVEnableState &State) {
+    StagedAttrs.PerforationEnable = State;
   }
 
   /// Set the interleave count for the next loop pushed.
@@ -283,6 +298,9 @@ public:
 
   /// \brief Set the unroll count for the next loop pushed.
   void setUnrollAndJamCount(unsigned C) { StagedAttrs.UnrollAndJamCount = C; }
+  
+  /// Set the perforation count for the next loop pushed.
+  void setPerforationCount(unsigned C) { StagedAttrs.PerforationCount = C; }
 
   /// Set the pipeline disabled state.
   void setPipelineDisabled(bool S) { StagedAttrs.PipelineDisabled = S; }

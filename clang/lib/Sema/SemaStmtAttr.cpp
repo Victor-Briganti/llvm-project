@@ -474,6 +474,9 @@ CheckForIncompatibleAttributes(Sema &S,
     // The vector predication only has a state form that is exposed by
     // #pragma clang loop vectorize_predicate (enable | disable).
     VectorizePredicate,
+    // This annotation exists only inside the #pragma omp [parallel] for approx
+    // perfo(<drop-rate>, <algorithm>).
+    Perforation,
     // This serves as a indicator to how many category are listed in this enum.
     NumberOfCategories
   };
@@ -509,6 +512,10 @@ CheckForIncompatibleAttributes(Sema &S,
     case LoopHintAttr::UnrollAndJam:
     case LoopHintAttr::UnrollAndJamCount:
       Category = UnrollAndJam;
+      break;
+    case LoopHintAttr::Perforation:
+    case LoopHintAttr::PerforationCount:
+      Category = Perforation;
       break;
     case LoopHintAttr::Distribute:
       // Perform the check for duplicated 'distribute' hints.

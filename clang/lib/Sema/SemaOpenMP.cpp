@@ -6635,6 +6635,7 @@ StmtResult SemaOpenMP::ActOnOpenMPExecutableDirective(
       case OMPC_filter:
       case OMPC_severity:
       case OMPC_message:
+      case OMPC_perfo:
         continue;
       case OMPC_allocator:
       case OMPC_flush:

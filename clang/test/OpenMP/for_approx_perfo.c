@@ -19,7 +19,27 @@ void test_parallel_for_approx() {
 }
 
 void test_parallel_for_approx_schedule() {
-#pragma omp parallel for approx perfo(default, 1) schedule(static, 4)
+  #pragma omp parallel for approx perfo(default, 1) schedule(static, 4)
   for (int i = 0; i < 16; ++i) {
+  }
+}
+
+void test_parallel_for_nested_approx() {
+  #pragma omp parallel
+  for (int i = 0; i < 16; ++i) {
+    #pragma omp for approx perfo(default, 1)
+    for (int j = 0; j < 17; j++) {
+      for (int k = 0; k < 18; k++) {
+      }
+    }
+  }
+}
+
+void test_for_parallel_nested_approx(int N) {
+  #pragma omp for approx perfo(default, 1)
+  for (int i = 0; i < 16; ++i) {
+    #pragma omp parallel
+    for (int j = 0; j < 17; j++) {
+    }
   }
 }
