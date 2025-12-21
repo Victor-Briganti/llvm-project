@@ -26,6 +26,11 @@
 // flags will be used in future, e.g. to implement openmp_strict library
 // restrictions
 
+kmp_int32 __kmpc_omp_approx() {
+  KC_TRACE(10, ("__kmpc_omp_approx: %s\n", __kmp_approx ? "TRUE" : "FALSE"));
+  return __kmp_approx;
+}
+
 /*!
  * @ingroup STARTUP_SHUTDOWN
  * @param loc   in   source location information

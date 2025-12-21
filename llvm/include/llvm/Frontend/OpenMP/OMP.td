@@ -1755,7 +1755,7 @@ def OMP_ParallelForApprox : Directive<[Spelling<"parallel for approx">]> {
     VersionedClause<OMPC_Copyin>,
     VersionedClause<OMPC_Default>,
     VersionedClause<OMPC_FirstPrivate>,
-    VersionedClause<OMPC_If>,
+    VersionedClause<OMPC_If, 50>,
     VersionedClause<OMPC_LastPrivate>,
     VersionedClause<OMPC_Linear>,
     VersionedClause<OMPC_NumThreads>,

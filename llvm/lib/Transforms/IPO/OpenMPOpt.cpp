@@ -4938,6 +4938,7 @@ struct AAKernelInfoCallSite : AAKernelInfo {
       case OMPRTL___kmpc_global_thread_num:
       case OMPRTL___kmpc_get_hardware_num_threads_in_block:
       case OMPRTL___kmpc_get_hardware_num_blocks:
+      case OMPRTL___kmpc_omp_approx:
       case OMPRTL___kmpc_single:
       case OMPRTL___kmpc_end_single:
       case OMPRTL___kmpc_master:

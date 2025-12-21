@@ -2178,12 +2178,6 @@ void CodeGenFunction::EmitOMPInnerLoop(
   const AttributedStmt *AS = dyn_cast_or_null<AttributedStmt>(SS);
   OMPLoopNestStack.clear();
 
-  if (auto *C = S.getSingleClause<OMPPerfoClause>()) {
-    LoopStack.setPerforationState(LoopAttributes::Enable);
-    uint64_t DropRate = C->getDropRate()->EvaluateKnownConstInt(getContext()).getZExtValue();
-    LoopStack.setPerforationCount(DropRate);
-  }
-
   if (AS)
     LoopStack.push(CondBlock, CGM.getContext(), CGM.getCodeGenOpts(),
                    AS->getAttrs(), SourceLocToDebugLoc(R.getBegin()),
@@ -2633,6 +2627,31 @@ static LValue EmitOMPHelperVar(CodeGenFunction &CGF,
   return CGF.EmitLValue(Helper);
 }
 
+static const Expr *createApproxCallExpr(CodeGenFunction &CGF,
+                                         SourceLocation Loc) {
+ ASTContext &Ctx = CGF.getContext();
+  QualType RetTy = Ctx.IntTy;
+  // Create proper function pointer type
+  FunctionProtoType::ExtProtoInfo EPI;
+  QualType FnTy = Ctx.getFunctionType(RetTy, {}, EPI);
+  QualType PtrTy = Ctx.getPointerType(FnTy);
+  // Create or get existing declaration
+  IdentifierInfo &II = Ctx.Idents.get("__kmpc_omp_approx");
+  FunctionDecl *FD = FunctionDecl::Create(
+      Ctx, Ctx.getTranslationUnitDecl(), Loc, Loc,
+      DeclarationName(&II), FnTy, Ctx.getTrivialTypeSourceInfo(FnTy),
+      SC_Extern, false, false);
+  
+  // Create the call expression
+  DeclRefExpr *Callee = DeclRefExpr::Create(
+      Ctx, NestedNameSpecifierLoc(), SourceLocation(), FD,
+      false, Loc, PtrTy, VK_PRValue);
+  
+  SmallVector<Expr *, 2> Args;
+  return CallExpr::Create(Ctx, Callee, Args, RetTy, VK_PRValue, 
+                          Loc, FPOptionsOverride());
+}
+
 static void emitCommonSimdLoop(CodeGenFunction &CGF, const OMPLoopDirective &S,
                                const RegionCodeGenTy &SimdInitGen,
                                const RegionCodeGenTy &BodyCodeGen) {
@@ -2641,6 +2660,14 @@ static void emitCommonSimdLoop(CodeGenFunction &CGF, const OMPLoopDirective &S,
     CGOpenMPRuntime::NontemporalDeclsRAII NontemporalsRegion(CGF.CGM, S);
     CodeGenFunction::OMPLocalDeclMapRAII Scope(CGF);
     SimdInitGen(CGF);
+
+    if (auto *C = S.getSingleClause<OMPPerfoClause>()) {
+      CGF.LoopStack.setPerforationState(LoopAttributes::Enable);
+      uint64_t DropRate = C->getDropRate()
+                              ->EvaluateKnownConstInt(CGF.getContext())
+                              .getZExtValue();
+      CGF.LoopStack.setPerforationCount(DropRate);
+    }
 
     BodyCodeGen(CGF);
   };
@@ -2652,6 +2679,7 @@ static void emitCommonSimdLoop(CodeGenFunction &CGF, const OMPLoopDirective &S,
   };
   const Expr *IfCond = nullptr;
   OpenMPDirectiveKind EKind = getEffectiveDirectiveKind(S);
+
   if (isOpenMPSimdDirective(EKind)) {
     for (const auto *C : S.getClausesOfKind<OMPIfClause>()) {
       if (CGF.getLangOpts().OpenMP >= 50 &&
@@ -2661,6 +2689,8 @@ static void emitCommonSimdLoop(CodeGenFunction &CGF, const OMPLoopDirective &S,
         break;
       }
     }
+  } else if (auto *Perfo = S.getSingleClause<OMPPerfoClause>()) {
+    IfCond = createApproxCallExpr(CGF, Perfo->getBeginLoc());
   }
   if (IfCond) {
     CGF.CGM.getOpenMPRuntime().emitIfClause(CGF, IfCond, ThenGen, ElseGen);

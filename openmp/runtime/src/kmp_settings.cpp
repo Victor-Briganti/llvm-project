@@ -5405,6 +5405,19 @@ static void __kmp_stg_print_tpause(kmp_str_buf_t *buffer, char const *name,
 #endif // KMP_HAVE_UMWAIT
 
 // -----------------------------------------------------------------------------
+// OMP_APPROX
+
+static void __kmp_stg_parse_approx(char const *name, char const *value,
+                                   void *data) {
+  __kmp_stg_parse_bool(name, value, &__kmp_approx);
+} // __kmp_stg_parse_approx
+
+static void __kmp_stg_print_approx(kmp_str_buf_t *buffer, char const *name,
+                                   void *data) {
+    __kmp_stg_print_bool(buffer, name, __kmp_approx);
+} // __kmp_stg_print_approx
+
+// -----------------------------------------------------------------------------
 // OMP_DISPLAY_ENV
 
 static void __kmp_stg_parse_omp_display_env(char const *name, char const *value,
@@ -5780,7 +5793,9 @@ static kmp_setting_t __kmp_stg_table[] = {
 #if KMP_HAVE_UMWAIT
     {"KMP_TPAUSE", __kmp_stg_parse_tpause, __kmp_stg_print_tpause, NULL, 0, 0},
 #endif
-    {"", NULL, NULL, NULL, 0, 0}}; // settings
+    {"OMP_APPROX", __kmp_stg_parse_approx, __kmp_stg_print_approx, NULL, 0, 0},
+    {"", NULL, NULL, NULL, 0, 0}
+  }; // settings
 
 static int const __kmp_stg_count =
     sizeof(__kmp_stg_table) / sizeof(kmp_setting_t);

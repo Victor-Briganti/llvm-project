@@ -439,6 +439,8 @@ kmp_uint32 __kmp_yield_init = KMP_INIT_WAIT;
 kmp_uint32 __kmp_yield_next = KMP_NEXT_WAIT;
 kmp_uint64 __kmp_pause_init = 1; // for tpause
 
+kmp_approx_t __kmp_approx = 0;
+
 /* ------------------------------------------------------ */
 /* STATE mostly syncronized with global lock */
 /* data written to rarely by primary threads, read often by workers */

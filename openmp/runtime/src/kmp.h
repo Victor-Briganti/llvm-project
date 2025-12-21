@@ -1019,6 +1019,10 @@ extern kmp_hws_item_t __kmp_hws_proc;
 extern int __kmp_hws_requested;
 extern int __kmp_hws_abs_flag; // absolute or per-item number requested
 
+typedef kmp_int32 kmp_approx_t;
+
+extern kmp_approx_t __kmp_approx;
+
 /* ------------------------------------------------------------------------ */
 
 #define KMP_PAD(type, sz)                                                      \
@@ -4326,6 +4330,10 @@ void __kmpc_omp_task_begin(ident_t *loc_ref, kmp_int32 gtid, kmp_task_t *task);
 void __kmpc_omp_task_complete(ident_t *loc_ref, kmp_int32 gtid,
                               kmp_task_t *task);
 #endif // TASK_UNUSED
+
+/* ------------------------------------------------------------------------ */
+
+KMP_EXPORT kmp_int32 __kmpc_omp_approx();
 
 /* ------------------------------------------------------------------------ */
 
