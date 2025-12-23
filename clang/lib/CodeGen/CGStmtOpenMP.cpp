@@ -2210,9 +2210,19 @@ void CodeGenFunction::EmitOMPInnerLoop(
 
   BodyGen(*this);
 
-  // Emit "IV = IV + 1" and a back-edge to the condition block.
+  // Emit "IV = IV + <step>" (or repeated increments when perforation
+  // is active) and a back-edge to the condition block.
   EmitBlock(Continue.getBlock());
   EmitIgnoredExpr(IncExpr);
+  auto *C = S.getSingleClause<OMPPerfoClause>();
+  if (C && InApproximatedAttributedStmt) {
+    uint64_t DropRate = C->getDropRate()
+    ->EvaluateKnownConstInt(getContext())
+    .getZExtValue();
+    for (uint64_t i = 0; i < DropRate; i++) {
+      EmitIgnoredExpr(IncExpr);
+    }
+  }
   PostIncGen(*this);
   BreakContinueStack.pop_back();
   EmitBranch(CondBlock);
@@ -2661,15 +2671,9 @@ static void emitCommonSimdLoop(CodeGenFunction &CGF, const OMPLoopDirective &S,
     CodeGenFunction::OMPLocalDeclMapRAII Scope(CGF);
     SimdInitGen(CGF);
 
-    if (auto *C = S.getSingleClause<OMPPerfoClause>()) {
-      CGF.LoopStack.setPerforationState(LoopAttributes::Enable);
-      uint64_t DropRate = C->getDropRate()
-                              ->EvaluateKnownConstInt(CGF.getContext())
-                              .getZExtValue();
-      CGF.LoopStack.setPerforationCount(DropRate);
-    }
-
+    CGF.InApproximatedAttributedStmt = true;
     BodyCodeGen(CGF);
+    CGF.InApproximatedAttributedStmt = false;
   };
   auto &&ElseGen = [&BodyCodeGen](CodeGenFunction &CGF, PrePostActionTy &) {
     CodeGenFunction::OMPLocalDeclMapRAII Scope(CGF);
