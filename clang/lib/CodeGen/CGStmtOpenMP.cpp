@@ -2215,10 +2215,10 @@ void CodeGenFunction::EmitOMPInnerLoop(
   EmitBlock(Continue.getBlock());
   EmitIgnoredExpr(IncExpr);
   auto *C = S.getSingleClause<OMPPerfoClause>();
-  if (C && InApproximatedAttributedStmt) {
-    uint64_t DropRate = C->getDropRate()
-    ->EvaluateKnownConstInt(getContext())
-    .getZExtValue();
+  if (C && C->getPerfoKind() == OMPC_PERFO_large &&
+      InApproximatedAttributedStmt) {
+    uint64_t DropRate =
+        C->getDropRate()->EvaluateKnownConstInt(getContext()).getZExtValue();
     for (uint64_t i = 0; i < DropRate; i++) {
       EmitIgnoredExpr(IncExpr);
     }

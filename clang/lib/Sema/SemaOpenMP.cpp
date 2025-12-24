@@ -24317,8 +24317,8 @@ OMPClause *SemaOpenMP::ActOnOpenMPPerfoClause(OpenMPPerfoClauseKind Kind,
     SourceLocation EndLoc) {
   if (Kind == OMPC_PERFO_unknown) {
     Diag(LParenLoc, diag::err_omp_unexpected_clause_value)
-        << getListOfPossibleValues(OMPC_perfo, OMPC_PERFO_default,
-                                   OMPC_PERFO_default)
+        << getListOfPossibleValues(OMPC_perfo, OMPC_PERFO_large,
+                                   OMPC_PERFO_large)
         << getOpenMPClauseNameForDiag(OMPC_perfo);
     return nullptr;
   }

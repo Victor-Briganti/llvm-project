@@ -562,12 +562,12 @@ def OMPC_When: Clause<[Spelling<"when">]> {
 def OMPC_Write : Clause<[Spelling<"write">]> {
   let clangClass = "OMPWriteClause";
 }
-def OMP_PERFO_Default : EnumVal<"default", 2, 1> { let isDefault = 1; }
+def OMP_PERFO_Large : EnumVal<"large", 2, 1> { let isDefault = 1; }
 def OMPC_Perfo : Clause<[Spelling<"perfo">]> {
   let clangClass = "OMPPerfoClause";
   let enumClauseValue = "PerfoKind";
   let allowedClauseValues = [
-    OMP_PERFO_Default
+    OMP_PERFO_Large
   ];
 }
 

@@ -9967,10 +9967,10 @@ public:
 /// directive.
 ///
 /// \code
-/// #pragma omp for approx perfo(default, 10)
+/// #pragma omp for approx perfo(large, 10)
 /// \endcode
 /// In this example directive '#pragma omp for approx' has a 'perfo' clause with
-/// a perforation of '10' using the 'default' algorithm for that.
+/// a perforation of '10' using the 'large' algorithm for that.
 class OMPPerfoClause : public OMPClause, public OMPClauseWithPreInit {
   friend class OMPClauseReader;
 

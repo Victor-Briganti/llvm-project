@@ -247,7 +247,7 @@ OPENMP_DOACROSS_MODIFIER(sink_omp_cur_iteration)
 OPENMP_DOACROSS_MODIFIER(source_omp_cur_iteration)
 
 // Attributes for 'perfo' clause.
-OPENMP_PERFO_KIND(default)
+OPENMP_PERFO_KIND(large)
 
 #undef OPENMP_NUMTASKS_MODIFIER
 #undef OPENMP_NUMTHREADS_MODIFIER
