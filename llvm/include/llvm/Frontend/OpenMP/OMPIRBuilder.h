@@ -3126,7 +3126,8 @@ public:
   /// __kmpc_distribute_static_init* if \a IsGPUDistribute is set.
   LLVM_ABI FunctionCallee createForStaticInitFunction(unsigned IVSize,
                                                       bool IVSigned,
-                                                      bool IsGPUDistribute);
+                                                      bool IsGPUDistribute,
+                                                      bool IsApprox = false);
 
   /// Returns __kmpc_dispatch_init_* runtime function for the specified
   /// size \a IVSize and sign \a IVSigned.

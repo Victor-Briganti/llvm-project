@@ -959,11 +959,13 @@ public:
     /// Value of the chunk for the static_chunked scheduled loop. For the
     /// default (nullptr) value, the chunk 1 will be used.
     llvm::Value *Chunk = nullptr;
+    /// Value of the drop rate to be used for the approximate loops.
+    uint64_t DropRate = 0;
     StaticRTInput(unsigned IVSize, bool IVSigned, bool Ordered, Address IL,
                   Address LB, Address UB, Address ST,
-                  llvm::Value *Chunk = nullptr)
+                  llvm::Value *Chunk = nullptr, uint64_t DropRate = 0)
         : IVSize(IVSize), IVSigned(IVSigned), Ordered(Ordered), IL(IL), LB(LB),
-          UB(UB), ST(ST), Chunk(Chunk) {}
+          UB(UB), ST(ST), Chunk(Chunk), DropRate(DropRate) {}
   };
   /// Call the appropriate runtime routine to initialize it before start
   /// of loop.
@@ -983,7 +985,8 @@ public:
   virtual void emitForStaticInit(CodeGenFunction &CGF, SourceLocation Loc,
                                  OpenMPDirectiveKind DKind,
                                  const OpenMPScheduleTy &ScheduleKind,
-                                 const StaticRTInput &Values);
+                                 const StaticRTInput &Values,
+                                 bool IsApprox = false);
 
   ///
   /// \param CGF Reference to current CodeGenFunction.
@@ -1864,7 +1867,8 @@ public:
   void emitForStaticInit(CodeGenFunction &CGF, SourceLocation Loc,
                          OpenMPDirectiveKind DKind,
                          const OpenMPScheduleTy &ScheduleKind,
-                         const StaticRTInput &Values) override;
+                         const StaticRTInput &Values,
+                         bool IsApprox = false) override;
 
   ///
   /// \param CGF Reference to current CodeGenFunction.

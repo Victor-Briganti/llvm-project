@@ -2850,6 +2850,68 @@ void __kmpc_dispatch_init_8u(ident_t *loc, kmp_int32 gtid,
 /*!
 See @ref __kmpc_dispatch_init_4
 
+This function is a extension of the common dispatch init, but with a change on
+the loop bounds.
+*/
+void __kmpc_dispatch_approx_init_4(ident_t *loc, kmp_int32 gtid,
+                                   enum sched_type schedule, kmp_int32 lb,
+                                   kmp_int32 ub, kmp_int32 st, kmp_int32 chunk,
+                                   kmp_int32 drop) {
+  KMP_DEBUG_ASSERT(__kmp_init_serial);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  OMPT_STORE_RETURN_ADDRESS(gtid);
+#endif
+  __kmp_dispatch_init<kmp_int32>(loc, gtid, schedule, lb + drop, ub, st, chunk,
+                                 true);
+}
+/*!
+See @ref __kmpc_dispatch_approx_init_4
+*/
+void __kmpc_dispatch_approx_init_4u(ident_t *loc, kmp_int32 gtid,
+                                    enum sched_type schedule, kmp_uint32 lb,
+                                    kmp_uint32 ub, kmp_int32 st,
+                                    kmp_int32 chunk, kmp_int32 drop) {
+  KMP_DEBUG_ASSERT(__kmp_init_serial);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  OMPT_STORE_RETURN_ADDRESS(gtid);
+#endif
+  __kmp_dispatch_init<kmp_uint32>(loc, gtid, schedule, lb + drop, ub, st, chunk,
+                                  true);
+}
+
+/*!
+See @ref __kmpc_dispatch_approx_init_4
+*/
+void __kmpc_dispatch_approx_init_8(ident_t *loc, kmp_int32 gtid,
+                                   enum sched_type schedule, kmp_int64 lb,
+                                   kmp_int64 ub, kmp_int64 st, kmp_int64 chunk,
+                                   kmp_int64 drop) {
+  KMP_DEBUG_ASSERT(__kmp_init_serial);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  OMPT_STORE_RETURN_ADDRESS(gtid);
+#endif
+  __kmp_dispatch_init<kmp_int64>(loc, gtid, schedule, lb + drop, ub, st, chunk,
+                                 true);
+}
+
+/*!
+See @ref __kmpc_dispatch_approx_init_4
+*/
+void __kmpc_dispatch_approx_init_8u(ident_t *loc, kmp_int32 gtid,
+                                    enum sched_type schedule, kmp_uint64 lb,
+                                    kmp_uint64 ub, kmp_int64 st,
+                                    kmp_int64 chunk, kmp_int64 drop) {
+  KMP_DEBUG_ASSERT(__kmp_init_serial);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  OMPT_STORE_RETURN_ADDRESS(gtid);
+#endif
+  __kmp_dispatch_init<kmp_uint64>(loc, gtid, schedule, lb + drop, ub, st, chunk,
+                                  true);
+}
+
+/*!
+See @ref __kmpc_dispatch_init_4
+
 Difference from __kmpc_dispatch_init set of functions is these functions
 are called for composite distribute parallel for construct. Thus before
 regular iterations dispatching we need to calc per-team iteration space.

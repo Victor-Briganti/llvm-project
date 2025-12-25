@@ -3644,17 +3644,27 @@ bool CodeGenFunction::EmitOMPWorksharingLoop(
             [IVSize, IVSigned, Ordered, IL, LB, UB, ST, StaticChunkedOne, Chunk,
              &S, ScheduleKind, LoopExit, EKind,
              &LoopScope](CodeGenFunction &CGF, PrePostActionTy &) {
+              uint64_t DropRate = 0;
+              if (CGF.InApproximatedAttributedStmt) {
+                auto *C = S.getSingleClause<OMPPerfoClause>();
+                if (C && C->getPerfoKind() == OMPC_PERFO_init) {
+                  DropRate = C->getDropRate()
+                                 ->EvaluateKnownConstInt(CGF.getContext())
+                                 .getZExtValue();
+                }
+              }
               // OpenMP [2.7.1, Loop Construct, Description, table 2-1]
-              // When no chunk_size is specified, the iteration space is divided
-              // into chunks that are approximately equal in size, and at most
-              // one chunk is distributed to each thread. Note that the size of
-              // the chunks is unspecified in this case.
+              // When no chunk_size is specified, the iteration space is
+              // divided into chunks that are approximately equal in size, and
+              // at most one chunk is distributed to each thread. Note that
+              // the size of the chunks is unspecified in this case.
               CGOpenMPRuntime::StaticRTInput StaticInit(
                   IVSize, IVSigned, Ordered, IL.getAddress(), LB.getAddress(),
                   UB.getAddress(), ST.getAddress(),
-                  StaticChunkedOne ? Chunk : nullptr);
+                  StaticChunkedOne ? Chunk : nullptr, DropRate);
               CGF.CGM.getOpenMPRuntime().emitForStaticInit(
-                  CGF, S.getBeginLoc(), EKind, ScheduleKind, StaticInit);
+                  CGF, S.getBeginLoc(), EKind, ScheduleKind, StaticInit,
+                  DropRate);
               // UB = min(UB, GlobalUB);
               if (!StaticChunkedOne)
                 CGF.EmitIgnoredExpr(S.getEnsureUpperBound());

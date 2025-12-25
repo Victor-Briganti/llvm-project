@@ -3864,6 +3864,27 @@ extern void __kmpc_dispatch_init_8u(ident_t *loc, kmp_int32 gtid,
                                     kmp_uint64 ub, kmp_int64 st,
                                     kmp_int64 chunk);
 
+extern void __kmpc_dispatch_approx_init_4(ident_t *loc, kmp_int32 gtid,
+                                          enum sched_type schedule,
+                                          kmp_int32 lb, kmp_int32 ub,
+                                          kmp_int32 st, kmp_int32 chunk,
+                                          kmp_int32 drop);
+extern void __kmpc_dispatch_approx_init_4u(ident_t *loc, kmp_int32 gtid,
+                                           enum sched_type schedule,
+                                           kmp_uint32 lb, kmp_uint32 ub,
+                                           kmp_int32 st, kmp_int32 chunk,
+                                           kmp_int32 drop);
+extern void __kmpc_dispatch_approx_init_8(ident_t *loc, kmp_int32 gtid,
+                                          enum sched_type schedule,
+                                          kmp_int64 lb, kmp_int64 ub,
+                                          kmp_int64 st, kmp_int64 chunk,
+                                          kmp_int64 drop);
+extern void __kmpc_dispatch_approx_init_8u(ident_t *loc, kmp_int32 gtid,
+                                           enum sched_type schedule,
+                                           kmp_uint64 lb, kmp_uint64 ub,
+                                           kmp_int64 st, kmp_int64 chunk,
+                                           kmp_int64 drop);
+
 extern int __kmpc_dispatch_next_4(ident_t *loc, kmp_int32 gtid,
                                   kmp_int32 *p_last, kmp_int32 *p_lb,
                                   kmp_int32 *p_ub, kmp_int32 *p_st);

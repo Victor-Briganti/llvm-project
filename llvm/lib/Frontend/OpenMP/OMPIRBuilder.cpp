@@ -6875,7 +6875,8 @@ OpenMPIRBuilder::InsertPointOrErrorTy OpenMPIRBuilder::createTargetData(
 
 FunctionCallee
 OpenMPIRBuilder::createForStaticInitFunction(unsigned IVSize, bool IVSigned,
-                                             bool IsGPUDistribute) {
+                                             bool IsGPUDistribute,
+                                             bool IsApprox) {
   assert((IVSize == 32 || IVSize == 64) &&
          "IV size is not compatible with the omp runtime");
   RuntimeFunction Name;
@@ -6885,6 +6886,12 @@ OpenMPIRBuilder::createForStaticInitFunction(unsigned IVSize, bool IVSigned,
                            : omp::OMPRTL___kmpc_distribute_static_init_4u)
                : (IVSigned ? omp::OMPRTL___kmpc_distribute_static_init_8
                            : omp::OMPRTL___kmpc_distribute_static_init_8u);
+  else if (IsApprox)
+    Name = IVSize == 32
+               ? (IVSigned ? omp::OMPRTL___kmpc_for_static_approx_init_4
+                           : omp::OMPRTL___kmpc_for_static_approx_init_4u)
+               : (IVSigned ? omp::OMPRTL___kmpc_for_static_approx_init_8
+                           : omp::OMPRTL___kmpc_for_static_approx_init_8u);
   else
     Name = IVSize == 32 ? (IVSigned ? omp::OMPRTL___kmpc_for_static_init_4
                                     : omp::OMPRTL___kmpc_for_static_init_4u)

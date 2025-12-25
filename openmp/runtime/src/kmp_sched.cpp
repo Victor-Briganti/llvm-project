@@ -954,6 +954,97 @@ void __kmpc_for_static_init_8u(ident_t *loc, kmp_int32 gtid,
 #endif
   );
 }
+
+/*!
+@ingroup WORK_SHARING
+@param    loc        Source code location
+@param    gtid       Global thread id of this thread
+@param    schedtype  Scheduling type
+@param    plastiter  Pointer to the "last iteration" flag
+@param    plower     Pointer to the lower bound
+@param    pupper     Pointer to the upper bound
+@param    pstride    Pointer to the stride
+@param    incr       Loop increment
+@param    chunk      The chunk size
+@param    drop       The drop rate for the approximation
+
+Each of the four functions here are identical apart from the argument types.
+
+The functions compute the upper and lower bounds and stride to be used for the
+set of iterations to be executed by the current thread from the statically
+scheduled loop that is described by the initial values of the bounds, stride,
+increment, chunk size and drop rate for approximation.
+
+@{
+*/
+void __kmpc_for_static_approx_init_4(ident_t *loc, kmp_int32 gtid,
+                                     kmp_int32 schedtype, kmp_int32 *plastiter,
+                                     kmp_int32 *plower, kmp_int32 *pupper,
+                                     kmp_int32 *pstride, kmp_int32 incr,
+                                     kmp_int32 chunk, kmp_int32 drop) {
+  *plower = *plower + drop;
+  __kmp_for_static_init<kmp_int32>(loc, gtid, schedtype, plastiter, plower,
+                                   pupper, pstride, incr, chunk
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+                                   ,
+                                   OMPT_GET_RETURN_ADDRESS(0)
+#endif
+  );
+}
+
+/*!
+ See @ref __kmpc_for_static_approx_init_4
+ */
+void __kmpc_for_static_approx_init_4u(ident_t *loc, kmp_int32 gtid,
+                                      kmp_int32 schedtype, kmp_int32 *plastiter,
+                                      kmp_uint32 *plower, kmp_uint32 *pupper,
+                                      kmp_int32 *pstride, kmp_int32 incr,
+                                      kmp_int32 chunk, kmp_int32 drop) {
+  *plower = *plower + drop;
+  __kmp_for_static_init<kmp_uint32>(loc, gtid, schedtype, plastiter, plower,
+                                    pupper, pstride, incr, chunk
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+                                    ,
+                                    OMPT_GET_RETURN_ADDRESS(0)
+#endif
+  );
+}
+
+/*!
+ See @ref __kmpc_for_static_approx_init_4
+ */
+void __kmpc_for_static_approx_init_8(ident_t *loc, kmp_int32 gtid,
+                                     kmp_int32 schedtype, kmp_int32 *plastiter,
+                                     kmp_int64 *plower, kmp_int64 *pupper,
+                                     kmp_int64 *pstride, kmp_int64 incr,
+                                     kmp_int64 chunk, kmp_int64 drop) {
+  *plower = *plower + drop;
+  __kmp_for_static_init<kmp_int64>(loc, gtid, schedtype, plastiter, plower,
+                                   pupper, pstride, incr, chunk
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+                                   ,
+                                   OMPT_GET_RETURN_ADDRESS(0)
+#endif
+  );
+}
+
+/*!
+ See @ref __kmpc_for_static_approx_init_4
+ */
+void __kmpc_for_static_approx_init_8u(ident_t *loc, kmp_int32 gtid,
+                                      kmp_int32 schedtype, kmp_int32 *plastiter,
+                                      kmp_uint64 *plower, kmp_uint64 *pupper,
+                                      kmp_int64 *pstride, kmp_int64 incr,
+                                      kmp_int64 chunk, kmp_int64 drop) {
+  *plower = *plower + drop;
+  __kmp_for_static_init<kmp_uint64>(loc, gtid, schedtype, plastiter, plower,
+                                    pupper, pstride, incr, chunk
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+                                    ,
+                                    OMPT_GET_RETURN_ADDRESS(0)
+#endif
+  );
+}
 /*!
 @}
 */

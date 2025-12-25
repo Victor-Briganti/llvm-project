@@ -2576,26 +2576,44 @@ static void emitForStaticInitCall(
             Schedule == OMP_dist_sch_static_chunked) &&
            "expected static chunked schedule");
   }
-  llvm::Value *Args[] = {
+  if (!Values.DropRate) {
+    llvm::Value *Args[] = {
       UpdateLocation,
       ThreadId,
       CGF.Builder.getInt32(addMonoNonMonoModifier(CGF.CGM, Schedule, M1,
-                                                  M2)), // Schedule type
-      Values.IL.emitRawPointer(CGF),                    // &isLastIter
-      Values.LB.emitRawPointer(CGF),                    // &LB
-      Values.UB.emitRawPointer(CGF),                    // &UB
-      Values.ST.emitRawPointer(CGF),                    // &Stride
-      CGF.Builder.getIntN(Values.IVSize, 1),            // Incr
-      Chunk                                             // Chunk
-  };
-  CGF.EmitRuntimeCall(ForStaticInitFunction, Args);
+        M2)), // Schedule type
+        Values.IL.emitRawPointer(CGF),                    // &isLastIter
+        Values.LB.emitRawPointer(CGF),                    // &LB
+        Values.UB.emitRawPointer(CGF),                    // &UB
+        Values.ST.emitRawPointer(CGF),                    // &Stride
+        CGF.Builder.getIntN(Values.IVSize, 1),            // Incr
+        Chunk                                             // Chunk
+      };
+      CGF.EmitRuntimeCall(ForStaticInitFunction, Args);
+    } else {
+    llvm::Value *Args[] = {
+        UpdateLocation,
+        ThreadId,
+        CGF.Builder.getInt32(addMonoNonMonoModifier(CGF.CGM, Schedule, M1,
+                                                    M2)),    // Schedule type
+        Values.IL.emitRawPointer(CGF),                       // &isLastIter
+        Values.LB.emitRawPointer(CGF),                       // &LB
+        Values.UB.emitRawPointer(CGF),                       // &UB
+        Values.ST.emitRawPointer(CGF),                       // &Stride
+        CGF.Builder.getIntN(Values.IVSize, 1),               // Incr
+        Chunk,                                               // Chunk
+        CGF.Builder.getIntN(Values.IVSize, Values.DropRate), // Drop
+    };
+    CGF.EmitRuntimeCall(ForStaticInitFunction, Args);
+  }
 }
 
 void CGOpenMPRuntime::emitForStaticInit(CodeGenFunction &CGF,
                                         SourceLocation Loc,
                                         OpenMPDirectiveKind DKind,
                                         const OpenMPScheduleTy &ScheduleKind,
-                                        const StaticRTInput &Values) {
+                                        const StaticRTInput &Values,
+                                        bool IsApprox) {
   OpenMPSchedType ScheduleNum = getRuntimeSchedule(
       ScheduleKind.Schedule, Values.Chunk != nullptr, Values.Ordered);
   assert((isOpenMPWorksharingDirective(DKind) || (DKind == OMPD_loop)) &&
@@ -2607,7 +2625,7 @@ void CGOpenMPRuntime::emitForStaticInit(CodeGenFunction &CGF,
   llvm::Value *ThreadId = getThreadID(CGF, Loc);
   llvm::FunctionCallee StaticInitFunction =
       OMPBuilder.createForStaticInitFunction(Values.IVSize, Values.IVSigned,
-                                             false);
+                                             false, IsApprox);
   auto DL = ApplyDebugLocation::CreateDefaultArtificial(CGF, Loc);
   emitForStaticInitCall(CGF, UpdatedLocation, ThreadId, StaticInitFunction,
                         ScheduleNum, ScheduleKind.M1, ScheduleKind.M2, Values);
@@ -12119,7 +12137,8 @@ void CGOpenMPSIMDRuntime::emitForDispatchDeinit(CodeGenFunction &CGF,
 
 void CGOpenMPSIMDRuntime::emitForStaticInit(
     CodeGenFunction &CGF, SourceLocation Loc, OpenMPDirectiveKind DKind,
-    const OpenMPScheduleTy &ScheduleKind, const StaticRTInput &Values) {
+    const OpenMPScheduleTy &ScheduleKind, const StaticRTInput &Values,
+    bool IsApprox) {
   llvm_unreachable("Not supported in SIMD-only mode");
 }
 
