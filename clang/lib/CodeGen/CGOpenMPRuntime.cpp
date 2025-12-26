@@ -2502,7 +2502,7 @@ static int addMonoNonMonoModifier(CodeGenModule &CGM, OpenMPSchedType Schedule,
 void CGOpenMPRuntime::emitForDispatchInit(
     CodeGenFunction &CGF, SourceLocation Loc,
     const OpenMPScheduleTy &ScheduleKind, unsigned IVSize, bool IVSigned,
-    bool Ordered, const DispatchRTInput &DispatchValues) {
+    bool Ordered, const DispatchRTInput &DispatchValues, bool IsApprox) {
   if (!CGF.HaveInsertPoint())
     return;
   OpenMPSchedType Schedule = getRuntimeSchedule(
@@ -2519,18 +2519,35 @@ void CGOpenMPRuntime::emitForDispatchInit(
   // If the Chunk was not specified in the clause - use default value 1.
   llvm::Value *Chunk = DispatchValues.Chunk ? DispatchValues.Chunk
                                             : CGF.Builder.getIntN(IVSize, 1);
-  llvm::Value *Args[] = {
-      emitUpdateLocation(CGF, Loc),
-      getThreadID(CGF, Loc),
-      CGF.Builder.getInt32(addMonoNonMonoModifier(
-          CGM, Schedule, ScheduleKind.M1, ScheduleKind.M2)), // Schedule type
-      DispatchValues.LB,                                     // Lower
-      DispatchValues.UB,                                     // Upper
-      CGF.Builder.getIntN(IVSize, 1),                        // Stride
-      Chunk                                                  // Chunk
-  };
-  CGF.EmitRuntimeCall(OMPBuilder.createDispatchInitFunction(IVSize, IVSigned),
-                      Args);
+  if (!DispatchValues.DropRate) {
+    llvm::Value *Args[] = {
+        emitUpdateLocation(CGF, Loc),
+        getThreadID(CGF, Loc),
+        CGF.Builder.getInt32(addMonoNonMonoModifier(
+            CGM, Schedule, ScheduleKind.M1, ScheduleKind.M2)), // Schedule type
+        DispatchValues.LB,                                     // Lower
+        DispatchValues.UB,                                     // Upper
+        CGF.Builder.getIntN(IVSize, 1),                        // Stride
+        Chunk                                                  // Chunk
+    };
+    CGF.EmitRuntimeCall(OMPBuilder.createDispatchInitFunction(IVSize, IVSigned),
+                        Args);
+  } else {
+    llvm::Value *Args[] = {
+        emitUpdateLocation(CGF, Loc),
+        getThreadID(CGF, Loc),
+        CGF.Builder.getInt32(addMonoNonMonoModifier(
+            CGM, Schedule, ScheduleKind.M1, ScheduleKind.M2)), // Schedule type
+        DispatchValues.LB,                                     // Lower
+        DispatchValues.UB,                                     // Upper
+        CGF.Builder.getIntN(IVSize, 1),                        // Stride
+        Chunk,                                                 // Chunk
+        CGF.Builder.getIntN(IVSize, DispatchValues.DropRate),  // Drop
+    };
+    CGF.EmitRuntimeCall(OMPBuilder.createDispatchInitFunction(
+                            IVSize, IVSigned, DispatchValues.DropRate),
+                        Args);
+  }
 }
 
 void CGOpenMPRuntime::emitForDispatchDeinit(CodeGenFunction &CGF,
@@ -12126,7 +12143,7 @@ void CGOpenMPSIMDRuntime::emitBarrierCall(CodeGenFunction &CGF,
 void CGOpenMPSIMDRuntime::emitForDispatchInit(
     CodeGenFunction &CGF, SourceLocation Loc,
     const OpenMPScheduleTy &ScheduleKind, unsigned IVSize, bool IVSigned,
-    bool Ordered, const DispatchRTInput &DispatchValues) {
+    bool Ordered, const DispatchRTInput &DispatchValues, bool IsApprox) {
   llvm_unreachable("Not supported in SIMD-only mode");
 }
 

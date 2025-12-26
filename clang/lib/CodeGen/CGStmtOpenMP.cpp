@@ -3220,18 +3220,36 @@ void CodeGenFunction::EmitOMPForOuterLoop(
   const bool IVSigned = IVExpr->getType()->hasSignedIntegerRepresentation();
 
   if (DynamicOrOrdered) {
+    uint64_t DropRate = 0;
+    if (InApproximatedAttributedStmt) {
+      auto *C = S.getSingleClause<OMPPerfoClause>();
+      if (C && C->getPerfoKind() == OMPC_PERFO_init) {
+        DropRate = C->getDropRate()
+                       ->EvaluateKnownConstInt(getContext())
+                       .getZExtValue();
+      }
+    }
     const std::pair<llvm::Value *, llvm::Value *> DispatchBounds =
         CGDispatchBounds(*this, S, LoopArgs.LB, LoopArgs.UB);
     llvm::Value *LBVal = DispatchBounds.first;
     llvm::Value *UBVal = DispatchBounds.second;
     CGOpenMPRuntime::DispatchRTInput DipatchRTInputValues = {LBVal, UBVal,
-                                                             LoopArgs.Chunk};
+                                                             LoopArgs.Chunk, DropRate};
     RT.emitForDispatchInit(*this, S.getBeginLoc(), ScheduleKind, IVSize,
                            IVSigned, Ordered, DipatchRTInputValues);
   } else {
+    uint64_t DropRate = 0;
+    if (InApproximatedAttributedStmt) {
+      auto *C = S.getSingleClause<OMPPerfoClause>();
+      if (C && C->getPerfoKind() == OMPC_PERFO_init) {
+        DropRate = C->getDropRate()
+                       ->EvaluateKnownConstInt(getContext())
+                       .getZExtValue();
+      }
+    }
     CGOpenMPRuntime::StaticRTInput StaticInit(
         IVSize, IVSigned, Ordered, LoopArgs.IL, LoopArgs.LB, LoopArgs.UB,
-        LoopArgs.ST, LoopArgs.Chunk);
+        LoopArgs.ST, LoopArgs.Chunk, DropRate);
     OpenMPDirectiveKind EKind = getEffectiveDirectiveKind(S);
     RT.emitForStaticInit(*this, S.getBeginLoc(), EKind, ScheduleKind,
                          StaticInit);
@@ -3703,12 +3721,37 @@ bool CodeGenFunction::EmitOMPWorksharingLoop(
       } else {
         // Emit the outer loop, which requests its work chunk [LB..UB] from
         // runtime and runs the inner loop to process it.
-        OMPLoopArguments LoopArguments(LB.getAddress(), UB.getAddress(),
-                                       ST.getAddress(), IL.getAddress(), Chunk,
-                                       EUB);
-        LoopArguments.DKind = OMPD_for;
-        EmitOMPForOuterLoop(ScheduleKind, IsMonotonic, S, LoopScope, Ordered,
-                            LoopArguments, CGDispatchBounds);
+        auto &&ThenGen = [&](CodeGenFunction &CGF, PrePostActionTy &) {
+          CodeGenFunction::OMPLocalDeclMapRAII Scope(CGF);
+          CGF.InApproximatedAttributedStmt = true;
+          OMPLoopArguments LoopArguments(LB.getAddress(), UB.getAddress(),
+                                         ST.getAddress(), IL.getAddress(),
+                                         Chunk, EUB);
+          LoopArguments.DKind = OMPD_for;
+          EmitOMPForOuterLoop(ScheduleKind, IsMonotonic, S, LoopScope, Ordered,
+                              LoopArguments, CGDispatchBounds);
+          CGF.InApproximatedAttributedStmt = false;
+        };
+        auto &&ElseGen = [&](CodeGenFunction &CGF, PrePostActionTy &) {
+          CodeGenFunction::OMPLocalDeclMapRAII Scope(CGF);
+          OMPLoopArguments LoopArguments(LB.getAddress(), UB.getAddress(),
+                                         ST.getAddress(), IL.getAddress(),
+                                         Chunk, EUB);
+          LoopArguments.DKind = OMPD_for;
+          EmitOMPForOuterLoop(ScheduleKind, IsMonotonic, S, LoopScope, Ordered,
+                              LoopArguments, CGDispatchBounds);
+        };
+        const Expr *IfCond = nullptr;
+        if (auto *Perfo = S.getSingleClause<OMPPerfoClause>()) {
+          IfCond = createApproxCallExpr(*this, Perfo->getBeginLoc());
+        }
+        if (IfCond) {
+          CGM.getOpenMPRuntime().emitIfClause(*this, IfCond, ThenGen,
+                                                  ElseGen);
+        } else {
+          RegionCodeGenTy ThenRCG(ThenGen);
+          ThenRCG(*this);
+        }
       }
       if (isOpenMPSimdDirective(EKind)) {
         EmitOMPSimdFinal(S, [IL, &S](CodeGenFunction &CGF) {

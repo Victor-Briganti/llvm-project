@@ -6902,14 +6902,22 @@ OpenMPIRBuilder::createForStaticInitFunction(unsigned IVSize, bool IVSigned,
 }
 
 FunctionCallee OpenMPIRBuilder::createDispatchInitFunction(unsigned IVSize,
-                                                           bool IVSigned) {
+                                                           bool IVSigned,
+                                                           bool IsApprox) {
   assert((IVSize == 32 || IVSize == 64) &&
          "IV size is not compatible with the omp runtime");
-  RuntimeFunction Name = IVSize == 32
-                             ? (IVSigned ? omp::OMPRTL___kmpc_dispatch_init_4
-                                         : omp::OMPRTL___kmpc_dispatch_init_4u)
-                             : (IVSigned ? omp::OMPRTL___kmpc_dispatch_init_8
-                                         : omp::OMPRTL___kmpc_dispatch_init_8u);
+  RuntimeFunction Name;
+  if (!IsApprox)
+    Name = IVSize == 32 ? (IVSigned ? omp::OMPRTL___kmpc_dispatch_init_4
+                                    : omp::OMPRTL___kmpc_dispatch_init_4u)
+                        : (IVSigned ? omp::OMPRTL___kmpc_dispatch_init_8
+                                    : omp::OMPRTL___kmpc_dispatch_init_8u);
+  else
+    Name = IVSize == 32
+               ? (IVSigned ? omp::OMPRTL___kmpc_dispatch_approx_init_4
+                           : omp::OMPRTL___kmpc_dispatch_approx_init_4u)
+               : (IVSigned ? omp::OMPRTL___kmpc_dispatch_approx_init_8
+                           : omp::OMPRTL___kmpc_dispatch_approx_init_8u);
 
   return getOrCreateRuntimeFunction(M, Name);
 }

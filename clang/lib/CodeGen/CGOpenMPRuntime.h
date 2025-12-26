@@ -899,9 +899,13 @@ public:
     /// Chunk size specified using 'schedule' clause (nullptr if chunk
     /// was not specified)
     llvm::Value *Chunk = nullptr;
+    /// Value of the drop rate to be used for the approximate the bounds of the
+    /// loop.
+    uint64_t DropRate = 0;
     DispatchRTInput() = default;
-    DispatchRTInput(llvm::Value *LB, llvm::Value *UB, llvm::Value *Chunk)
-        : LB(LB), UB(UB), Chunk(Chunk) {}
+    DispatchRTInput(llvm::Value *LB, llvm::Value *UB, llvm::Value *Chunk,
+                    uint64_t DropRate = 0)
+        : LB(LB), UB(UB), Chunk(Chunk), DropRate(DropRate) {}
   };
 
   /// Call the appropriate runtime routine to initialize it before start
@@ -921,12 +925,15 @@ public:
   /// \param Ordered true if loop is ordered, false otherwise.
   /// \param DispatchValues struct containing llvm values for lower bound, upper
   /// bound, and chunk expression.
+  /// \param IsApprox true if the loop is in approximated region, false 
+  /// otherwise.
   /// For the default (nullptr) value, the chunk 1 will be used.
   ///
   virtual void emitForDispatchInit(CodeGenFunction &CGF, SourceLocation Loc,
                                    const OpenMPScheduleTy &ScheduleKind,
                                    unsigned IVSize, bool IVSigned, bool Ordered,
-                                   const DispatchRTInput &DispatchValues);
+                                   const DispatchRTInput &DispatchValues,
+                                   bool IsApprox = false);
 
   /// This is used for non static scheduled types and when the ordered
   /// clause is present on the loop construct.
@@ -959,7 +966,8 @@ public:
     /// Value of the chunk for the static_chunked scheduled loop. For the
     /// default (nullptr) value, the chunk 1 will be used.
     llvm::Value *Chunk = nullptr;
-    /// Value of the drop rate to be used for the approximate loops.
+    /// Value of the drop rate to be used for the approximate the bounds of the 
+    /// loop.
     uint64_t DropRate = 0;
     StaticRTInput(unsigned IVSize, bool IVSigned, bool Ordered, Address IL,
                   Address LB, Address UB, Address ST,
@@ -1834,12 +1842,15 @@ public:
   /// \param Ordered true if loop is ordered, false otherwise.
   /// \param DispatchValues struct containing llvm values for lower bound, upper
   /// bound, and chunk expression.
+  /// \param IsApprox true if the loop is in approximated region, false 
+  /// otherwise.
   /// For the default (nullptr) value, the chunk 1 will be used.
   ///
   void emitForDispatchInit(CodeGenFunction &CGF, SourceLocation Loc,
                            const OpenMPScheduleTy &ScheduleKind,
                            unsigned IVSize, bool IVSigned, bool Ordered,
-                           const DispatchRTInput &DispatchValues) override;
+                           const DispatchRTInput &DispatchValues,
+                            bool IsApprox = false) override;
 
   /// This is used for non static scheduled types and when the ordered
   /// clause is present on the loop construct.

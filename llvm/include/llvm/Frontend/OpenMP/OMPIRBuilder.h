@@ -3132,7 +3132,8 @@ public:
   /// Returns __kmpc_dispatch_init_* runtime function for the specified
   /// size \a IVSize and sign \a IVSigned.
   LLVM_ABI FunctionCallee createDispatchInitFunction(unsigned IVSize,
-                                                     bool IVSigned);
+                                                     bool IVSigned,
+                                                     bool IsApprox = false);
 
   /// Returns __kmpc_dispatch_next_* runtime function for the specified
   /// size \a IVSize and sign \a IVSigned.
