@@ -890,6 +890,14 @@ public:
   ///
   virtual bool isDynamic(OpenMPScheduleClauseKind ScheduleKind) const;
 
+  /// Perforation types for 'omp for approx perfo' loops (these enumerators are
+  /// taken from  the enum approx_perfo_type in kmp.h).
+  enum OpenMPPerfoType {
+    OMP_perfo_unknown = -1,
+    OMP_perfo_init = 1,
+    OMP_perfo_fini = 2,
+  };
+
   /// struct with the values to be passed to the dispatch runtime function
   struct DispatchRTInput {
     /// Loop lower bound
@@ -899,13 +907,18 @@ public:
     /// Chunk size specified using 'schedule' clause (nullptr if chunk
     /// was not specified)
     llvm::Value *Chunk = nullptr;
+    /// Defines the type of perforation algorithm that is going to be applied
+    /// to the loop.
+    OpenMPPerfoType PerfoType = OMP_perfo_unknown;
     /// Value of the drop rate to be used for the approximate the bounds of the
     /// loop.
     uint64_t DropRate = 0;
     DispatchRTInput() = default;
     DispatchRTInput(llvm::Value *LB, llvm::Value *UB, llvm::Value *Chunk,
+                    OpenMPPerfoType PerfoType = OMP_perfo_unknown,
                     uint64_t DropRate = 0)
-        : LB(LB), UB(UB), Chunk(Chunk), DropRate(DropRate) {}
+        : LB(LB), UB(UB), Chunk(Chunk), PerfoType(PerfoType),
+          DropRate(DropRate) {}
   };
 
   /// Call the appropriate runtime routine to initialize it before start
@@ -934,14 +947,6 @@ public:
                                    unsigned IVSize, bool IVSigned, bool Ordered,
                                    const DispatchRTInput &DispatchValues,
                                    bool IsApprox = false);
-
-  /// Perforation types for 'omp for approx perfo' loops (these enumerators are 
-  /// taken from  the enum approx_perfo_type in kmp.h).
-  enum OpenMPPerfoType {
-    OMP_perfo_unknown = -1,
-    OMP_perfo_init = 1,
-    OMP_perfo_fini = 2,
-  };
 
   /// This is used for non static scheduled types and when the ordered
   /// clause is present on the loop construct.

@@ -2542,6 +2542,7 @@ void CGOpenMPRuntime::emitForDispatchInit(
         DispatchValues.UB,                                     // Upper
         CGF.Builder.getIntN(IVSize, 1),                        // Stride
         Chunk,                                                 // Chunk
+        CGF.Builder.getIntN(IVSize, DispatchValues.PerfoType), // PerfoType
         CGF.Builder.getIntN(IVSize, DispatchValues.DropRate),  // Drop
     };
     CGF.EmitRuntimeCall(OMPBuilder.createDispatchInitFunction(

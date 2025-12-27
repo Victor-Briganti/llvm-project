@@ -326,13 +326,13 @@ __OMP_RTL(__kmpc_dispatch_init_8, false, Void, IdentPtr, Int32, Int32, Int64,
 __OMP_RTL(__kmpc_dispatch_init_8u, false, Void, IdentPtr, Int32, Int32, Int64,
           Int64, Int64, Int64)
 __OMP_RTL(__kmpc_dispatch_approx_init_4, false, Void, IdentPtr, Int32, Int32, Int32,
-          Int32, Int32, Int32, Int32)
+          Int32, Int32, Int32, Int32, Int32)
 __OMP_RTL(__kmpc_dispatch_approx_init_4u, false, Void, IdentPtr, Int32, Int32, Int32,
-          Int32, Int32, Int32, Int32)
+          Int32, Int32, Int32, Int32, Int32)
 __OMP_RTL(__kmpc_dispatch_approx_init_8, false, Void, IdentPtr, Int32, Int32, Int64,
-          Int64, Int64, Int64, Int64)
+          Int64, Int64, Int64, Int64, Int64)
 __OMP_RTL(__kmpc_dispatch_approx_init_8u, false, Void, IdentPtr, Int32, Int32, Int64,
-          Int64, Int64, Int64, Int64)
+          Int64, Int64, Int64, Int64, Int64)
 __OMP_RTL(__kmpc_dispatch_next_4, false, Int32, IdentPtr, Int32, Int32Ptr,
           Int32Ptr, Int32Ptr, Int32Ptr)
 __OMP_RTL(__kmpc_dispatch_next_4u, false, Int32, IdentPtr, Int32, Int32Ptr,

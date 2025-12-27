@@ -3234,21 +3234,24 @@ void CodeGenFunction::EmitOMPForOuterLoop(
   const bool IVSigned = IVExpr->getType()->hasSignedIntegerRepresentation();
 
   if (DynamicOrOrdered) {
+    CGOpenMPRuntime::OpenMPPerfoType PerfoType;
     uint64_t DropRate = 0;
     if (InApproximatedAttributedStmt) {
       auto *C = S.getSingleClause<OMPPerfoClause>();
-      if (C && C->getPerfoKind() == OMPC_PERFO_init) {
+      if (C && (C->getPerfoKind() == OMPC_PERFO_init ||
+                C->getPerfoKind() == OMPC_PERFO_fini)) {
         DropRate = C->getDropRate()
                        ->EvaluateKnownConstInt(getContext())
                        .getZExtValue();
+        PerfoType = getRuntimePerfo(C->getPerfoKind());
       }
     }
     const std::pair<llvm::Value *, llvm::Value *> DispatchBounds =
         CGDispatchBounds(*this, S, LoopArgs.LB, LoopArgs.UB);
     llvm::Value *LBVal = DispatchBounds.first;
     llvm::Value *UBVal = DispatchBounds.second;
-    CGOpenMPRuntime::DispatchRTInput DipatchRTInputValues = {LBVal, UBVal,
-                                                             LoopArgs.Chunk, DropRate};
+    CGOpenMPRuntime::DispatchRTInput DipatchRTInputValues = {
+        LBVal, UBVal, LoopArgs.Chunk, PerfoType, DropRate};
     RT.emitForDispatchInit(*this, S.getBeginLoc(), ScheduleKind, IVSize,
                            IVSigned, Ordered, DipatchRTInputValues);
   } else {

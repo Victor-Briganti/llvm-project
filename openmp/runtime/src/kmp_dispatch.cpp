@@ -2856,13 +2856,22 @@ the loop bounds.
 void __kmpc_dispatch_approx_init_4(ident_t *loc, kmp_int32 gtid,
                                    enum sched_type schedule, kmp_int32 lb,
                                    kmp_int32 ub, kmp_int32 st, kmp_int32 chunk,
-                                   kmp_int32 drop) {
+                                   kmp_int32 perfotype, kmp_int32 drop) {
   KMP_DEBUG_ASSERT(__kmp_init_serial);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   OMPT_STORE_RETURN_ADDRESS(gtid);
 #endif
-  __kmp_dispatch_init<kmp_int32>(loc, gtid, schedule, lb + drop, ub, st, chunk,
-                                 true);
+  switch (perfotype) {
+  case kmp_perfo_init:
+    lb = lb + drop;
+    break;
+  case kmp_perfo_fini:
+    ub = ub - drop;
+    break;
+  default:
+    break;
+  }
+  __kmp_dispatch_init<kmp_int32>(loc, gtid, schedule, lb, ub, st, chunk, true);
 }
 /*!
 See @ref __kmpc_dispatch_approx_init_4
@@ -2870,13 +2879,23 @@ See @ref __kmpc_dispatch_approx_init_4
 void __kmpc_dispatch_approx_init_4u(ident_t *loc, kmp_int32 gtid,
                                     enum sched_type schedule, kmp_uint32 lb,
                                     kmp_uint32 ub, kmp_int32 st,
-                                    kmp_int32 chunk, kmp_int32 drop) {
+                                    kmp_int32 chunk, kmp_int32 perfotype,
+                                    kmp_int32 drop) {
   KMP_DEBUG_ASSERT(__kmp_init_serial);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   OMPT_STORE_RETURN_ADDRESS(gtid);
 #endif
-  __kmp_dispatch_init<kmp_uint32>(loc, gtid, schedule, lb + drop, ub, st, chunk,
-                                  true);
+  switch (perfotype) {
+  case kmp_perfo_init:
+    lb = lb + drop;
+    break;
+  case kmp_perfo_fini:
+    ub = ub - drop;
+    break;
+  default:
+    break;
+  }
+  __kmp_dispatch_init<kmp_uint32>(loc, gtid, schedule, lb, ub, st, chunk, true);
 }
 
 /*!
@@ -2885,13 +2904,22 @@ See @ref __kmpc_dispatch_approx_init_4
 void __kmpc_dispatch_approx_init_8(ident_t *loc, kmp_int32 gtid,
                                    enum sched_type schedule, kmp_int64 lb,
                                    kmp_int64 ub, kmp_int64 st, kmp_int64 chunk,
-                                   kmp_int64 drop) {
+                                   kmp_int64 perfotype, kmp_int64 drop) {
   KMP_DEBUG_ASSERT(__kmp_init_serial);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   OMPT_STORE_RETURN_ADDRESS(gtid);
 #endif
-  __kmp_dispatch_init<kmp_int64>(loc, gtid, schedule, lb + drop, ub, st, chunk,
-                                 true);
+  switch (perfotype) {
+  case kmp_perfo_init:
+    lb = lb + drop;
+    break;
+  case kmp_perfo_fini:
+    ub = ub - drop;
+    break;
+  default:
+    break;
+  }
+  __kmp_dispatch_init<kmp_int64>(loc, gtid, schedule, lb, ub, st, chunk, true);
 }
 
 /*!
@@ -2900,13 +2928,23 @@ See @ref __kmpc_dispatch_approx_init_4
 void __kmpc_dispatch_approx_init_8u(ident_t *loc, kmp_int32 gtid,
                                     enum sched_type schedule, kmp_uint64 lb,
                                     kmp_uint64 ub, kmp_int64 st,
-                                    kmp_int64 chunk, kmp_int64 drop) {
+                                    kmp_int64 chunk, kmp_int64 perfotype,
+                                    kmp_int64 drop) {
   KMP_DEBUG_ASSERT(__kmp_init_serial);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   OMPT_STORE_RETURN_ADDRESS(gtid);
 #endif
-  __kmp_dispatch_init<kmp_uint64>(loc, gtid, schedule, lb + drop, ub, st, chunk,
-                                  true);
+  switch (perfotype) {
+  case kmp_perfo_init:
+    lb = lb + drop;
+    break;
+  case kmp_perfo_fini:
+    ub = ub - drop;
+    break;
+  default:
+    break;
+  }
+  __kmp_dispatch_init<kmp_uint64>(loc, gtid, schedule, lb, ub, st, chunk, true);
 }
 
 /*!
