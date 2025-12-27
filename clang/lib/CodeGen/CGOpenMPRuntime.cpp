@@ -2595,31 +2595,32 @@ static void emitForStaticInitCall(
   }
   if (!Values.DropRate) {
     llvm::Value *Args[] = {
-      UpdateLocation,
-      ThreadId,
-      CGF.Builder.getInt32(addMonoNonMonoModifier(CGF.CGM, Schedule, M1,
-        M2)), // Schedule type
+        UpdateLocation,
+        ThreadId,
+        CGF.Builder.getInt32(addMonoNonMonoModifier(CGF.CGM, Schedule, M1,
+                                                    M2)), // Schedule type
         Values.IL.emitRawPointer(CGF),                    // &isLastIter
         Values.LB.emitRawPointer(CGF),                    // &LB
         Values.UB.emitRawPointer(CGF),                    // &UB
         Values.ST.emitRawPointer(CGF),                    // &Stride
         CGF.Builder.getIntN(Values.IVSize, 1),            // Incr
         Chunk                                             // Chunk
-      };
-      CGF.EmitRuntimeCall(ForStaticInitFunction, Args);
-    } else {
+    };
+    CGF.EmitRuntimeCall(ForStaticInitFunction, Args);
+  } else {
     llvm::Value *Args[] = {
         UpdateLocation,
         ThreadId,
         CGF.Builder.getInt32(addMonoNonMonoModifier(CGF.CGM, Schedule, M1,
-                                                    M2)),    // Schedule type
-        Values.IL.emitRawPointer(CGF),                       // &isLastIter
-        Values.LB.emitRawPointer(CGF),                       // &LB
-        Values.UB.emitRawPointer(CGF),                       // &UB
-        Values.ST.emitRawPointer(CGF),                       // &Stride
-        CGF.Builder.getIntN(Values.IVSize, 1),               // Incr
-        Chunk,                                               // Chunk
-        CGF.Builder.getIntN(Values.IVSize, Values.DropRate), // Drop
+                                                    M2)),     // Schedule type
+        Values.IL.emitRawPointer(CGF),                        // &isLastIter
+        Values.LB.emitRawPointer(CGF),                        // &LB
+        Values.UB.emitRawPointer(CGF),                        // &UB
+        Values.ST.emitRawPointer(CGF),                        // &Stride
+        CGF.Builder.getIntN(Values.IVSize, 1),                // Incr
+        Chunk,                                                // Chunk
+        CGF.Builder.getIntN(Values.IVSize, Values.PerfoType), // PerfoType
+        CGF.Builder.getIntN(Values.IVSize, Values.DropRate),  // Drop
     };
     CGF.EmitRuntimeCall(ForStaticInitFunction, Args);
   }

@@ -478,6 +478,16 @@ enum sched_type : kmp_int32 {
   kmp_sch_default = kmp_sch_static /**< default scheduling algorithm */
 };
 
+/*!
+ @ingroup WORK_SHARING
+ * Describes the loop perforation algorithm to be used for a parallel for loop.
+ */
+enum perfo_type : kmp_int32 {
+  kmp_perfo_unknown = -1,
+  kmp_perfo_init = 1,
+  kmp_perfo_fini = 2,
+};
+
 // Apply modifiers on internal kind to standard kind
 static inline void
 __kmp_sched_apply_mods_stdkind(kmp_sched_t *kind,

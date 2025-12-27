@@ -38,6 +38,7 @@
 #include "llvm/IR/Metadata.h"
 #include "llvm/Support/AtomicOrdering.h"
 #include "llvm/Support/Debug.h"
+#include <cstdint>
 #include <optional>
 using namespace clang;
 using namespace CodeGen;
@@ -336,6 +337,19 @@ getEffectiveDirectiveKind(const OMPExecutableDirective &S) {
     return OMPD_simd;
   default:
     return OMPD_loop;
+  }
+}
+
+/// Map the OpenMP loop perforate to the runtime enumeration.
+static CGOpenMPRuntime::OpenMPPerfoType
+getRuntimePerfo(OpenMPPerfoClauseKind PerfoKind) {
+  switch (PerfoKind) {
+  case OMPC_PERFO_fini:
+    return CGOpenMPRuntime::OMP_perfo_fini;
+  case OMPC_PERFO_init:
+    return CGOpenMPRuntime::OMP_perfo_init;
+  default:
+    return CGOpenMPRuntime::OMP_perfo_unknown;
   }
 }
 
@@ -3239,17 +3253,20 @@ void CodeGenFunction::EmitOMPForOuterLoop(
                            IVSigned, Ordered, DipatchRTInputValues);
   } else {
     uint64_t DropRate = 0;
+    CGOpenMPRuntime::OpenMPPerfoType PerfoType;
     if (InApproximatedAttributedStmt) {
       auto *C = S.getSingleClause<OMPPerfoClause>();
-      if (C && C->getPerfoKind() == OMPC_PERFO_init) {
+      if (C && (C->getPerfoKind() == OMPC_PERFO_init ||
+                C->getPerfoKind() == OMPC_PERFO_fini)) {
         DropRate = C->getDropRate()
                        ->EvaluateKnownConstInt(getContext())
                        .getZExtValue();
+        PerfoType = getRuntimePerfo(C->getPerfoKind());
       }
     }
     CGOpenMPRuntime::StaticRTInput StaticInit(
         IVSize, IVSigned, Ordered, LoopArgs.IL, LoopArgs.LB, LoopArgs.UB,
-        LoopArgs.ST, LoopArgs.Chunk, DropRate);
+        LoopArgs.ST, LoopArgs.Chunk, PerfoType, DropRate);
     OpenMPDirectiveKind EKind = getEffectiveDirectiveKind(S);
     RT.emitForStaticInit(*this, S.getBeginLoc(), EKind, ScheduleKind,
                          StaticInit);
@@ -3663,12 +3680,15 @@ bool CodeGenFunction::EmitOMPWorksharingLoop(
              &S, ScheduleKind, LoopExit, EKind,
              &LoopScope](CodeGenFunction &CGF, PrePostActionTy &) {
               uint64_t DropRate = 0;
+              CGOpenMPRuntime::OpenMPPerfoType PerfoType;
               if (CGF.InApproximatedAttributedStmt) {
                 auto *C = S.getSingleClause<OMPPerfoClause>();
-                if (C && C->getPerfoKind() == OMPC_PERFO_init) {
+                if (C && (C->getPerfoKind() == OMPC_PERFO_init ||
+                          C->getPerfoKind() == OMPC_PERFO_fini)) {
                   DropRate = C->getDropRate()
                                  ->EvaluateKnownConstInt(CGF.getContext())
                                  .getZExtValue();
+                  PerfoType = getRuntimePerfo(C->getPerfoKind());
                 }
               }
               // OpenMP [2.7.1, Loop Construct, Description, table 2-1]
@@ -3679,7 +3699,7 @@ bool CodeGenFunction::EmitOMPWorksharingLoop(
               CGOpenMPRuntime::StaticRTInput StaticInit(
                   IVSize, IVSigned, Ordered, IL.getAddress(), LB.getAddress(),
                   UB.getAddress(), ST.getAddress(),
-                  StaticChunkedOne ? Chunk : nullptr, DropRate);
+                  StaticChunkedOne ? Chunk : nullptr, PerfoType, DropRate);
               CGF.CGM.getOpenMPRuntime().emitForStaticInit(
                   CGF, S.getBeginLoc(), EKind, ScheduleKind, StaticInit,
                   DropRate);

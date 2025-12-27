@@ -935,6 +935,14 @@ public:
                                    const DispatchRTInput &DispatchValues,
                                    bool IsApprox = false);
 
+  /// Perforation types for 'omp for approx perfo' loops (these enumerators are 
+  /// taken from  the enum approx_perfo_type in kmp.h).
+  enum OpenMPPerfoType {
+    OMP_perfo_unknown = -1,
+    OMP_perfo_init = 1,
+    OMP_perfo_fini = 2,
+  };
+
   /// This is used for non static scheduled types and when the ordered
   /// clause is present on the loop construct.
   ///
@@ -966,14 +974,20 @@ public:
     /// Value of the chunk for the static_chunked scheduled loop. For the
     /// default (nullptr) value, the chunk 1 will be used.
     llvm::Value *Chunk = nullptr;
-    /// Value of the drop rate to be used for the approximate the bounds of the 
+    /// Defines the type of perforation algorithm that is going to be applied
+    /// to the loop.
+    OpenMPPerfoType PerfoType = OMP_perfo_unknown;
+    /// Value of the drop rate to be used for the approximate the bounds of the
     /// loop.
     uint64_t DropRate = 0;
     StaticRTInput(unsigned IVSize, bool IVSigned, bool Ordered, Address IL,
                   Address LB, Address UB, Address ST,
-                  llvm::Value *Chunk = nullptr, uint64_t DropRate = 0)
+                  llvm::Value *Chunk = nullptr,
+                  OpenMPPerfoType PerfoType = OMP_perfo_unknown,
+                  uint64_t DropRate = 0)
         : IVSize(IVSize), IVSigned(IVSigned), Ordered(Ordered), IL(IL), LB(LB),
-          UB(UB), ST(ST), Chunk(Chunk), DropRate(DropRate) {}
+          UB(UB), ST(ST), Chunk(Chunk), PerfoType(PerfoType),
+          DropRate(DropRate) {}
   };
   /// Call the appropriate runtime routine to initialize it before start
   /// of loop.
