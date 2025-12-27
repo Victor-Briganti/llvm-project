@@ -3234,8 +3234,9 @@ void CodeGenFunction::EmitOMPForOuterLoop(
   const bool IVSigned = IVExpr->getType()->hasSignedIntegerRepresentation();
 
   if (DynamicOrOrdered) {
-    CGOpenMPRuntime::OpenMPPerfoType PerfoType;
     uint64_t DropRate = 0;
+    CGOpenMPRuntime::OpenMPPerfoType PerfoType =
+                  CGOpenMPRuntime::OMP_perfo_unknown;
     if (InApproximatedAttributedStmt) {
       auto *C = S.getSingleClause<OMPPerfoClause>();
       if (C && (C->getPerfoKind() == OMPC_PERFO_init ||
@@ -3256,7 +3257,8 @@ void CodeGenFunction::EmitOMPForOuterLoop(
                            IVSigned, Ordered, DipatchRTInputValues);
   } else {
     uint64_t DropRate = 0;
-    CGOpenMPRuntime::OpenMPPerfoType PerfoType;
+    CGOpenMPRuntime::OpenMPPerfoType PerfoType =
+                  CGOpenMPRuntime::OMP_perfo_unknown;
     if (InApproximatedAttributedStmt) {
       auto *C = S.getSingleClause<OMPPerfoClause>();
       if (C && (C->getPerfoKind() == OMPC_PERFO_init ||
@@ -3683,7 +3685,8 @@ bool CodeGenFunction::EmitOMPWorksharingLoop(
              &S, ScheduleKind, LoopExit, EKind,
              &LoopScope](CodeGenFunction &CGF, PrePostActionTy &) {
               uint64_t DropRate = 0;
-              CGOpenMPRuntime::OpenMPPerfoType PerfoType;
+              CGOpenMPRuntime::OpenMPPerfoType PerfoType =
+                  CGOpenMPRuntime::OMP_perfo_unknown;
               if (CGF.InApproximatedAttributedStmt) {
                 auto *C = S.getSingleClause<OMPPerfoClause>();
                 if (C && (C->getPerfoKind() == OMPC_PERFO_init ||
