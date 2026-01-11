@@ -174,6 +174,7 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
   case OMPC_when:
   case OMPC_bind:
   case OMPC_ompx_bare:
+  case OMPC_fastmath:
     break;
   default:
     break;
@@ -281,6 +282,7 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_when:
   case OMPC_bind:
   case OMPC_perfo:
+  case OMPC_fastmath:
     break;
   default:
     break;
@@ -2774,6 +2776,10 @@ void OMPClausePrinter::VisitOMPPerfoClause(OMPPerfoClause *Node) {
   OS << ", ";
   Node->getDropRate()->printPretty(OS, nullptr, Policy, 0);
   OS << ")";
+}
+
+void OMPClausePrinter::VisitOMPFastmathClause(OMPFastmathClause *Node) {
+  OS << "fastmath";
 }
 
 void OMPTraitInfo::getAsVariantMatchInfo(ASTContext &ASTCtx,

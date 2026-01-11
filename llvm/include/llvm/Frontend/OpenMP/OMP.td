@@ -570,6 +570,9 @@ def OMPC_Perfo : Clause<[Spelling<"perfo">]> {
     OMP_PERFO_Large
   ];
 }
+def OMPC_Fastmath : Clause<[Spelling<"fastmath">]> {
+  let clangClass = "OMPFastmathClause";
+}
 
 //===----------------------------------------------------------------------===//
 // Definitions of OpenMP leaf directives
@@ -1318,6 +1321,9 @@ def OMP_EndWorkshare : Directive<[Spelling<"end workshare">]> {
   let languages = [L_Fortran];
 }
 def OMP_Approx : Directive<[Spelling<"approx">]> {
+  let allowedClauses = [
+    VersionedClause<OMPC_Fastmath>,
+  ];
   let association = AS_Block;
   let category = CA_Executable;
 }
@@ -1509,6 +1515,7 @@ def OMP_ForApprox : Directive<[Spelling<"for approx">]> {
     VersionedClause<OMPC_Reduction>,
     VersionedClause<OMPC_Schedule>,
     VersionedClause<OMPC_Perfo>,
+    VersionedClause<OMPC_Fastmath>,
   ];
   let leafConstructs = [OMP_For, OMP_Approx];
   let category = CA_Executable;
@@ -1768,6 +1775,7 @@ def OMP_ParallelForApprox : Directive<[Spelling<"parallel for approx">]> {
     VersionedClause<OMPC_Schedule>,
     VersionedClause<OMPC_Shared>,
     VersionedClause<OMPC_Perfo>,
+    VersionedClause<OMPC_Fastmath>,
   ];
   let leafConstructs = [OMP_Parallel, OMP_For, OMP_Approx];
   let association = AS_Loop;

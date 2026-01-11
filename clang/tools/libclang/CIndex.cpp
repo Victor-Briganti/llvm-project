@@ -2820,6 +2820,7 @@ void OMPClauseEnqueue::VisitOMPPerfoClause(const OMPPerfoClause *C) {
   VisitOMPClauseWithPreInit(C);
   Visitor->AddStmt(C->getDropRate());
 }
+void OMPClauseEnqueue::VisitOMPFastmathClause(const OMPFastmathClause *C) {}
 
 } // namespace
 

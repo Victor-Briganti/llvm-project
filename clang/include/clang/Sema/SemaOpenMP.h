@@ -1427,6 +1427,10 @@ public:
                                     SourceLocation CommaLoc,
                                     SourceLocation EndLoc);
 
+  /// Called on well-formed 'fastmath' clause.
+  OMPClause *ActOnOpenMPFastmathClause(SourceLocation StartLoc,
+                                       SourceLocation EndLoc);
+
   ExprResult ActOnOMPArraySectionExpr(Expr *Base, SourceLocation LBLoc,
                                       Expr *LowerBound,
                                       SourceLocation ColonLocFirst,
