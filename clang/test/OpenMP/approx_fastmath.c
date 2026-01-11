@@ -20,9 +20,10 @@ void test_approx_multiple_statements(void) {
 
 void test_approx_loop(void) {
   int sum = 0;
-#pragma omp for approx fastmath
+#pragma omp for 
   {
     for (int i = 0; i < 10; i++) {
+      #pragma omp approx fastmath
       sum += i;
     }
   }
@@ -30,9 +31,10 @@ void test_approx_loop(void) {
 
 void test_approx_parallel_loop(void) {
   int sum = 0;
-#pragma omp parallel for approx fastmath
+#pragma omp parallel for
   {
     for (int i = 0; i < 10; i++) {
+      #pragma omp approx fastmath
       sum += i;
     }
   }

@@ -8694,6 +8694,44 @@ void CodeGenFunction::EmitOMPAssumeDirective(const OMPAssumeDirective &S) {
   EmitStmt(S.getAssociatedStmt());
 }
 
+static void addFnAttrApproxFastmath(llvm::Function *F) {
+  F->addFnAttr("approx-func-fp-math","true");
+  F->addFnAttr("denormal-fp-math","preserve-sign,preserve-sign");
+  F->addFnAttr("no-infs-fp-math","true");
+  F->addFnAttr("no-nans-fp-math","true");
+  F->addFnAttr("no-signed-zeros-fp-math","true");
+  F->addFnAttr("no-trapping-math","true");
+  F->addFnAttr("unsafe-fp-math","true");
+}
+
 void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
+  auto &&OutlinedCallGen = [&S](CodeGenFunction &CGF, PrePostActionTy &) {
+    CodeGenFunction::OMPLocalDeclMapRAII LocalDecl(CGF);
+    
+    const CapturedStmt *CS = S.getInnermostCapturedStmt();
+    llvm::SmallVector<llvm::Value *, 16> CapturedArgs;
+    CGF.GenerateOpenMPCapturedVars(*CS, CapturedArgs);
+
+    llvm::Function *OutlinedFn = emitOutlinedOrderedFunction(CGF.CGM, CS, S.getBeginLoc());
+    addFnAttrApproxFastmath(OutlinedFn);
+    CGF.CGM.getOpenMPRuntime().emitOutlinedFunctionCall(
+        CGF, S.getBeginLoc(), OutlinedFn, CapturedArgs);
+  };
+
+  if (auto *FM = S.getSingleClause<OMPFastmathClause>()) {
+    const Expr *IfCond = createApproxCallExpr(*this, FM->getBeginLoc());
+    auto ThenGen = [&](CodeGenFunction &CGF, PrePostActionTy &Action) {
+      Action.Enter(CGF);
+      OutlinedCallGen(CGF, Action);
+    };
+    auto ElseGen = [&](CodeGenFunction &CGF, PrePostActionTy &Action) {
+      Action.Enter(CGF);
+      CGF.EmitStmt(S.getAssociatedStmt());
+    };
+
+    CGM.getOpenMPRuntime().emitIfClause(*this, IfCond, ThenGen, ElseGen);
+    return;
+  }
+
   EmitStmt(S.getAssociatedStmt());
 }

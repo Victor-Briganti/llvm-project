@@ -1515,7 +1515,6 @@ def OMP_ForApprox : Directive<[Spelling<"for approx">]> {
     VersionedClause<OMPC_Reduction>,
     VersionedClause<OMPC_Schedule>,
     VersionedClause<OMPC_Perfo>,
-    VersionedClause<OMPC_Fastmath>,
   ];
   let leafConstructs = [OMP_For, OMP_Approx];
   let category = CA_Executable;
@@ -1775,7 +1774,6 @@ def OMP_ParallelForApprox : Directive<[Spelling<"parallel for approx">]> {
     VersionedClause<OMPC_Schedule>,
     VersionedClause<OMPC_Shared>,
     VersionedClause<OMPC_Perfo>,
-    VersionedClause<OMPC_Fastmath>,
   ];
   let leafConstructs = [OMP_Parallel, OMP_For, OMP_Approx];
   let association = AS_Loop;
