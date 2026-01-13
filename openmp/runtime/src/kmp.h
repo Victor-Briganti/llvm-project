@@ -4368,6 +4368,41 @@ KMP_EXPORT kmp_int32 __kmpc_omp_approx();
 
 /* ------------------------------------------------------------------------ */
 
+KMP_EXPORT float __kmpc_omp_log2f(float);
+KMP_EXPORT double __kmpc_omp_log2(double);
+KMP_EXPORT float __kmpc_omp_logf(float);
+KMP_EXPORT double __kmpc_omp_log(double);
+KMP_EXPORT float __kmpc_omp_log10f(float);
+KMP_EXPORT double __kmpc_omp_log10(double);
+KMP_EXPORT float __kmpc_omp_exp2f(float);
+KMP_EXPORT double __kmpc_omp_exp2(double);
+KMP_EXPORT float __kmpc_omp_expf(float);
+KMP_EXPORT double __kmpc_omp_exp(double);
+KMP_EXPORT float __kmpc_omp_powf(float, float);
+KMP_EXPORT double __kmpc_omp_pow(double, double);
+KMP_EXPORT float __kmpc_omp_sinf(float);
+KMP_EXPORT double __kmpc_omp_sin(double);
+KMP_EXPORT float __kmpc_omp_cosf(float);
+KMP_EXPORT double __kmpc_omp_cos(double);
+KMP_EXPORT float __kmpc_omp_tanf(float);
+KMP_EXPORT double __kmpc_omp_tan(double);
+KMP_EXPORT float __kmpc_omp_asinf(float);
+KMP_EXPORT double __kmpc_omp_asin(double);
+KMP_EXPORT float __kmpc_omp_acosf(float);
+KMP_EXPORT double __kmpc_omp_acos(double);
+KMP_EXPORT float __kmpc_omp_atanf(float);
+KMP_EXPORT double __kmpc_omp_atan(double);
+KMP_EXPORT float __kmpc_omp_sinhf(float);
+KMP_EXPORT double __kmpc_omp_sinh(double);
+KMP_EXPORT float __kmpc_omp_coshf(float);
+KMP_EXPORT double __kmpc_omp_cosh(double);
+KMP_EXPORT float __kmpc_omp_tanhf(float);
+KMP_EXPORT double __kmpc_omp_tanh(double);
+KMP_EXPORT float __kmpc_omp_sqrtf(float);
+KMP_EXPORT double __kmpc_omp_sqrt(double);
+
+/* ------------------------------------------------------------------------ */
+
 KMP_EXPORT void __kmpc_taskgroup(ident_t *loc, int gtid);
 KMP_EXPORT void __kmpc_end_taskgroup(ident_t *loc, int gtid);
 

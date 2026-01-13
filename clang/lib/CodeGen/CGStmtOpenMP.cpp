@@ -8694,6 +8694,61 @@ void CodeGenFunction::EmitOMPAssumeDirective(const OMPAssumeDirective &S) {
   EmitStmt(S.getAssociatedStmt());
 }
 
+static const llvm::StringMap<StringRef> MathFuncTable = {
+    {"log2f", "__kmpc_omp_log2f"},   {"log2", "__kmpc_omp_log2"},
+    {"logf", "__kmpc_omp_logf"},     {"log", "__kmpc_omp_log"},
+    {"log10f", "__kmpc_omp_log10f"}, {"log10", "__kmpc_omp_log10"},
+    {"exp2f", "__kmpc_omp_exp2f"},   {"exp2", "__kmpc_omp_exp2"},
+    {"expf", "__kmpc_omp_expf"},     {"exp", "__kmpc_omp_exp"},
+    {"powf", "__kmpc_omp_powf"},     {"pow", "__kmpc_omp_pow"},
+    {"sinf", "__kmpc_omp_sinf"},     {"sin", "__kmpc_omp_sin"},
+    {"cosf", "__kmpc_omp_cosf"},     {"cos", "__kmpc_omp_cos"},
+    {"tanf", "__kmpc_omp_tanf"},     {"tan", "__kmpc_omp_tan"},
+    {"asinf", "__kmpc_omp_asinf"},   {"asin", "__kmpc_omp_asin"},
+    {"acosf", "__kmpc_omp_acosf"},   {"acos", "__kmpc_omp_acos"},
+    {"atanf", "__kmpc_omp_atanf"},   {"atan", "__kmpc_omp_atan"},
+    {"sinhf", "__kmpc_omp_sinhf"},   {"sinh", "__kmpc_omp_sinh"},
+    {"coshf", "__kmpc_omp_coshf"},   {"cosh", "__kmpc_omp_cosh"},
+    {"tanhf", "__kmpc_omp_tanhf"},   {"tanh", "__kmpc_omp_tanh"},
+    {"sqrtf", "__kmpc_omp_sqrtf"},   {"sqrt", "__kmpc_omp_sqrt"},
+};
+
+static void substituteFunctionApproxMath(llvm::Function *F) {
+  llvm::Module *M = F->getParent();
+
+  for (auto &BB : *F) {
+    for (auto &I : BB) {
+      auto *CI = llvm::dyn_cast<llvm::CallInst>(&I);
+      if (!CI)
+        continue;
+
+      llvm::Function *Callee = CI->getCalledFunction();
+      if (!Callee)
+        continue;
+
+      llvm::StringRef Name = Callee->getName();
+
+      auto It = MathFuncTable.find(Name);
+      if (It == MathFuncTable.end())
+        continue;
+
+      llvm::StringRef ApproxFnName = It->second;
+      llvm::Function *ApproxFn = M->getFunction(ApproxFnName);
+      if (!ApproxFn) {
+        llvm::FunctionType *FTy = Callee->getFunctionType();
+        llvm::FunctionCallee FC = M->getOrInsertFunction(ApproxFnName, FTy);
+        ApproxFn = llvm::dyn_cast<llvm::Function>(FC.getCallee());
+        if (!ApproxFn) {
+          ApproxFn = llvm::Function::Create(
+              FTy, llvm::Function::ExternalLinkage, ApproxFnName, M);
+        }
+      }
+
+      CI->setCalledFunction(ApproxFn);
+    }
+  }
+}
+
 static void addFnAttrApproxFastmath(llvm::Function *F) {
   F->addFnAttr("approx-func-fp-math","true");
   F->addFnAttr("denormal-fp-math","preserve-sign,preserve-sign");
@@ -8714,6 +8769,7 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
 
     llvm::Function *OutlinedFn = emitOutlinedOrderedFunction(CGF.CGM, CS, S.getBeginLoc());
     addFnAttrApproxFastmath(OutlinedFn);
+    substituteFunctionApproxMath(OutlinedFn);
     CGF.CGM.getOpenMPRuntime().emitOutlinedFunctionCall(
         CGF, S.getBeginLoc(), OutlinedFn, CapturedArgs);
   };
