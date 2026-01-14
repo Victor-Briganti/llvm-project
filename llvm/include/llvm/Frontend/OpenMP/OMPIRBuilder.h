@@ -1255,17 +1255,6 @@ public:
                                   int32_t Factor,
                                   CanonicalLoopInfo **UnrolledCLI);
 
-  /// Perforate a loop.
-  ///
-  /// Instead of perforating the loop immediately, it is deferred to LLVM's 
-  /// LoopPerforationPass by adding loop metadata.
-  ///
-  /// \param DL   Debug location for instructions added by unrolling.
-  /// \param Factor      The factor to perforate the loop by.
-  /// \param Loop The loop to perforate. The loop will be invalidated.
-  LLVM_ABI void loopPerforate(DebugLoc DL, CanonicalLoopInfo *Loop,
-                              int32_t Factor);
-
   /// Add metadata to simd-ize a loop. If IfCond is not nullptr, the loop
   /// is cloned. The metadata which prevents vectorization is added to
   /// to the cloned loop. The cloned loop is executed when ifCond is evaluated

@@ -5812,27 +5812,6 @@ void OpenMPIRBuilder::unrollLoopPartial(DebugLoc DL, CanonicalLoopInfo *Loop,
 #endif
 }
 
-void OpenMPIRBuilder::loopPerforate(DebugLoc DL, CanonicalLoopInfo *Loop,
-                                    int32_t Drop) {
-  assert(Drop >= 0 && "Perforate drop rate must not be negative");
-
-  Function *F = Loop->getFunction();
-  LLVMContext &Ctx = F->getContext();
-
-  // If the unrolled loop is not used for another loop-associated directive, it
-  // is sufficient to add metadata for the LoopUnrollPass.
-  SmallVector<Metadata *, 2> LoopMetadata;
-  LoopMetadata.push_back(
-      MDNode::get(Ctx, MDString::get(Ctx, "llvm.loop.perforate.enable")));
-
-  ConstantAsMetadata *DropConst = ConstantAsMetadata::get(
-      ConstantInt::get(Type::getInt32Ty(Ctx), APInt(32, Drop)));
-  LoopMetadata.push_back(MDNode::get(
-      Ctx, {MDString::get(Ctx, "llvm.loop.perforate.count"), DropConst}));
-
-  addLoopMetadata(Loop, LoopMetadata);
-}
-
 OpenMPIRBuilder::InsertPointTy
 OpenMPIRBuilder::createCopyPrivate(const LocationDescription &Loc,
                                    llvm::Value *BufSize, llvm::Value *CpyBuf,

@@ -513,10 +513,6 @@ CheckForIncompatibleAttributes(Sema &S,
     case LoopHintAttr::UnrollAndJamCount:
       Category = UnrollAndJam;
       break;
-    case LoopHintAttr::Perforation:
-    case LoopHintAttr::PerforationCount:
-      Category = Perforation;
-      break;
     case LoopHintAttr::Distribute:
       // Perform the check for duplicated 'distribute' hints.
       Category = Distribute;
