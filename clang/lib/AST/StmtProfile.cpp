@@ -968,6 +968,7 @@ void OMPClauseProfiler::VisitOMPPerfoClause(const OMPPerfoClause *C) {
   if (C->getDropRate())
     Profiler->VisitStmt(C->getDropRate());
 }
+void OMPClauseProfiler::VisitOMPFastmathClause(const OMPFastmathClause *C) {}
 } // namespace
 
 void

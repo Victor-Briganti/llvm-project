@@ -10088,6 +10088,22 @@ public:
   }
 };
 
+/// This represents 'fastmath' clause in the '#pragma omp approx ...' directive.
+///
+/// \code
+/// #pragma omp for fastmath
+/// \endcode
+class OMPFastmathClause final : public OMPNoChildClause<llvm::omp::OMPC_fastmath> {
+public:
+  /// Build 'fastmath' clause.
+  ///
+  /// \param StartLoc Starting location of the clause.
+  /// \param EndLoc Ending location of the clause.
+  OMPFastmathClause(SourceLocation StartLoc = SourceLocation(),
+                  SourceLocation EndLoc = SourceLocation())
+      : OMPNoChildClause(StartLoc, EndLoc) {}
+};
+
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_OPENMPCLAUSE_H

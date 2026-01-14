@@ -6636,6 +6636,7 @@ StmtResult SemaOpenMP::ActOnOpenMPExecutableDirective(
       case OMPC_severity:
       case OMPC_message:
       case OMPC_perfo:
+      case OMPC_fastmath:
         continue;
       case OMPC_allocator:
       case OMPC_flush:
@@ -15710,6 +15711,7 @@ OMPClause *SemaOpenMP::ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind,
   case OMPC_bind:
   case OMPC_num_teams:
   case OMPC_thread_limit:
+  case OMPC_fastmath:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -16404,6 +16406,7 @@ OMPClause *SemaOpenMP::ActOnOpenMPSimpleClause(
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_message:
+  case OMPC_fastmath:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -17077,6 +17080,9 @@ OMPClause *SemaOpenMP::ActOnOpenMPClause(OpenMPClauseKind Kind,
   case OMPC_ompx_bare:
     Res = ActOnOpenMPXBareClause(StartLoc, EndLoc);
     break;
+  case OMPC_fastmath:
+    Res = ActOnOpenMPFastmathClause(StartLoc, EndLoc);
+    break;
   case OMPC_if:
   case OMPC_final:
   case OMPC_num_threads:
@@ -17276,6 +17282,11 @@ SemaOpenMP::ActOnOpenMPDynamicAllocatorsClause(SourceLocation StartLoc,
 OMPClause *SemaOpenMP::ActOnOpenMPSelfMapsClause(SourceLocation StartLoc,
                                                  SourceLocation EndLoc) {
   return new (getASTContext()) OMPSelfMapsClause(StartLoc, EndLoc);
+}
+
+OMPClause *SemaOpenMP::ActOnOpenMPFastmathClause(SourceLocation StartLoc,
+                                               SourceLocation EndLoc) {
+  return new (getASTContext()) OMPFastmathClause(StartLoc, EndLoc);
 }
 
 StmtResult
@@ -17769,6 +17780,7 @@ OMPClause *SemaOpenMP::ActOnOpenMPVarListClause(OpenMPClauseKind Kind,
   case OMPC_uses_allocators:
   case OMPC_when:
   case OMPC_bind:
+  case OMPC_fastmath:
   default:
     llvm_unreachable("Clause is not allowed.");
   }

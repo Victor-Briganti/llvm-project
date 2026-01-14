@@ -8617,6 +8617,8 @@ void OMPClauseWriter::VisitOMPPerfoClause(OMPPerfoClause *C) {
   Record.AddSourceLocation(C->getCommaLoc());
 }
 
+void OMPClauseWriter::VisitOMPFastmathClause(OMPFastmathClause *C) {}
+
 void ASTRecordWriter::writeOMPTraitInfo(const OMPTraitInfo *TI) {
   writeUInt32(TI->Sets.size());
   for (const auto &Set : TI->Sets) {

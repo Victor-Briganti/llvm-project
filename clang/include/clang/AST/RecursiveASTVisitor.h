@@ -4095,6 +4095,11 @@ bool RecursiveASTVisitor<Derived>::VisitOMPPerfoClause(OMPPerfoClause *C) {
 }
 
 template <typename Derived>
+bool RecursiveASTVisitor<Derived>::VisitOMPFastmathClause(OMPFastmathClause *C) {
+  return true;
+}
+
+template <typename Derived>
 bool RecursiveASTVisitor<Derived>::TraverseOpenACCConstructStmt(
     OpenACCConstructStmt *C) {
   TRY_TO(VisitOpenACCClauseList(C->clauses()));

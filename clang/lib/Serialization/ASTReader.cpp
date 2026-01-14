@@ -12622,6 +12622,8 @@ void OMPClauseReader::VisitOMPPerfoClause(OMPPerfoClause *C) {
   C->setCommaLoc(Record.readSourceLocation());
 }
 
+void OMPClauseReader::VisitOMPFastmathClause(OMPFastmathClause *) {}
+
 OMPTraitInfo *ASTRecordReader::readOMPTraitInfo() {
   OMPTraitInfo &TI = getContext().getNewOMPTraitInfo();
   TI.Sets.resize(readUInt32());

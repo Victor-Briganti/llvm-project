@@ -10852,6 +10852,13 @@ TreeTransform<Derived>::TransformOMPNogroupClause(OMPNogroupClause *C) {
 }
 
 template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPFastmathClause(OMPFastmathClause *C) {
+  // No need to rebuild this clause, no template-dependent parameters.
+  return C;
+}
+
+template <typename Derived>
 OMPClause *TreeTransform<Derived>::TransformOMPInitClause(OMPInitClause *C) {
   ExprResult IVR = getDerived().TransformExpr(C->getInteropVar());
   if (IVR.isInvalid())
