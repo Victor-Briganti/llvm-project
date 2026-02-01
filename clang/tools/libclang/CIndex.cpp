@@ -2828,6 +2828,9 @@ void OMPClauseEnqueue::VisitOMPMemoClause(const OMPMemoClause *C) {
 void OMPClauseEnqueue::VisitOMPInputClause(const OMPInputClause *C) {
   VisitOMPClauseList(C);
 }
+void OMPClauseEnqueue::VisitOMPOutputClause(const OMPOutputClause *C) {
+  VisitOMPClauseList(C);
+}
 } // namespace
 
 void EnqueueVisitor::EnqueueChildren(const OMPClause *S) {

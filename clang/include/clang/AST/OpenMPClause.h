@@ -10152,7 +10152,7 @@ public:
 /// #pragma omp approx memo(10) input(a,b)
 /// \endcode
 /// In this example directive '#pragma omp approx memo(10)' has clause 'approx
-/// memo' with the variables input variables 'a' and 'b'.
+/// memo' with the input variables 'a' and 'b'.
 class OMPInputClause final
     : public OMPVarListClause<OMPInputClause>,
       private llvm::TrailingObjects<OMPInputClause, Expr *> {
@@ -10215,6 +10215,79 @@ public:
 
   static bool classof(const OMPClause *T) {
     return T->getClauseKind() == llvm::omp::OMPC_input;
+  }
+};
+
+/// This represents clause 'output' in the '#pragma omp approx memo(10)...'
+/// directives.
+///
+/// \code
+/// #pragma omp approx memo(10) input(a,b) output(c)
+/// \endcode
+/// In this example directive '#pragma omp approx memo(10)' has clause 'approx
+/// memo' with the output variable 'c'.
+class OMPOutputClause final
+    : public OMPVarListClause<OMPOutputClause>,
+      private llvm::TrailingObjects<OMPOutputClause, Expr *> {
+  friend OMPVarListClause;
+  friend TrailingObjects;
+
+  /// Build clause with number of variables \a N.
+  ///
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param EndLoc Ending location of the clause.
+  /// \param N Number of the variables in the clause.
+  OMPOutputClause(SourceLocation StartLoc, SourceLocation LParenLoc,
+                 SourceLocation EndLoc, unsigned N)
+      : OMPVarListClause<OMPOutputClause>(llvm::omp::OMPC_output, StartLoc,
+                                         LParenLoc, EndLoc, N) {}
+
+  /// Build an empty clause.
+  ///
+  /// \param N Number of variables.
+  explicit OMPOutputClause(unsigned N)
+      : OMPVarListClause<OMPOutputClause>(llvm::omp::OMPC_output,
+                                         SourceLocation(), SourceLocation(),
+                                         SourceLocation(), N) {}
+
+public:
+  /// Creates clause with a list of variables \a VL.
+  ///
+  /// \param C AST context.
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param EndLoc Ending location of the clause.
+  /// \param VL List of references to the variables.
+  static OMPOutputClause *Create(const ASTContext &C, SourceLocation StartLoc,
+                                SourceLocation LParenLoc, SourceLocation EndLoc,
+                                ArrayRef<Expr *> VL);
+
+  /// Creates an empty clause with \a N variables.
+  ///
+  /// \param C AST context.
+  /// \param N The number of variables.
+  static OMPOutputClause *CreateEmpty(const ASTContext &C, unsigned N);
+
+  child_range children() {
+    return child_range(reinterpret_cast<Stmt **>(varlist_begin()),
+                       reinterpret_cast<Stmt **>(varlist_end()));
+  }
+
+  const_child_range children() const {
+    auto Children = const_cast<OMPOutputClause *>(this)->children();
+    return const_child_range(Children.begin(), Children.end());
+  }
+
+  child_range used_children() {
+    return child_range(child_iterator(), child_iterator());
+  }
+  const_child_range used_children() const {
+    return const_child_range(const_child_iterator(), const_child_iterator());
+  }
+
+  static bool classof(const OMPClause *T) {
+    return T->getClauseKind() == llvm::omp::OMPC_output;
   }
 };
 

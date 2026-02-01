@@ -579,6 +579,9 @@ def OMPC_Memo : Clause<[Spelling<"memo">]> {
 def OMPC_Input : Clause<[Spelling<"input">]> {
   let clangClass = "OMPInputClause";
 }
+def OMPC_Output : Clause<[Spelling<"output">]> {
+  let clangClass = "OMPOutputClause";
+}
 
 //===----------------------------------------------------------------------===//
 // Definitions of OpenMP leaf directives
@@ -1330,6 +1333,7 @@ def OMP_Approx : Directive<[Spelling<"approx">]> {
   let allowedOnceClauses = [
     VersionedClause<OMPC_Fastmath>,
     VersionedClause<OMPC_Memo>,
+    VersionedClause<OMPC_Output>,
   ];
   let allowedClauses = [
     VersionedClause<OMPC_Input>,

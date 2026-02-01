@@ -11438,6 +11438,9 @@ OMPClause *OMPClauseReader::readClause() {
   case llvm::omp::OMPC_input:
     C = OMPInputClause::CreateEmpty(Context, Record.readInt());
     break;
+  case llvm::omp::OMPC_output:
+    C = OMPOutputClause::CreateEmpty(Context, Record.readInt());
+    break;
 #define OMP_CLAUSE_NO_CLASS(Enum, Str)                                         \
   case llvm::omp::Enum:                                                        \
     break;
@@ -12637,6 +12640,16 @@ void OMPClauseReader::VisitOMPMemoClause(OMPMemoClause *C) {
 }
 
 void OMPClauseReader::VisitOMPInputClause(OMPInputClause *C) {
+  C->setLParenLoc(Record.readSourceLocation());
+  unsigned NumVars = C->varlist_size();
+  SmallVector<Expr *, 16> Vars;
+  Vars.reserve(NumVars);
+  for (unsigned i = 0; i != NumVars; ++i)
+    Vars.push_back(Record.readSubExpr());
+  C->setVarRefs(Vars);
+}
+
+void OMPClauseReader::VisitOMPOutputClause(OMPOutputClause *C) {
   C->setLParenLoc(Record.readSourceLocation());
   unsigned NumVars = C->varlist_size();
   SmallVector<Expr *, 16> Vars;

@@ -1837,6 +1837,23 @@ OMPInputClause *OMPInputClause::CreateEmpty(const ASTContext &C, unsigned N) {
   return new (Mem) OMPInputClause(N);
 }
 
+OMPOutputClause *OMPOutputClause::Create(const ASTContext &C,
+                                         SourceLocation StartLoc,
+                                         SourceLocation LParenLoc,
+                                         SourceLocation EndLoc,
+                                         ArrayRef<Expr *> VL) {
+  void *Mem = C.Allocate(totalSizeToAlloc<Expr *>(VL.size()));
+  OMPOutputClause *Clause =
+      new (Mem) OMPOutputClause(StartLoc, LParenLoc, EndLoc, VL.size());
+  Clause->setVarRefs(VL);
+  return Clause;
+}
+
+OMPOutputClause *OMPOutputClause::CreateEmpty(const ASTContext &C, unsigned N) {
+  void *Mem = C.Allocate(totalSizeToAlloc<Expr *>(N));
+  return new (Mem) OMPOutputClause(N);
+}
+
 //===----------------------------------------------------------------------===//
 //  OpenMP clauses printing methods
 //===----------------------------------------------------------------------===//
@@ -2813,6 +2830,14 @@ void OMPClausePrinter::VisitOMPMemoClause(OMPMemoClause *Node) {
 void OMPClausePrinter::VisitOMPInputClause(OMPInputClause *Node) {
   if (!Node->varlist_empty()) {
     OS << "input";
+    VisitOMPClauseList(Node, '(');
+    OS << ")";
+  }
+}
+
+void OMPClausePrinter::VisitOMPOutputClause(OMPOutputClause *Node) {
+  if (!Node->varlist_empty()) {
+    OS << "output";
     VisitOMPClauseList(Node, '(');
     OS << ")";
   }

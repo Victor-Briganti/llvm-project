@@ -977,6 +977,9 @@ void OMPClauseProfiler::VisitOMPMemoClause(const OMPMemoClause *C) {
 void OMPClauseProfiler::VisitOMPInputClause(const OMPInputClause *C) {
   VisitOMPClauseList(C);
 }
+void OMPClauseProfiler::VisitOMPOutputClause(const OMPOutputClause *C) {
+  VisitOMPClauseList(C);
+}
 } // namespace
 
 void

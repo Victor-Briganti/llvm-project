@@ -17330,7 +17330,7 @@ OMPClause *SemaOpenMP::ActOnOpenMPInputClause(ArrayRef<Expr *> VarList,
                                               SourceLocation EndLoc) {
   SmallVector<Expr *, 8> Vars;
   for (Expr *RefExpr : VarList) {
-    assert(RefExpr && "NULL expr in OpenMP lastprivate clause.");
+    assert(RefExpr && "NULL expr in OpenMP input clause.");
     SourceLocation ELoc;
     SourceRange ERange;
     Expr *SimpleRefExpr = RefExpr;
@@ -17375,6 +17375,60 @@ OMPClause *SemaOpenMP::ActOnOpenMPInputClause(ArrayRef<Expr *> VarList,
     return nullptr;
 
   return OMPInputClause::Create(getASTContext(), StartLoc, LParenLoc, EndLoc,
+                                Vars);
+}
+
+OMPClause *SemaOpenMP::ActOnOpenMPOutputClause(ArrayRef<Expr *> VarList,
+                                              SourceLocation StartLoc,
+                                              SourceLocation LParenLoc,
+                                              SourceLocation EndLoc) {
+  SmallVector<Expr *, 8> Vars;
+  for (Expr *RefExpr : VarList) {
+    assert(RefExpr && "NULL expr in OpenMP output clause.");
+    SourceLocation ELoc;
+    SourceRange ERange;
+    Expr *SimpleRefExpr = RefExpr;
+    auto Res = getPrivateItem(SemaRef, SimpleRefExpr, ELoc, ERange);
+    if (Res.second) {
+      // It will be analyzed later.
+      Vars.push_back(RefExpr);
+    }
+    ValueDecl *D = Res.first;
+    if (!D)
+      continue;
+
+    auto *VD = dyn_cast<VarDecl>(D);
+    // OpenMP [2.9.1.1, Data-sharing Attribute Rules for Variables Referenced
+    // in a Construct]
+    //  Variables with the predetermined data-sharing attributes may not be
+    //  listed in data-sharing attributes clauses, except for the cases
+    //  listed below. For these exceptions only, listing a predetermined
+    //  variable in a data-sharing attribute clause is allowed and overrides
+    //  the variable's predetermined data-sharing attributes.
+    DSAStackTy::DSAVarData DVar = DSAStack->getTopDSA(D, /*FromParent=*/false);
+    if (DVar.CKind != OMPC_unknown && DVar.CKind != OMPC_output &&
+        DVar.RefExpr) {
+      Diag(ELoc, diag::err_omp_wrong_dsa)
+          << getOpenMPClauseNameForDiag(DVar.CKind)
+          << getOpenMPClauseNameForDiag(OMPC_output);
+      reportOriginalDsa(SemaRef, DSAStack, D, DVar);
+      continue;
+    }
+
+    DeclRefExpr *Ref = nullptr;
+    if (!VD && isOpenMPCapturedDecl(D) &&
+        !SemaRef.CurContext->isDependentContext())
+      Ref = buildCapture(SemaRef, D, SimpleRefExpr, /*WithInit=*/true);
+    DSAStack->addDSA(D, RefExpr->IgnoreParens(), OMPC_output, Ref);
+    Vars.push_back((VD || !Ref || SemaRef.CurContext->isDependentContext())
+                       ? RefExpr->IgnoreParens()
+                       : Ref);
+  }
+
+  if (Vars.empty())
+    return nullptr;
+
+  return OMPOutputClause::Create(getASTContext(), StartLoc, LParenLoc, EndLoc,
                                 Vars);
 }
 
@@ -17813,6 +17867,9 @@ OMPClause *SemaOpenMP::ActOnOpenMPVarListClause(OpenMPClauseKind Kind,
     break;
   case OMPC_input:
     Res = ActOnOpenMPInputClause(VarList, StartLoc, LParenLoc, EndLoc);
+    break;
+  case OMPC_output:
+    Res = ActOnOpenMPOutputClause(VarList, StartLoc, LParenLoc, EndLoc);
     break;
   case OMPC_if:
   case OMPC_depobj:
