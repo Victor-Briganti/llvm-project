@@ -1436,6 +1436,12 @@ public:
                                    SourceLocation LParenLoc,
                                    SourceLocation EndLoc);
 
+  /// Called on well-formed 'input' clause.
+  OMPClause *ActOnOpenMPInputClause(ArrayRef<Expr *> VarList,
+                                    SourceLocation StartLoc,
+                                    SourceLocation LParenLoc,
+                                    SourceLocation EndLoc);
+
   ExprResult ActOnOMPArraySectionExpr(Expr *Base, SourceLocation LBLoc,
                                       Expr *LowerBound,
                                       SourceLocation ColonLocFirst,

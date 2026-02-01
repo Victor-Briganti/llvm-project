@@ -175,8 +175,9 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_bind:
-  case OMPC_ompx_bare:
   case OMPC_fastmath:
+  case OMPC_input:
+  case OMPC_ompx_bare:
     break;
   default:
     break;
@@ -286,6 +287,7 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_perfo:
   case OMPC_fastmath:
   case OMPC_memo:
+  case OMPC_input:
     break;
   default:
     break;
@@ -1818,6 +1820,23 @@ OMPThreadLimitClause *OMPThreadLimitClause::CreateEmpty(const ASTContext &C,
   return new (Mem) OMPThreadLimitClause(N);
 }
 
+OMPInputClause *OMPInputClause::Create(const ASTContext &C,
+                                       SourceLocation StartLoc,
+                                       SourceLocation LParenLoc,
+                                       SourceLocation EndLoc,
+                                       ArrayRef<Expr *> VL) {
+  void *Mem = C.Allocate(totalSizeToAlloc<Expr *>(VL.size()));
+  OMPInputClause *Clause =
+      new (Mem) OMPInputClause(StartLoc, LParenLoc, EndLoc, VL.size());
+  Clause->setVarRefs(VL);
+  return Clause;
+}
+
+OMPInputClause *OMPInputClause::CreateEmpty(const ASTContext &C, unsigned N) {
+  void *Mem = C.Allocate(totalSizeToAlloc<Expr *>(N));
+  return new (Mem) OMPInputClause(N);
+}
+
 //===----------------------------------------------------------------------===//
 //  OpenMP clauses printing methods
 //===----------------------------------------------------------------------===//
@@ -2789,6 +2808,14 @@ void OMPClausePrinter::VisitOMPMemoClause(OMPMemoClause *Node) {
   OS << "num_threads(";
   Node->getRadiusSearch()->printPretty(OS, nullptr, Policy, 0);
   OS << ")";
+}
+
+void OMPClausePrinter::VisitOMPInputClause(OMPInputClause *Node) {
+  if (!Node->varlist_empty()) {
+    OS << "input";
+    VisitOMPClauseList(Node, '(');
+    OS << ")";
+  }
 }
 
 void OMPTraitInfo::getAsVariantMatchInfo(ASTContext &ASTCtx,

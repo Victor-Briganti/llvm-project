@@ -2475,16 +2475,16 @@ public:
         RadiusSearch, StartLoc, LParenLoc, EndLoc);
   }
 
-  /// Build a new OpenMP 'memo' clause.
+  /// Build a new OpenMP 'input' clause.
   ///
   /// By default, performs semantic analysis to build the new OpenMP clause.
   /// Subclasses may override this routine to provide different behavior.
-  OMPClause *RebuildOMPMemoClause(ArrayRef<Expr *> VarList,
-                                  SourceLocation StartLoc,
-                                  SourceLocation LParenLoc,
-                                  SourceLocation EndLoc) {
-    return getSema().OpenMP().ActOnOpenMPMemoClause(VarList, StartLoc,
-                                                    LParenLoc, EndLoc);
+  OMPClause *RebuildOMPInputClause(ArrayRef<Expr *> VarList,
+                                   SourceLocation StartLoc,
+                                   SourceLocation LParenLoc,
+                                   SourceLocation EndLoc) {
+    return getSema().OpenMP().ActOnOpenMPInputClause(VarList, StartLoc,
+                                                     LParenLoc, EndLoc);
   }
 
   /// Build a new OpenMP 'align' clause.
@@ -10879,6 +10879,21 @@ OMPClause *
 TreeTransform<Derived>::TransformOMPFastmathClause(OMPFastmathClause *C) {
   // No need to rebuild this clause, no template-dependent parameters.
   return C;
+}
+
+template <typename Derived>
+OMPClause *
+TreeTransform<Derived>::TransformOMPInputClause(OMPInputClause *C) {
+  llvm::SmallVector<Expr *, 16> Vars;
+  Vars.reserve(C->varlist_size());
+  for (auto *VE : C->varlist()) {
+    ExprResult EVar = getDerived().TransformExpr(cast<Expr>(VE));
+    if (EVar.isInvalid())
+      return nullptr;
+    Vars.push_back(EVar.get());
+  }
+  return getDerived().RebuildOMPInputClause(Vars, C->getBeginLoc(),
+                                             C->getLParenLoc(), C->getEndLoc());
 }
 
 template <typename Derived>

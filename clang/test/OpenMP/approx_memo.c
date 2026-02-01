@@ -3,7 +3,8 @@
 
 void test_approx_memo(void) {
   int sum = 0;
-#pragma omp approx memo(10) 
+  int a, b, c;
+#pragma omp approx memo(10) input(a, b) input(c)
   {
     for (int i = 0; i < 10; i++) {
       sum++;
