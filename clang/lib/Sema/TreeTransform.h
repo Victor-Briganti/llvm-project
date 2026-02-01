@@ -2464,6 +2464,29 @@ public:
         Kind, DropRate, StartLoc, LParenLoc, KindLoc, CommaLoc, EndLoc);
   }
 
+  /// Build a new OpenMP 'memo' clause.
+  ///
+  /// By default, performs semantic analysis to build the new OpenMP clause.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPMemoClause(Expr *RadiusSearch, SourceLocation StartLoc,
+                                  SourceLocation LParenLoc,
+                                  SourceLocation EndLoc) {
+    return getSema().OpenMP().ActOnOpenMPMemoClause(
+        RadiusSearch, StartLoc, LParenLoc, EndLoc);
+  }
+
+  /// Build a new OpenMP 'memo' clause.
+  ///
+  /// By default, performs semantic analysis to build the new OpenMP clause.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPMemoClause(ArrayRef<Expr *> VarList,
+                                  SourceLocation StartLoc,
+                                  SourceLocation LParenLoc,
+                                  SourceLocation EndLoc) {
+    return getSema().OpenMP().ActOnOpenMPMemoClause(VarList, StartLoc,
+                                                    LParenLoc, EndLoc);
+  }
+
   /// Build a new OpenMP 'align' clause.
   ///
   /// By default, performs semantic analysis to build the new OpenMP clause.
@@ -10856,6 +10879,15 @@ OMPClause *
 TreeTransform<Derived>::TransformOMPFastmathClause(OMPFastmathClause *C) {
   // No need to rebuild this clause, no template-dependent parameters.
   return C;
+}
+
+template <typename Derived>
+OMPClause *TreeTransform<Derived>::TransformOMPMemoClause(OMPMemoClause *C) {
+  ExprResult RadiusSearch = getDerived().TransformExpr(C->getRadiusSearch());
+  if (RadiusSearch.isInvalid())
+    return nullptr;
+  return getDerived().RebuildOMPMemoClause(RadiusSearch.get(), C->getBeginLoc(),
+                                           C->getLParenLoc(), C->getEndLoc());
 }
 
 template <typename Derived>

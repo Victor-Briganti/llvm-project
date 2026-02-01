@@ -2821,7 +2821,10 @@ void OMPClauseEnqueue::VisitOMPPerfoClause(const OMPPerfoClause *C) {
   Visitor->AddStmt(C->getDropRate());
 }
 void OMPClauseEnqueue::VisitOMPFastmathClause(const OMPFastmathClause *C) {}
-
+void OMPClauseEnqueue::VisitOMPMemoClause(const OMPMemoClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  Visitor->AddStmt(C->getRadiusSearch());
+}
 } // namespace
 
 void EnqueueVisitor::EnqueueChildren(const OMPClause *S) {

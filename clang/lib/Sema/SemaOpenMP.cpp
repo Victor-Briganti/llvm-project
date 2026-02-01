@@ -6637,6 +6637,7 @@ StmtResult SemaOpenMP::ActOnOpenMPExecutableDirective(
       case OMPC_message:
       case OMPC_perfo:
       case OMPC_fastmath:
+      case OMPC_memo:
         continue;
       case OMPC_allocator:
       case OMPC_flush:
@@ -15640,6 +15641,9 @@ OMPClause *SemaOpenMP::ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind,
   case OMPC_holds:
     Res = ActOnOpenMPHoldsClause(Expr, StartLoc, LParenLoc, EndLoc);
     break;
+  case OMPC_memo:
+    Res = ActOnOpenMPMemoClause(Expr, StartLoc, LParenLoc, EndLoc);
+    break;
   case OMPC_grainsize:
   case OMPC_num_tasks:
   case OMPC_num_threads:
@@ -16407,6 +16411,7 @@ OMPClause *SemaOpenMP::ActOnOpenMPSimpleClause(
   case OMPC_when:
   case OMPC_message:
   case OMPC_fastmath:
+  case OMPC_memo:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -16872,6 +16877,7 @@ OMPClause *SemaOpenMP::ActOnOpenMPSingleExprWithArgClause(
   case OMPC_affinity:
   case OMPC_when:
   case OMPC_bind:
+  case OMPC_memo:
   default:
     llvm_unreachable("Clause is not allowed.");
   }
@@ -17144,6 +17150,7 @@ OMPClause *SemaOpenMP::ActOnOpenMPClause(OpenMPClauseKind Kind,
   case OMPC_uses_allocators:
   case OMPC_affinity:
   case OMPC_when:
+  case OMPC_memo:
   case OMPC_ompx_dyn_cgroup_mem:
   default:
     llvm_unreachable("Clause is not allowed.");
@@ -17287,6 +17294,34 @@ OMPClause *SemaOpenMP::ActOnOpenMPSelfMapsClause(SourceLocation StartLoc,
 OMPClause *SemaOpenMP::ActOnOpenMPFastmathClause(SourceLocation StartLoc,
                                                SourceLocation EndLoc) {
   return new (getASTContext()) OMPFastmathClause(StartLoc, EndLoc);
+}
+
+OMPClause *SemaOpenMP::ActOnOpenMPMemoClause(Expr *RadiusSearch,
+                                             SourceLocation StartLoc,
+                                             SourceLocation LParenLoc,
+                                             SourceLocation EndLoc) {
+  Expr *ValExpr = RadiusSearch;
+  Stmt *HelperValStmt = nullptr;
+
+  // OpenMP [2.5, Restrictions]
+  //  The radius search expression must evaluate to a positive integer value.
+  if (!isNonNegativeIntegerValue(ValExpr, SemaRef, OMPC_memo,
+                                 /*StrictlyPositive=*/true))
+    return nullptr;
+
+  OpenMPDirectiveKind DKind = DSAStack->getCurrentDirective();
+  OpenMPDirectiveKind CaptureRegion =
+      getOpenMPCaptureRegionForClause(DKind, OMPC_memo, getLangOpts().OpenMP);
+  if (CaptureRegion != OMPD_unknown &&
+      !SemaRef.CurContext->isDependentContext()) {
+    ValExpr = SemaRef.MakeFullExpr(ValExpr).get();
+    llvm::MapVector<const Expr *, DeclRefExpr *> Captures;
+    ValExpr = tryBuildCapture(SemaRef, ValExpr, Captures).get();
+    HelperValStmt = buildPreInits(getASTContext(), Captures);
+  }
+
+  return new (getASTContext()) OMPMemoClause(
+      ValExpr, HelperValStmt, CaptureRegion, StartLoc, LParenLoc, EndLoc);
 }
 
 StmtResult
@@ -17722,6 +17757,7 @@ OMPClause *SemaOpenMP::ActOnOpenMPVarListClause(OpenMPClauseKind Kind,
   case OMPC_thread_limit:
     Res = ActOnOpenMPThreadLimitClause(VarList, StartLoc, LParenLoc, EndLoc);
     break;
+
   case OMPC_if:
   case OMPC_depobj:
   case OMPC_final:
@@ -17781,6 +17817,7 @@ OMPClause *SemaOpenMP::ActOnOpenMPVarListClause(OpenMPClauseKind Kind,
   case OMPC_when:
   case OMPC_bind:
   case OMPC_fastmath:
+  case OMPC_memo:
   default:
     llvm_unreachable("Clause is not allowed.");
   }

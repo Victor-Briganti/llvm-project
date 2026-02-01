@@ -106,6 +106,8 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
     return static_cast<const OMPXDynCGroupMemClause *>(C);
   case OMPC_perfo:
     return static_cast<const OMPPerfoClause *>(C);
+  case OMPC_memo:
+    return static_cast<const OMPMemoClause *>(C);
   case OMPC_default:
   case OMPC_proc_bind:
   case OMPC_safelen:
@@ -283,6 +285,7 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_bind:
   case OMPC_perfo:
   case OMPC_fastmath:
+  case OMPC_memo:
     break;
   default:
     break;
@@ -2780,6 +2783,12 @@ void OMPClausePrinter::VisitOMPPerfoClause(OMPPerfoClause *Node) {
 
 void OMPClausePrinter::VisitOMPFastmathClause(OMPFastmathClause *Node) {
   OS << "fastmath";
+}
+
+void OMPClausePrinter::VisitOMPMemoClause(OMPMemoClause *Node) {
+  OS << "num_threads(";
+  Node->getRadiusSearch()->printPretty(OS, nullptr, Policy, 0);
+  OS << ")";
 }
 
 void OMPTraitInfo::getAsVariantMatchInfo(ASTContext &ASTCtx,

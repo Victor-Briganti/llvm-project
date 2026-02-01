@@ -8619,6 +8619,12 @@ void OMPClauseWriter::VisitOMPPerfoClause(OMPPerfoClause *C) {
 
 void OMPClauseWriter::VisitOMPFastmathClause(OMPFastmathClause *C) {}
 
+void OMPClauseWriter::VisitOMPMemoClause(OMPMemoClause *C) {
+  VisitOMPClauseWithPreInit(C);
+  Record.AddStmt(C->getRadiusSearch());
+  Record.AddSourceLocation(C->getLParenLoc());
+}
+
 void ASTRecordWriter::writeOMPTraitInfo(const OMPTraitInfo *TI) {
   writeUInt32(TI->Sets.size());
   for (const auto &Set : TI->Sets) {

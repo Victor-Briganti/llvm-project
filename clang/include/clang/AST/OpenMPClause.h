@@ -10104,6 +10104,47 @@ public:
       : OMPNoChildClause(StartLoc, EndLoc) {}
 };
 
+/// This represents clause 'memo' in the '#pragma omp approx ...' directives.
+///
+/// \code
+/// #pragma omp approx memo(10)
+/// \endcode
+/// In this example directive '#pragma omp approx' has clause 'memo'
+/// with the radius '10'.
+class OMPMemoClause final
+    : public OMPOneStmtClause<llvm::omp::OMPC_memo, OMPClause>,
+      public OMPClauseWithPreInit {
+  friend class OMPClauseReader;
+
+  /// Set radius search.
+  void setRadiusSearch(Expr *RadiusSearch) { setStmt(RadiusSearch); }
+
+public:
+  /// Build 'memo' clause with condition \a RadiusSearch.
+  ///
+  /// \param RadiusSearch Radius search for the construct.
+  /// \param HelperRadiusSearch Helper radius search for the construct.
+  /// \param CaptureRegion Innermost OpenMP region where expressions in this
+  /// clause must be captured.
+  /// \param StartLoc Starting location of the clause.
+  /// \param LParenLoc Location of '('.
+  /// \param ModifierLoc Modifier location.
+  /// \param EndLoc Ending location of the clause.
+  OMPMemoClause(Expr *RadiusSearch, Stmt *HelperRadiusSearch,
+                OpenMPDirectiveKind CaptureRegion, SourceLocation StartLoc,
+                SourceLocation LParenLoc, SourceLocation EndLoc)
+      : OMPOneStmtClause(RadiusSearch, StartLoc, LParenLoc, EndLoc),
+        OMPClauseWithPreInit(this) {
+    setPreInitStmt(HelperRadiusSearch, CaptureRegion);
+  }
+
+  /// Build an empty clause.
+  OMPMemoClause() : OMPOneStmtClause(), OMPClauseWithPreInit(this) {}
+
+  /// Returns the radius of the search.
+  Expr *getRadiusSearch() const { return getStmtAs<Expr>(); }
+};
+
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_OPENMPCLAUSE_H

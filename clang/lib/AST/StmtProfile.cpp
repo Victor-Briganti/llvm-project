@@ -969,6 +969,11 @@ void OMPClauseProfiler::VisitOMPPerfoClause(const OMPPerfoClause *C) {
     Profiler->VisitStmt(C->getDropRate());
 }
 void OMPClauseProfiler::VisitOMPFastmathClause(const OMPFastmathClause *C) {}
+void OMPClauseProfiler::VisitOMPMemoClause(const OMPMemoClause *C) {
+  VistOMPClauseWithPreInit(C);
+  if (C->getRadiusSearch())
+    Profiler->VisitStmt(C->getRadiusSearch());
+}
 } // namespace
 
 void

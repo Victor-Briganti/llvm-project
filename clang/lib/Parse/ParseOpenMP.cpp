@@ -3038,6 +3038,7 @@ OMPClause *Parser::ParseOpenMPClause(OpenMPDirectiveKind DKind,
   case OMPC_partial:
   case OMPC_align:
   case OMPC_message:
+  case OMPC_memo:
   case OMPC_ompx_dyn_cgroup_mem:
     // OpenMP [2.5, Restrictions]
     //  At most one num_threads clause can appear on the directive.
@@ -3926,8 +3927,9 @@ OMPClause *Parser::ParseOpenMPSingleExprWithArgClause(OpenMPDirectiveKind DKind,
   bool NeedAnExpression = (Kind == OMPC_schedule && DelimLoc.isValid()) ||
                           (Kind == OMPC_dist_schedule && DelimLoc.isValid()) ||
                           Kind == OMPC_if || Kind == OMPC_perfo ||
-                          Kind == OMPC_device || Kind == OMPC_grainsize ||
-                          Kind == OMPC_num_tasks || Kind == OMPC_num_threads;
+                          Kind == OMPC_memo || Kind == OMPC_device ||
+                          Kind == OMPC_grainsize || Kind == OMPC_num_tasks ||
+                          Kind == OMPC_num_threads;
   if (NeedAnExpression) {
     SourceLocation ELoc = Tok.getLocation();
     ExprResult LHS(

@@ -1431,6 +1431,11 @@ public:
   OMPClause *ActOnOpenMPFastmathClause(SourceLocation StartLoc,
                                        SourceLocation EndLoc);
 
+  /// Called on well-formed 'memo' clause.
+  OMPClause *ActOnOpenMPMemoClause(Expr *RadiusSearch, SourceLocation StartLoc,
+                                   SourceLocation LParenLoc,
+                                   SourceLocation EndLoc);
+
   ExprResult ActOnOMPArraySectionExpr(Expr *Base, SourceLocation LBLoc,
                                       Expr *LowerBound,
                                       SourceLocation ColonLocFirst,

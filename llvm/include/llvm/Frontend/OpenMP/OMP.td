@@ -573,6 +573,9 @@ def OMPC_Perfo : Clause<[Spelling<"perfo">]> {
 def OMPC_Fastmath : Clause<[Spelling<"fastmath">]> {
   let clangClass = "OMPFastmathClause";
 }
+def OMPC_Memo : Clause<[Spelling<"memo">]> {
+  let clangClass = "OMPMemoClause";
+}
 
 //===----------------------------------------------------------------------===//
 // Definitions of OpenMP leaf directives
@@ -1321,8 +1324,9 @@ def OMP_EndWorkshare : Directive<[Spelling<"end workshare">]> {
   let languages = [L_Fortran];
 }
 def OMP_Approx : Directive<[Spelling<"approx">]> {
-  let allowedClauses = [
+  let allowedOnceClauses = [
     VersionedClause<OMPC_Fastmath>,
+    VersionedClause<OMPC_Memo>,
   ];
   let association = AS_Block;
   let category = CA_Executable;
