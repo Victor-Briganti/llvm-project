@@ -12053,9 +12053,12 @@ void CGOpenMPRuntime::emitLastprivateConditionalFinalUpdate(
   CGF.EmitStoreOfScalar(Res, PrivLVal);
 }
 
-void CGOpenMPRuntime::emitApproxRegion(CodeGenFunction &CGF,
-                                       const RegionCodeGenTy &ApproxOpGen,
-                                       SourceLocation Loc) {}
+void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
+                                           const RegionCodeGenTy &ApproxOpGen,
+                                           SourceLocation Loc,
+                                           ArrayRef<const VarDecl *> InputVars,
+                                           const VarDecl *OutputVar,
+                                           llvm::Value *RadiusSearch) {}
 
 llvm::Function *CGOpenMPSIMDRuntime::emitParallelOutlinedFunction(
     CodeGenFunction &CGF, const OMPExecutableDirective &D,
@@ -12367,9 +12370,10 @@ void CGOpenMPSIMDRuntime::emitDoacrossOrdered(CodeGenFunction &CGF,
   llvm_unreachable("Not supported in SIMD-only mode");
 }
 
-void CGOpenMPSIMDRuntime::emitApproxRegion(CodeGenFunction &CGF,
-                                           const RegionCodeGenTy &ApproxOpGen,
-                                           SourceLocation Loc) {
+void CGOpenMPSIMDRuntime::emitApproxMemoRegion(
+    CodeGenFunction &CGF, const RegionCodeGenTy &ApproxOpGen,
+    SourceLocation Loc, ArrayRef<const VarDecl *> InputVars,
+    const VarDecl *OutputVar, llvm::Value *RadiusSearch) {
   llvm_unreachable("Not supported in SIMD-only mode");
 }
 

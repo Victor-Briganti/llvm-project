@@ -8760,21 +8760,102 @@ static void addFnAttrApproxFastmath(llvm::Function *F) {
 }
 
 void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
-  auto &&OutlinedCallGen = [&S](CodeGenFunction &CGF, PrePostActionTy &) {
-    CodeGenFunction::OMPLocalDeclMapRAII LocalDecl(CGF);
-    
-    const CapturedStmt *CS = S.getInnermostCapturedStmt();
-    llvm::SmallVector<llvm::Value *, 16> CapturedArgs;
-    CGF.GenerateOpenMPCapturedVars(*CS, CapturedArgs);
+  if (auto *MM = S.getSingleClause<OMPMemoClause>()) {
+    llvm::SmallVector<const VarDecl *, 8> InputDecls;
+    bool HasInput = false;
+    for (auto *CS : S.getClausesOfKind<OMPInputClause>()) {
+      for (auto *RefExpr : CS->varlist()) {
+        auto *VD = cast<DeclRefExpr>(RefExpr)->getDecl();
 
-    llvm::Function *OutlinedFn = emitOutlinedOrderedFunction(CGF.CGM, CS, S.getBeginLoc());
-    addFnAttrApproxFastmath(OutlinedFn);
-    substituteFunctionApproxMath(OutlinedFn);
-    CGF.CGM.getOpenMPRuntime().emitOutlinedFunctionCall(
-        CGF, S.getBeginLoc(), OutlinedFn, CapturedArgs);
-  };
+        // All values need to be an scalar to be memoized
+        if (!VD->getType()->isScalarType() ||
+            VD->getType()->isAnyPointerType()) {
+          unsigned DiagID = CGM.getDiags().getCustomDiagID(
+              DiagnosticsEngine::Error,
+              "'input' clause supports only scalar values.");
+          this->CGM.getDiags().Report(DiagID);
+          return;
+        }
+
+        InputDecls.push_back(
+            cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl()));
+      }
+      HasInput = true;
+    }
+
+    if (!HasInput) {
+      unsigned DiagID = CGM.getDiags().getCustomDiagID(
+          DiagnosticsEngine::Error,
+          "'memo' clause needs to be used alongisde 'input' clause.");
+      this->CGM.getDiags().Report(DiagID);
+      return;
+    }
+
+    const VarDecl *OutDecl = nullptr;
+    if (auto *CS = S.getSingleClause<OMPOutputClause>()) {
+      int VarCount = 0;
+      for (auto *RefExpr : CS->varlist()) {
+        if (VarCount) {
+          unsigned DiagID = CGM.getDiags().getCustomDiagID(
+          DiagnosticsEngine::Error,
+          "'output' supports only one variable.");
+          this->CGM.getDiags().Report(DiagID);
+          return;
+        }
+
+        auto *VD = cast<DeclRefExpr>(RefExpr)->getDecl();
+
+        // All values need to be an scalar to be memoized
+        if (!VD->getType()->isScalarType() ||
+            VD->getType()->isAnyPointerType()) {
+          unsigned DiagID = CGM.getDiags().getCustomDiagID(
+              DiagnosticsEngine::Error,
+              "'input' clause supports only scalar values.");
+          this->CGM.getDiags().Report(DiagID);
+          return;
+        }
+
+        OutDecl = cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl());
+        VarCount++;
+      }
+    }
+
+    if (!OutDecl) {
+      unsigned DiagID = CGM.getDiags().getCustomDiagID(
+          DiagnosticsEngine::Error,
+          "'memo' clause needs to be used alongisde 'output' clause.");
+      this->CGM.getDiags().Report(DiagID);
+      return;
+    }
+
+    auto &&CodeGen = [&S](CodeGenFunction &CGF, PrePostActionTy &Action) {
+      Action.Enter(CGF);
+      CGF.EmitStmt(S.getAssociatedStmt());
+    };
+
+    llvm::Value *RadiusSearch =
+        EmitScalarExpr(MM->getRadiusSearch(), /*IgnoreResultAssign=*/true);
+    CGM.getOpenMPRuntime().emitApproxMemoRegion(
+        *this, CodeGen, S.getBeginLoc(), InputDecls, OutDecl, RadiusSearch);
+    // TODO
+    // return;
+  }
 
   if (auto *FM = S.getSingleClause<OMPFastmathClause>()) {
+    auto &&OutlinedCallGen = [&S](CodeGenFunction &CGF, PrePostActionTy &) {
+      CodeGenFunction::OMPLocalDeclMapRAII LocalDecl(CGF);
+
+      const CapturedStmt *CS = S.getInnermostCapturedStmt();
+      llvm::SmallVector<llvm::Value *, 16> CapturedArgs;
+      CGF.GenerateOpenMPCapturedVars(*CS, CapturedArgs);
+
+      llvm::Function *OutlinedFn =
+          emitOutlinedOrderedFunction(CGF.CGM, CS, S.getBeginLoc());
+      addFnAttrApproxFastmath(OutlinedFn);
+      substituteFunctionApproxMath(OutlinedFn);
+      CGF.CGM.getOpenMPRuntime().emitOutlinedFunctionCall(
+          CGF, S.getBeginLoc(), OutlinedFn, CapturedArgs);
+    };
     const Expr *IfCond = createApproxCallExpr(*this, FM->getBeginLoc());
     auto ThenGen = [&](CodeGenFunction &CGF, PrePostActionTy &Action) {
       Action.Enter(CGF);
