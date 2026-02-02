@@ -1999,6 +1999,46 @@ void __kmpc_end_single(ident_t *loc, kmp_int32 global_tid) {
 }
 
 /*!
+ @ingroup WORK_SHARING
+ @param loc  source location information
+ @param global_tid  global thread number
+ @param hashloc  hash identifier of this region of code
+ @param output  pointer to the output address variable
+ @param type_out  type of the pointer to the output address variable
+ @param radius  radius of the search used during the memoization
+ @return One if this thread should execute the memo region, zero otherwise.
+
+ Test wheter to execute a tt>memo</tt> region.
+ If the region is already memoized, simple copy the median of the values into
+ the out pointer. Otherwise let the thread enter the region and execute the
+ code.
+*/
+kmp_int32 __kmpc_memo_in(ident_t *loc, kmp_int32 global_tid, kmp_int32 hashloc,
+                         void *output, kmp_int32 type_out, kmp_int32 radius,
+                         kmp_int32 argc, ...) {
+  __kmp_assert_valid_gtid(global_tid);
+  return 1;
+}
+
+/*!
+ @ingroup WORK_SHARING
+ @param loc  source location information
+ @param global_tid  global thread number
+ @param hashloc  hash identifier of this region of code
+ @param out  pointer to the output address variable
+ @param type_out  type of the pointer to the output address variable
+ @param radius  radius of the search used during the memoization
+ @return One if this thread should execute the memo region, zero otherwise.
+
+ Copies the value of the output inside the memoization structure.
+*/
+void __kmpc_memo_out(ident_t *loc, kmp_int32 global_tid, kmp_int32 hashloc,
+                     void *output, kmp_int32 type_out, kmp_int32 radius,
+                     kmp_int32 argc, ...) {
+  __kmp_assert_valid_gtid(global_tid);
+}
+
+/*!
 @ingroup WORK_SHARING
 @param loc Source location
 @param global_tid Global thread id

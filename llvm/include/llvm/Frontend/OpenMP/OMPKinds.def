@@ -363,6 +363,11 @@ __OMP_RTL(__kmpc_dist_for_static_init_8, false, Void, IdentPtr, Int32, Int32,
 __OMP_RTL(__kmpc_dist_for_static_init_8u, false, Void, IdentPtr, Int32, Int32,
           Int32Ptr, Int64Ptr, Int64Ptr, Int64Ptr, Int64Ptr, Int64, Int64)
 
+__OMP_RTL(__kmpc_memo_in, true, Int32, IdentPtr, Int32, Int32, VoidPtr,
+          Int32, Int32, Int32)
+__OMP_RTL(__kmpc_memo_out, true, Void, IdentPtr, Int32, Int32, VoidPtr,
+          Int32, Int32, Int32)
+
 __OMP_RTL(__kmpc_single, false, Int32, IdentPtr, Int32)
 __OMP_RTL(__kmpc_end_single, false, Void, IdentPtr, Int32)
 

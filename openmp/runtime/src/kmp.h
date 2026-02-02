@@ -4119,6 +4119,31 @@ extern kmp_team_t *__kmp_reap_team(kmp_team_t *);
 
 /* ------------------------------------------------------------------------ */
 
+typedef enum memo_num_t {
+  memo_num_undefined = -1,
+  memo_num_bool = 0,
+  memo_num_char = 1,
+  memo_num_uchar = 2,
+  memo_num_wuchar = 3,
+  memo_num_wchar = 4,
+  memo_num_char8 = 5,
+  memo_num_char16 = 6,
+  memo_num_char32 = 7,
+  memo_num_ushort = 8,
+  memo_num_uint = 9,
+  memo_num_int = 10,
+  memo_num_short = 11,
+  memo_num_ulong = 12,
+  memo_num_long = 13,
+  memo_num_ulonglong = 14,
+  memo_num_longlong = 15,
+  memo_num_float = 16,
+  memo_num_double = 17,
+  memo_num_longdouble = 18,
+} memo_num_t;
+
+/* ------------------------------------------------------------------------ */
+
 extern void __kmp_initialize_bget(kmp_info_t *th);
 extern void __kmp_finalize_bget(kmp_info_t *th);
 
@@ -4309,6 +4334,15 @@ KMP_EXPORT kmp_int32 __kmpc_barrier_master_nowait(ident_t *,
 
 KMP_EXPORT kmp_int32 __kmpc_single(ident_t *, kmp_int32 global_tid);
 KMP_EXPORT void __kmpc_end_single(ident_t *, kmp_int32 global_tid);
+
+KMP_EXPORT kmp_int32 __kmpc_memo_in(ident_t *loc, kmp_int32 global_tid,
+                                    kmp_int32 hashloc, void *output,
+                                    kmp_int32 type_out, kmp_int32 radius,
+                                    kmp_int32 argc, ...);
+KMP_EXPORT void __kmpc_memo_out(ident_t *loc, kmp_int32 global_tid,
+                                kmp_int32 hashloc, void *output,
+                                kmp_int32 type_out, kmp_int32 radius,
+                                kmp_int32 argc, ...);
 
 KMP_EXPORT kmp_int32 __kmpc_sections_init(ident_t *loc, kmp_int32 global_tid);
 KMP_EXPORT kmp_int32 __kmpc_next_section(ident_t *loc, kmp_int32 global_tid,

@@ -24,6 +24,7 @@
 #include "clang/AST/OpenMPClause.h"
 #include "clang/AST/StmtOpenMP.h"
 #include "clang/AST/StmtVisitor.h"
+#include "clang/AST/Type.h"
 #include "clang/Basic/OpenMPKinds.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/CodeGen/ConstantInitBuilder.h"
@@ -12053,12 +12054,162 @@ void CGOpenMPRuntime::emitLastprivateConditionalFinalUpdate(
   CGF.EmitStoreOfScalar(Res, PrivLVal);
 }
 
+/// Number types for 'omp approx memo' (these enumerators are taken from the
+/// enum memo_num_t in kmp.h).
+enum OpenMPMemoNumType {
+  OMP_memo_num_undefined = -1,
+  OMP_memo_num_bool = 0,
+  OMP_memo_num_char = 1,
+  OMP_memo_num_uchar = 2,
+  OMP_memo_num_wuchar = 3,
+  OMP_memo_num_wchar = 4,
+  OMP_memo_num_char8 = 5,
+  OMP_memo_num_char16 = 6,
+  OMP_memo_num_char32 = 7,
+  OMP_memo_num_ushort = 8,
+  OMP_memo_num_uint = 9,
+  OMP_memo_num_int = 10,
+  OMP_memo_num_short = 11,
+  OMP_memo_num_ulong = 12,
+  OMP_memo_num_long = 13,
+  OMP_memo_num_ulonglong = 14,
+  OMP_memo_num_longlong = 15,
+  OMP_memo_num_float = 16,
+  OMP_memo_num_double = 17,
+  OMP_memo_num_longdouble = 18,
+};
+
+/// Map the OpenMP memo number types to the runtime enumeration.
+static OpenMPMemoNumType getMemoNumType(const BuiltinType *BT) {
+  if (!BT)
+    return OMP_memo_num_undefined;
+  switch (BT->getKind()) {
+  case clang::BuiltinType::Bool:
+    return OMP_memo_num_bool;
+  case clang::BuiltinType::Char_U:
+  case clang::BuiltinType::UChar:
+    return OMP_memo_num_uchar;
+  case clang::BuiltinType::WChar_U:
+    return OMP_memo_num_wuchar;
+  case clang::BuiltinType::Char_S:
+  case clang::BuiltinType::SChar:
+    return OMP_memo_num_char;
+  case clang::BuiltinType::WChar_S:
+    return OMP_memo_num_wchar;
+  case clang::BuiltinType::Char8:
+    return OMP_memo_num_char8;
+  case clang::BuiltinType::Char16:
+    return OMP_memo_num_char16;
+  case clang::BuiltinType::Char32:
+    return OMP_memo_num_char32;
+  case clang::BuiltinType::UShort:
+    return OMP_memo_num_ushort;
+  case clang::BuiltinType::UInt:
+    return OMP_memo_num_uint;
+  case clang::BuiltinType::ULong:
+    return OMP_memo_num_ulong;
+  case clang::BuiltinType::ULongLong:
+    return OMP_memo_num_ulonglong;
+  case clang::BuiltinType::Long:
+    return OMP_memo_num_long;
+  case clang::BuiltinType::LongLong:
+    return OMP_memo_num_longlong;
+  case clang::BuiltinType::Short:
+    return OMP_memo_num_short;
+  case clang::BuiltinType::Int:
+    return OMP_memo_num_int;
+  case clang::BuiltinType::Float:
+    return OMP_memo_num_float;
+  case clang::BuiltinType::Double:
+    return OMP_memo_num_double;
+  case clang::BuiltinType::LongDouble:
+    return OMP_memo_num_longdouble;
+  default:
+    return OMP_memo_num_undefined;
+  }
+}
+
 void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
                                            const RegionCodeGenTy &ApproxOpGen,
                                            SourceLocation Loc,
                                            ArrayRef<const VarDecl *> InputVars,
                                            const VarDecl *OutputVar,
-                                           llvm::Value *RadiusSearch) {}
+                                           llvm::Value *RadiusSearch) {
+  if (!CGF.HaveInsertPoint())
+    return;
+
+  if (InputVars.empty()) {
+    emitInlinedDirective(CGF, OMPD_approx, ApproxOpGen);
+    return;
+  }
+
+  ASTContext &C = CGM.getContext();
+  llvm::Value *Ident = emitUpdateLocation(CGF, Loc);
+  llvm::Value *ThreadID = getThreadID(CGF, Loc);
+
+  // Generates the hash of the current location
+  Address LocID = Address::invalid();
+  QualType KmpInt32Ty = C.getIntTypeForBitwidth(/*DestWidth=*/32, /*Signed=*/1);
+  LocID = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.hash_loc");
+  CGF.Builder.CreateStore(CGF.Builder.getInt32(Loc.getHashValue()), LocID);
+  llvm::Value *LocHash = CGF.Builder.CreateLoad(LocID);
+
+  // Generates the type and the pointer to the output variable.
+  const VarDecl *CDV = OutputVar->getCanonicalDecl();
+  OpenMPMemoNumType MT = getMemoNumType(CDV->getType()->getAs<BuiltinType>());
+  llvm::Value *OutTy = CGF.Builder.getInt32(static_cast<int>(MT));
+  Address OutAddr = CGF.GetAddrOfLocalVar(OutputVar);
+  llvm::Value *OutPtr =
+      CGF.Builder.CreatePointerCast(OutAddr.getBasePointer(), CGM.VoidPtrTy);
+
+  // Build memo args vector in the form: T0, V0, T1, V1, ...
+  // Where T is the type and V is the variable per se.
+  llvm::SmallVector<llvm::Value *, 16> MemoArgs;
+  for (const VarDecl *IV : InputVars) {
+    QualType QT = IV->getType();
+    assert(QT->isScalarType() &&
+           "Only scalar type are supported in the generation of memo code");
+
+    const BuiltinType *BT = QT->getAs<BuiltinType>();
+    OpenMPMemoNumType MT = getMemoNumType(BT);
+    MemoArgs.push_back(CGF.Builder.getInt32(static_cast<int>(MT)));
+
+    Address InAddr = CGF.GetAddrOfLocalVar(IV);
+    LValue LV = CGF.MakeAddrLValue(InAddr, QT, AlignmentSource::Decl);
+    MemoArgs.push_back(CGF.EmitLoadOfScalar(LV, IV->getLocation()));
+  }
+
+  // Build the size of the variables
+  Address ArgcAddr = Address::invalid();
+  // int32 argc = 0;
+  ArgcAddr = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.argc");
+  CGF.Builder.CreateStore(CGF.Builder.getInt32(MemoArgs.size()), ArgcAddr);
+  llvm::Value *Argc = CGF.Builder.CreateLoad(ArgcAddr);
+
+  // Build arguments to botch calls
+  llvm::Value *Args[] = {Ident, ThreadID,     LocHash, OutPtr,
+                         OutTy, RadiusSearch, Argc};
+  llvm::SmallVector<llvm::Value *, 16> RealArgs;
+  RealArgs.append(std::begin(Args), std::end(Args));
+  RealArgs.append(MemoArgs.begin(), MemoArgs.end());
+
+  // if (__kmpc_memo_in(ident_t *, kmp_int32, kmp_int32 , void *, kmp_int32 ,
+  // double , kmp_int32 , ...)) {
+  //    ApproxOpGen();
+  //    __kmpc_memo_out(ident_t *, kmp_int32, kmp_int32 , void *, kmp_int32 ,
+  //    double , kmp_int32 , ...)
+  // }
+  CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_memo_in),
+                        RealArgs,
+                        OMPBuilder.getOrCreateRuntimeFunction(
+                            CGM.getModule(), OMPRTL___kmpc_memo_out),
+                        RealArgs,
+                        /*Conditional=*/true);
+  ApproxOpGen.setAction(Action);
+  emitInlinedDirective(CGF, OMPD_approx, ApproxOpGen);
+  Action.Done(CGF);
+}
 
 llvm::Function *CGOpenMPSIMDRuntime::emitParallelOutlinedFunction(
     CodeGenFunction &CGF, const OMPExecutableDirective &D,
