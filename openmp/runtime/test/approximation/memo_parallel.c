@@ -1,0 +1,38 @@
+/*
+ * memo_parallel_test.c -- Test memoization with parallel regions.
+ */
+
+//===----------------------------------------------------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+// RUN: %libomp-compile && %libomp-run
+
+#include <stdio.h>
+#include <omp.h>
+
+#define NUM_LOOPS 10
+
+int test_memo_region() {
+    int x = 0;
+    
+    #pragma omp parallel for
+    for (int i = 0; i < NUM_LOOPS; i++) {
+        #pragma omp approx memo(1) input(i) output(x)
+        {
+            x = i;
+        }
+    }
+
+    return 0;
+}
+
+
+int main() {
+  test_memo_region();
+  return 0;
+}

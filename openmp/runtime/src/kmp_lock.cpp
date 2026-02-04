@@ -18,6 +18,7 @@
 #include "kmp_io.h"
 #include "kmp_itt.h"
 #include "kmp_lock.h"
+#include "kmp_os.h"
 #include "kmp_wait_release.h"
 #include "kmp_wrapper_getpid.h"
 
@@ -4052,3 +4053,119 @@ void __kmp_cleanup_user_locks(void) {
 }
 
 #endif // KMP_USE_DYNAMIC_LOCK
+
+// ----------------------------------------------------------------------------
+// Read-Write locks.
+
+void __kmp_init_rw_lock(kmp_rw_lock_t *lck) {
+  std::atomic_store(&lck->lk.reader_count, 0);
+  std::atomic_store(&lck->lk.waiting_writers, 0);
+  std::atomic_store(&lck->lk.writer_active, 0);
+  __kmp_init_tas_lock(&lck->lk.write_lock);
+}
+
+void __kmp_destroy_rw_lock(kmp_rw_lock_t *lck) {
+  __kmp_destroy_tas_lock(&lck->lk.write_lock);
+}
+
+int __kmp_acquire_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid) {
+  kmp_uint32 spins;
+  kmp_uint64 time;
+
+  while (TRUE) {
+    if (!std::atomic_load(&lck->lk.writer_active) ||
+        std::atomic_load(&lck->lk.waiting_writers) > 0) {
+      KMP_YIELD_OVERSUB_ELSE_SPIN(spins, time);
+    }
+
+    std::atomic_fetch_add(&lck->lk.reader_count, 1);
+
+    // Double check for active writers
+    if (std::atomic_load(&lck->lk.writer_active)) {
+      KMP_FSYNC_ACQUIRED(lck);
+      return KMP_LOCK_ACQUIRED_FIRST;
+    }
+
+    std::atomic_fetch_sub(&lck->lk.reader_count, 1);
+    KMP_YIELD_OVERSUB_ELSE_SPIN(spins, time);
+  }
+}
+
+int __kmp_acquire_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid) {
+  kmp_uint32 spins;
+  kmp_uint64 time;
+
+  std::atomic_fetch_add(&lck->lk.waiting_writers, 1);
+  __kmp_acquire_tas_lock(&lck->lk.write_lock, gtid);
+
+  std::atomic_store(&lck->lk.writer_active, 1);
+  std::atomic_fetch_sub(&lck->lk.waiting_writers, 1);
+
+  KMP_INIT_YIELD(spins);
+  KMP_INIT_BACKOFF(time);
+
+  while (std::atomic_load(&lck->lk.reader_count) > 0) {
+    KMP_YIELD_OVERSUB_ELSE_SPIN(spins, time);
+  }
+
+  KMP_FSYNC_ACQUIRED(lck);
+  return KMP_LOCK_ACQUIRED_FIRST;
+}
+
+int __kmp_test_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid) {
+  KMP_MB();
+  KMP_FSYNC_ACQUIRED(lck);
+  std::atomic_fetch_sub(&lck->lk.reader_count, 1);
+  KMP_YIELD_OVERSUB();
+  return KMP_LOCK_RELEASED;
+}
+
+int __kmp_test_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid) {
+  if (std::atomic_load(&lck->lk.reader_count) > 0 ||
+      std::atomic_load(&lck->lk.writer_active)) {
+    return FALSE;
+  }
+
+  if (!__kmp_test_tas_lock(&lck->lk.write_lock, gtid)) {
+    return FALSE;
+  }
+
+  std::atomic_store(&lck->lk.writer_active, 1);
+  if (std::atomic_load(&lck->lk.reader_count) > 0) {
+    std::atomic_store(&lck->lk.writer_active, 0);
+    __kmp_release_tas_lock(&lck->lk.write_lock, gtid);
+    return FALSE;
+  }
+
+  KMP_FSYNC_ACQUIRED(lck);
+  return TRUE;
+}
+
+int __kmp_release_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid) {
+  if (!std::atomic_load(&lck->lk.writer_active) ||
+      std::atomic_load(&lck->lk.waiting_writers) > 0) {
+    return FALSE;
+  }
+
+  std::atomic_fetch_add(&lck->lk.reader_count, 1);
+
+  // Double check for active writers
+  if (std::atomic_load(&lck->lk.writer_active) > 0) {
+    KMP_FSYNC_ACQUIRED(lck);
+    return TRUE;
+  }
+
+  std::atomic_fetch_sub(&lck->lk.reader_count, 1);
+  return FALSE;
+}
+
+int __kmp_release_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid) {
+  KMP_MB();
+  KMP_FSYNC_RELEASING(lck);
+
+  std::atomic_store(&lck->lk.writer_active, 0);
+  __kmp_release_tas_lock(&lck->lk.write_lock, gtid);
+
+  KMP_YIELD_OVERSUB();
+  return KMP_LOCK_RELEASED;
+}

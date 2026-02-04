@@ -104,6 +104,7 @@ else()
     kmp_sched.cpp
     kmp_collapse.cpp
     kmp_fastmath.cpp
+    kmp_memo.cpp
   )
   if(WIN32)
     # Windows specific files

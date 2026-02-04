@@ -506,6 +506,30 @@ extern int __kmp_release_nested_drdpa_lock(kmp_drdpa_lock_t *lck,
 extern void __kmp_init_nested_drdpa_lock(kmp_drdpa_lock_t *lck);
 extern void __kmp_destroy_nested_drdpa_lock(kmp_drdpa_lock_t *lck);
 
+// ----------------------------------------------------------------------------
+// Read-Write locks.
+
+struct kmp_base_rw_lock {
+  std::atomic<kmp_int32> reader_count;
+  std::atomic<kmp_int32> waiting_writers;
+  std::atomic<kmp_int32> writer_active;
+  kmp_tas_lock write_lock;
+};
+union KMP_ALIGN_CACHE kmp_rw_lock {
+  kmp_base_rw_lock lk;
+  char lk_pad[KMP_PAD(kmp_base_rw_lock, CACHE_LINE)];
+};
+typedef union kmp_rw_lock kmp_rw_lock_t;
+
+extern void __kmp_init_rw_lock(kmp_rw_lock_t *lck);
+extern void __kmp_destroy_rw_lock(kmp_rw_lock_t *lck);
+extern int __kmp_acquire_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
+extern int __kmp_test_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
+extern int __kmp_release_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
+extern int __kmp_acquire_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
+extern int __kmp_test_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
+extern int __kmp_release_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
+
 // ============================================================================
 // Lock purposes.
 // ============================================================================

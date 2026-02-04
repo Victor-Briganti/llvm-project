@@ -17,6 +17,7 @@
 #include "kmp_i18n.h"
 #include "kmp_itt.h"
 #include "kmp_lock.h"
+#include "kmp_memo.h"
 #include "kmp_stats.h"
 #include "kmp_utils.h"
 #include "ompt-specific.h"
@@ -2016,26 +2017,33 @@ void __kmpc_end_single(ident_t *loc, kmp_int32 global_tid) {
 kmp_int32 __kmpc_memo_in(ident_t *loc, kmp_int32 global_tid, kmp_int32 hashloc,
                          void *output, kmp_int32 type_out, kmp_int32 radius,
                          kmp_int32 argc, ...) {
+  if (!__kmp_approx)
+    return 1;
+
   __kmp_assert_valid_gtid(global_tid);
-  return 1;
+  return __kmp_memo_in(hashloc, argc, global_tid);
 }
 
 /*!
- @ingroup WORK_SHARING
- @param loc  source location information
- @param global_tid  global thread number
- @param hashloc  hash identifier of this region of code
- @param out  pointer to the output address variable
- @param type_out  type of the pointer to the output address variable
- @param radius  radius of the search used during the memoization
- @return One if this thread should execute the memo region, zero otherwise.
+@ingroup WORK_SHARING
+@param loc  source location information
+@param global_tid  global thread number
+@param hashloc  hash identifier of this region of code
+@param out  pointer to the output address variable
+@param type_out  type of the pointer to the output address variable
+@param radius  radius of the search used during the memoization
+@return One if this thread should execute the memo region, zero otherwise.
 
- Copies the value of the output inside the memoization structure.
+Copies the value of the output inside the memoization structure.
 */
 void __kmpc_memo_out(ident_t *loc, kmp_int32 global_tid, kmp_int32 hashloc,
-                     void *output, kmp_int32 type_out, kmp_int32 radius,
-                     kmp_int32 argc, ...) {
+  void *output, kmp_int32 type_out, kmp_int32 radius,
+  kmp_int32 argc, ...) {
+    if (!__kmp_approx)
+    return;
+
   __kmp_assert_valid_gtid(global_tid);
+  __kmp_memo_out(hashloc, global_tid);
 }
 
 /*!
