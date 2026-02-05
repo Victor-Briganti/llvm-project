@@ -1999,6 +1999,78 @@ void __kmpc_end_single(ident_t *loc, kmp_int32 global_tid) {
 #endif
 }
 
+static double *__kmp_extract_memo_points(kmp_int32 argc, va_list *ap,
+                                         kmp_int32 *n_points) {
+  *n_points = argc / 2;
+  double *points = (double *)kmpc_malloc(*n_points * sizeof(double));
+
+  for (kmp_int32 i = 0; i < *n_points; i++) {
+    kmp_int32 type = va_arg(*ap, kmp_int32);
+    switch ((memo_num_t)type) {
+    case memo_num_bool:
+      points[i] = (double)(bool)va_arg(*ap, int);
+      break;
+    case memo_num_char:
+      points[i] = (double)(char)va_arg(*ap, int);
+      break;
+    case memo_num_uchar:
+      points[i] = (double)(unsigned char)va_arg(*ap, int);
+      break;
+    case memo_num_wuchar:
+    case memo_num_wchar:
+      points[i] = (double)(wchar_t)va_arg(*ap, int);
+      break;
+    case memo_num_char8:
+      points[i] = (double)(char)va_arg(*ap, int);
+      break;
+    case memo_num_char16:
+      points[i] = (double)(char16_t)va_arg(*ap, int);
+      break;
+    case memo_num_char32:
+      points[i] = (double)(char32_t)va_arg(*ap, int);
+      break;
+    case memo_num_ushort:
+      points[i] = (double)(unsigned short)va_arg(*ap, int);
+      break;
+    case memo_num_short:
+      points[i] = (double)(short)va_arg(*ap, int);
+      break;
+    case memo_num_uint:
+      points[i] = (double)(unsigned int)va_arg(*ap, unsigned int);
+      break;
+    case memo_num_int:
+      points[i] = (double)(int)va_arg(*ap, int);
+      break;
+    case memo_num_ulong:
+      points[i] = (double)(unsigned long)va_arg(*ap, unsigned long);
+      break;
+    case memo_num_long:
+      points[i] = (double)(long)va_arg(*ap, long);
+      break;
+    case memo_num_ulonglong:
+      points[i] = (double)(unsigned long long)va_arg(*ap, unsigned long long);
+      break;
+    case memo_num_longlong:
+      points[i] = (double)(long long)va_arg(*ap, long long);
+      break;
+    case memo_num_float:
+      points[i] = (double)(float)va_arg(*ap, double);
+      break;
+    case memo_num_double:
+      points[i] = (double)va_arg(*ap, double);
+      break;
+    case memo_num_longdouble:
+      points[i] = (double)(long double)va_arg(*ap, long double);
+      break;
+    default:
+      points[i] = (double)va_arg(*ap, int);
+      break;
+    }
+  }
+
+  return points;
+}
+
 /*!
  @ingroup WORK_SHARING
  @param loc  source location information
@@ -2021,7 +2093,17 @@ kmp_int32 __kmpc_memo_in(ident_t *loc, kmp_int32 global_tid, kmp_int32 hashloc,
     return 1;
 
   __kmp_assert_valid_gtid(global_tid);
-  return __kmp_memo_in(hashloc, argc, global_tid);
+
+  va_list ap;
+  va_start(ap, argc);
+  kmp_int32 n_points;
+  double *points = __kmp_extract_memo_points(argc, &ap, &n_points);
+  va_end(ap);
+
+  kmp_int32 result = __kmp_memo_in(hashloc, points, n_points, output,
+                                   (memo_num_t)type_out, radius, global_tid);
+  kmpc_free(points);
+  return result;
 }
 
 /*!
@@ -2037,13 +2119,22 @@ kmp_int32 __kmpc_memo_in(ident_t *loc, kmp_int32 global_tid, kmp_int32 hashloc,
 Copies the value of the output inside the memoization structure.
 */
 void __kmpc_memo_out(ident_t *loc, kmp_int32 global_tid, kmp_int32 hashloc,
-  void *output, kmp_int32 type_out, kmp_int32 radius,
-  kmp_int32 argc, ...) {
-    if (!__kmp_approx)
+                     void *output, kmp_int32 type_out, kmp_int32 radius,
+                     kmp_int32 argc, ...) {
+  if (!__kmp_approx)
     return;
 
   __kmp_assert_valid_gtid(global_tid);
-  __kmp_memo_out(hashloc, global_tid);
+
+  va_list ap;
+  va_start(ap, argc);
+  kmp_int32 n_points;
+  double *points = __kmp_extract_memo_points(argc, &ap, &n_points);
+  va_end(ap);
+
+  __kmp_memo_out(hashloc, points, n_points, output, (memo_num_t)type_out,
+                 radius, global_tid);
+  kmpc_free(points);
 }
 
 /*!

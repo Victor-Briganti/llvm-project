@@ -15,22 +15,36 @@
 #include <stdio.h>
 #include <omp.h>
 
-#define NUM_LOOPS 10
+#define NUM_LOOPS 100000
 
 int test_memo_region() {
-    int x = 0;
-    
-    #pragma omp parallel for
-    for (int i = 0; i < NUM_LOOPS; i++) {
-        #pragma omp approx memo(1) input(i) output(x)
-        {
-            x = i;
-        }
+  int x = 0;
+  int y = 0;
+
+  double start, end;
+
+  start = omp_get_wtime();
+  #pragma omp parallel for reduction(+ : x)
+  for (int i = 0; i < NUM_LOOPS; i++) {
+    #pragma omp approx memo(5) input(i) output(x)
+    {
+      x++;
     }
+  }
+  end = omp_get_wtime();
+  printf("Memoized region time: %f\n", end - start);
 
-    return 0;
+  start = omp_get_wtime();
+  #pragma omp parallel for reduction(+ : y)
+  for (int i = 0; i < NUM_LOOPS; i++) {
+    y++;
+  }
+  end = omp_get_wtime();
+  printf("Standard region time: %f\n", end - start);
+
+  printf("x = %d, y = %d\n", x, y);
+  return 0;
 }
-
 
 int main() {
   test_memo_region();
