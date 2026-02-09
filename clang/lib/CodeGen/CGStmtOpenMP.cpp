@@ -24,6 +24,7 @@
 #include "clang/AST/Stmt.h"
 #include "clang/AST/StmtOpenMP.h"
 #include "clang/AST/StmtVisitor.h"
+#include "clang/AST/DeclCXX.h"
 #include "clang/Basic/OpenMPKinds.h"
 #include "clang/Basic/PrettyStackTrace.h"
 #include "clang/Basic/SourceManager.h"
@@ -2652,28 +2653,38 @@ static LValue EmitOMPHelperVar(CodeGenFunction &CGF,
 }
 
 static const Expr *createApproxCallExpr(CodeGenFunction &CGF,
-                                         SourceLocation Loc) {
- ASTContext &Ctx = CGF.getContext();
+                                        SourceLocation Loc) {
+  ASTContext &Ctx = CGF.getContext();
   QualType RetTy = Ctx.IntTy;
   // Create proper function pointer type
   FunctionProtoType::ExtProtoInfo EPI;
   QualType FnTy = Ctx.getFunctionType(RetTy, {}, EPI);
   QualType PtrTy = Ctx.getPointerType(FnTy);
-  // Create or get existing declaration
+  // Create or get existing declaration. Ensure C linkage for C++ TU so the
+  // emitted call is not mangled.
   IdentifierInfo &II = Ctx.Idents.get("__kmpc_omp_approx");
+  DeclContext *Parent = Ctx.getTranslationUnitDecl();
+  if (Ctx.getLangOpts().CPlusPlus) {
+    using namespace clang;
+    LinkageSpecDecl *CLinkageDecl = LinkageSpecDecl::Create(
+        Ctx, Parent, Loc, Loc, LinkageSpecLanguageIDs::C, /*HasBraces=*/false);
+    CLinkageDecl->setImplicit();
+    Parent->addDecl(CLinkageDecl);
+    Parent = CLinkageDecl;
+  }
+
   FunctionDecl *FD = FunctionDecl::Create(
-      Ctx, Ctx.getTranslationUnitDecl(), Loc, Loc,
-      DeclarationName(&II), FnTy, Ctx.getTrivialTypeSourceInfo(FnTy),
-      SC_Extern, false, false);
-  
+      Ctx, Parent, Loc, Loc, DeclarationName(&II), FnTy,
+      Ctx.getTrivialTypeSourceInfo(FnTy), SC_Extern, false, false);
+
   // Create the call expression
-  DeclRefExpr *Callee = DeclRefExpr::Create(
-      Ctx, NestedNameSpecifierLoc(), SourceLocation(), FD,
-      false, Loc, PtrTy, VK_PRValue);
-  
+  DeclRefExpr *Callee =
+      DeclRefExpr::Create(Ctx, NestedNameSpecifierLoc(), SourceLocation(), FD,
+                          false, Loc, PtrTy, VK_PRValue);
+
   SmallVector<Expr *, 2> Args;
-  return CallExpr::Create(Ctx, Callee, Args, RetTy, VK_PRValue, 
-                          Loc, FPOptionsOverride());
+  return CallExpr::Create(Ctx, Callee, Args, RetTy, VK_PRValue, Loc,
+                          FPOptionsOverride());
 }
 
 static void emitCommonSimdLoop(CodeGenFunction &CGF, const OMPLoopDirective &S,
@@ -8837,8 +8848,7 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
         EmitScalarExpr(MM->getRadiusSearch(), /*IgnoreResultAssign=*/true);
     CGM.getOpenMPRuntime().emitApproxMemoRegion(
         *this, CodeGen, S.getBeginLoc(), InputDecls, OutDecl, RadiusSearch);
-    // TODO
-    // return;
+    return;
   }
 
   if (auto *FM = S.getSingleClause<OMPFastmathClause>()) {
