@@ -4280,7 +4280,8 @@ void CodeGenFunction::EmitOMPForDirective(const OMPForDirective &S) {
   return emitOMPForDirective(S, *this, CGM, S.hasCancel());
 }
 
-void CodeGenFunction::EmitOMPForApproxDirective(const OMPForApproxDirective &S) {
+void CodeGenFunction::EmitOMPForApproxDirective(
+    const OMPForApproxDirective &S) {
   // TODO: By now the omp for approx will not accept a cancel directive.
   // But is important to revisit this.
   return emitOMPForDirective(S, *this, CGM, /*HasCancel=*/false);
@@ -8761,17 +8762,29 @@ static void substituteFunctionApproxMath(llvm::Function *F) {
 }
 
 static void addFnAttrApproxFastmath(llvm::Function *F) {
-  F->addFnAttr("approx-func-fp-math","true");
-  F->addFnAttr("denormal-fp-math","preserve-sign,preserve-sign");
-  F->addFnAttr("no-infs-fp-math","true");
-  F->addFnAttr("no-nans-fp-math","true");
-  F->addFnAttr("no-signed-zeros-fp-math","true");
-  F->addFnAttr("no-trapping-math","true");
-  F->addFnAttr("unsafe-fp-math","true");
+  F->addFnAttr("approx-func-fp-math", "true");
+  F->addFnAttr("denormal-fp-math", "preserve-sign,preserve-sign");
+  F->addFnAttr("no-infs-fp-math", "true");
+  F->addFnAttr("no-nans-fp-math", "true");
+  F->addFnAttr("no-signed-zeros-fp-math", "true");
+  F->addFnAttr("no-trapping-math", "true");
+  F->addFnAttr("unsafe-fp-math", "true");
 }
 
 void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
-  if (auto *MM = S.getSingleClause<OMPMemoClause>()) {
+  auto *MM = S.getSingleClause<OMPMemoClause>();
+  auto *FM = S.getSingleClause<OMPFastmathClause>();
+
+  if (MM && FM) {
+    unsigned DiagID = CGM.getDiags().getCustomDiagID(
+        DiagnosticsEngine::Error,
+        "'approx' does not support a 'fastmath' and 'memo' region defined in "
+        "the same directive.");
+    this->CGM.getDiags().Report(DiagID);
+    return;
+  }
+
+  if (MM) {
     llvm::SmallVector<const VarDecl *, 8> InputDecls;
     bool HasInput = false;
     for (auto *CS : S.getClausesOfKind<OMPInputClause>()) {
@@ -8808,8 +8821,7 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
       for (auto *RefExpr : CS->varlist()) {
         if (VarCount) {
           unsigned DiagID = CGM.getDiags().getCustomDiagID(
-          DiagnosticsEngine::Error,
-          "'output' supports only one variable.");
+              DiagnosticsEngine::Error, "'output' supports only one variable.");
           this->CGM.getDiags().Report(DiagID);
           return;
         }
@@ -8851,7 +8863,7 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
     return;
   }
 
-  if (auto *FM = S.getSingleClause<OMPFastmathClause>()) {
+  if (FM) {
     auto &&OutlinedCallGen = [&S](CodeGenFunction &CGF, PrePostActionTy &) {
       CodeGenFunction::OMPLocalDeclMapRAII LocalDecl(CGF);
 
@@ -8872,13 +8884,12 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
       OutlinedCallGen(CGF, Action);
     };
     auto ElseGen = [&](CodeGenFunction &CGF, PrePostActionTy &Action) {
-      Action.Enter(CGF);
-      CGF.EmitStmt(S.getAssociatedStmt());
+      EmitSimpleOMPExecutableDirective(S);
     };
 
     CGM.getOpenMPRuntime().emitIfClause(*this, IfCond, ThenGen, ElseGen);
     return;
   }
 
-  EmitStmt(S.getAssociatedStmt());
+  EmitSimpleOMPExecutableDirective(S);
 }

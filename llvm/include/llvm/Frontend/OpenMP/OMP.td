@@ -562,12 +562,16 @@ def OMPC_When: Clause<[Spelling<"when">]> {
 def OMPC_Write : Clause<[Spelling<"write">]> {
   let clangClass = "OMPWriteClause";
 }
-def OMP_PERFO_Large : EnumVal<"large", 2, 1> { let isDefault = 1; }
+def OMP_PERFO_Init : EnumVal<"init", 2, 1> {}
+def OMP_PERFO_Fini : EnumVal<"fini", 3, 1> {}
+def OMP_PERFO_Large : EnumVal<"large", 4, 1> { let isDefault = 1; }
 def OMPC_Perfo : Clause<[Spelling<"perfo">]> {
   let clangClass = "OMPPerfoClause";
   let enumClauseValue = "PerfoKind";
   let allowedClauseValues = [
-    OMP_PERFO_Large
+    OMP_PERFO_Init,
+    OMP_PERFO_Fini,
+    OMP_PERFO_Large,
   ];
 }
 def OMPC_Fastmath : Clause<[Spelling<"fastmath">]> {
