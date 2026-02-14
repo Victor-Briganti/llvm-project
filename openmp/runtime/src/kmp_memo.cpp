@@ -450,7 +450,7 @@ class kmp_map_t {
     size = 32;
     buckets = (kmp_bucket_t *)kmpc_calloc(size, sizeof(kmp_bucket_t));
     load_factor = 0.75;
-    __kmp_init_lock(&lock);
+    __kmp_init_rw_lock(&rw_lock);
   }
 
   void resize(kmp_int32 gtid) {
@@ -473,24 +473,28 @@ class kmp_map_t {
   bool insert_helper(kmp_int32 hashloc, kmp_kd_tree_t *tree, kmp_int32 gtid) {
     kmp_int32 idx = hash_func(hashloc);
     kmp_int32 start_idx = idx;
+    __kmp_acquire_rw_lock_write(&rw_lock, gtid);
     do {
       switch (buckets[idx].state) {
-      case DELETED:
-      case EMPTY:
+        case DELETED:
+        case EMPTY:
         buckets[idx].key = hashloc;
         buckets[idx].tree = tree;
         buckets[idx].state = OCCUPIED;
         entries++;
+        __kmp_release_rw_lock_write(&rw_lock, gtid);
         return true;
-      case OCCUPIED:
+        case OCCUPIED:
         if (buckets[idx].key == hashloc) {
           buckets[idx].tree = tree;
+          __kmp_release_rw_lock_write(&rw_lock, gtid);
           return true;
         }
         idx = (idx + 1) % size;
       }
     } while (idx != start_idx);
-
+    
+    __kmp_release_rw_lock_write(&rw_lock, gtid);
     return false;
   }
 
@@ -512,7 +516,7 @@ public:
 
   kmp_kd_tree_t *get_or_create(kmp_int32 hashloc, kmp_int32 dims,
                                kmp_int32 gtid) {
-    __kmp_acquire_lock(&lock, gtid);
+    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
 
     kmp_int32 idx = hash_func(hashloc);
     kmp_int32 start_idx = idx;
@@ -523,7 +527,7 @@ public:
       case OCCUPIED:
         if (buckets[idx].key == hashloc) {
           kmp_kd_tree_t *tree = buckets[idx].tree;
-          __kmp_release_lock(&lock, gtid);
+          __kmp_release_rw_lock_read(&rw_lock, gtid);
           return tree;
         }
         [[fallthrough]];
@@ -533,45 +537,44 @@ public:
     } while (idx != start_idx);
 
   create_new:
+    __kmp_release_rw_lock_read(&rw_lock, gtid);
     kmp_kd_tree_t *new_tree =
-        (kmp_kd_tree_t *)kmpc_malloc(sizeof(kmp_kd_tree_t));
+    (kmp_kd_tree_t *)kmpc_malloc(sizeof(kmp_kd_tree_t));
     new_tree->init(dims);
-
+    
     while (!insert_helper(hashloc, new_tree, gtid)) {
       if (size >= 4096) {
-        __kmp_release_lock(&lock, gtid);
         return new_tree;
       }
       resize(gtid);
     }
 
-    __kmp_release_lock(&lock, gtid);
     return new_tree;
   }
 
   kmp_kd_tree_t *get(kmp_int32 hashloc, kmp_int32 gtid) {
     kmp_kd_tree_t *tree = nullptr;
-    __kmp_acquire_lock(&lock, gtid);
-
+    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
+    
     kmp_int32 idx = hash_func(hashloc);
     kmp_int32 start_idx = idx;
     do {
       switch (buckets[idx].state) {
-      case EMPTY:
+        case EMPTY:
         goto out;
-      case OCCUPIED:
+        case OCCUPIED:
         if (buckets[idx].key == hashloc) {
           tree = buckets[idx].tree;
           goto out;
         }
         [[fallthrough]];
-      case DELETED:
+        case DELETED:
         idx = (idx + 1) % size;
       }
     } while (idx != start_idx);
-
+    
   out:
-    __kmp_release_lock(&lock, gtid);
+    __kmp_release_rw_lock_read(&rw_lock, gtid);
     return tree;
   }
 
@@ -580,7 +583,7 @@ private:
   kmp_int32 size;
   kmp_bucket_t *buckets;
   double load_factor;
-  kmp_lock_t lock;
+  kmp_rw_lock_t rw_lock;
 
   static kmp_bootstrap_lock_t mutex;
   static kmp_map_t *singleton;

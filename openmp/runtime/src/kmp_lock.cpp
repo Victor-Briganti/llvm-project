@@ -4070,9 +4070,7 @@ int __kmp_acquire_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid) {
 }
 
 int __kmp_release_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid) {
-  __kmp_acquire_ticket_lock(&lck->lk.write_lock, gtid);
-  lck->lk.reader_count.fetch_sub(1);
-  return __kmp_release_ticket_lock(&lck->lk.write_lock, gtid);
+  return lck->lk.reader_count.fetch_sub(1);
 }
 
 int __kmp_acquire_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid) {
