@@ -144,10 +144,7 @@ typedef union kmp_tas_lock kmp_tas_lock_t;
 
 // Static initializer for test and set lock variables. Usage:
 //    kmp_tas_lock_t xlock = KMP_TAS_LOCK_INITIALIZER( xlock );
-#define KMP_TAS_LOCK_INITIALIZER(lock)                                         \
-  {                                                                            \
-    { KMP_LOCK_FREE(tas), 0 }                                                  \
-  }
+#define KMP_TAS_LOCK_INITIALIZER(lock) {{KMP_LOCK_FREE(tas), 0}}
 
 extern int __kmp_acquire_tas_lock(kmp_tas_lock_t *lck, kmp_int32 gtid);
 extern int __kmp_test_tas_lock(kmp_tas_lock_t *lck, kmp_int32 gtid);
@@ -203,10 +200,7 @@ typedef union kmp_futex_lock kmp_futex_lock_t;
 
 // Static initializer for futex lock variables. Usage:
 //    kmp_futex_lock_t xlock = KMP_FUTEX_LOCK_INITIALIZER( xlock );
-#define KMP_FUTEX_LOCK_INITIALIZER(lock)                                       \
-  {                                                                            \
-    { KMP_LOCK_FREE(futex), 0 }                                                \
-  }
+#define KMP_FUTEX_LOCK_INITIALIZER(lock) {{KMP_LOCK_FREE(futex), 0}}
 
 extern int __kmp_acquire_futex_lock(kmp_futex_lock_t *lck, kmp_int32 gtid);
 extern int __kmp_test_futex_lock(kmp_futex_lock_t *lck, kmp_int32 gtid);
@@ -282,10 +276,7 @@ typedef union kmp_ticket_lock kmp_ticket_lock_t;
 // Static initializer for simple ticket lock variables. Usage:
 //    kmp_ticket_lock_t xlock = KMP_TICKET_LOCK_INITIALIZER( xlock );
 // Note the macro argument. It is important to make var properly initialized.
-#define KMP_TICKET_LOCK_INITIALIZER(lock)                                      \
-  {                                                                            \
-    { true, &(lock), NULL, 0U, 0U, 0, -1 }                                     \
-  }
+#define KMP_TICKET_LOCK_INITIALIZER(lock) {{true, &(lock), NULL, 0U, 0U, 0, -1}}
 
 extern int __kmp_acquire_ticket_lock(kmp_ticket_lock_t *lck, kmp_int32 gtid);
 extern int __kmp_test_ticket_lock(kmp_ticket_lock_t *lck, kmp_int32 gtid);
@@ -303,6 +294,32 @@ extern int __kmp_release_nested_ticket_lock(kmp_ticket_lock_t *lck,
                                             kmp_int32 gtid);
 extern void __kmp_init_nested_ticket_lock(kmp_ticket_lock_t *lck);
 extern void __kmp_destroy_nested_ticket_lock(kmp_ticket_lock_t *lck);
+
+// ----------------------------------------------------------------------------
+// Read-Write locks.
+
+struct kmp_base_rw_lock {
+  std::atomic<kmp_int32> reader_count;
+  kmp_ticket_lock_t write_lock;
+};
+
+typedef struct kmp_base_rw_lock kmp_base_rw_lock_t;
+
+union KMP_ALIGN_CACHE kmp_rw_lock {
+  kmp_base_rw_lock_t lk;
+  char lk_pad[KMP_PAD(kmp_base_rw_lock_t, CACHE_LINE)];
+};
+
+typedef union kmp_rw_lock kmp_rw_lock_t;
+
+extern void __kmp_init_rw_lock(kmp_rw_lock_t *lck);
+extern void __kmp_destroy_rw_lock(kmp_rw_lock_t *lck);
+
+extern int __kmp_acquire_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
+extern int __kmp_release_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
+
+extern int __kmp_acquire_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
+extern int __kmp_release_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
 
 // ----------------------------------------------------------------------------
 // Queuing locks.
@@ -506,30 +523,6 @@ extern int __kmp_release_nested_drdpa_lock(kmp_drdpa_lock_t *lck,
 extern void __kmp_init_nested_drdpa_lock(kmp_drdpa_lock_t *lck);
 extern void __kmp_destroy_nested_drdpa_lock(kmp_drdpa_lock_t *lck);
 
-// ----------------------------------------------------------------------------
-// Read-Write locks.
-
-struct kmp_base_rw_lock {
-  std::atomic<kmp_int32> reader_count;
-  std::atomic<kmp_int32> waiting_writers;
-  std::atomic<kmp_int32> writer_active;
-  kmp_tas_lock write_lock;
-};
-union KMP_ALIGN_CACHE kmp_rw_lock {
-  kmp_base_rw_lock lk;
-  char lk_pad[KMP_PAD(kmp_base_rw_lock, CACHE_LINE)];
-};
-typedef union kmp_rw_lock kmp_rw_lock_t;
-
-extern void __kmp_init_rw_lock(kmp_rw_lock_t *lck);
-extern void __kmp_destroy_rw_lock(kmp_rw_lock_t *lck);
-extern int __kmp_acquire_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
-extern int __kmp_test_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
-extern int __kmp_release_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
-extern int __kmp_acquire_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
-extern int __kmp_test_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
-extern int __kmp_release_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
-
 // ============================================================================
 // Lock purposes.
 // ============================================================================
@@ -685,9 +678,8 @@ extern int (*__kmp_acquire_user_lock_with_checks_)(kmp_user_lock_p lck,
       KMP_INIT_BACKOFF(time);                                                  \
       do {                                                                     \
         KMP_YIELD_OVERSUB_ELSE_SPIN(spins, time);                              \
-      } while (                                                                \
-          lck->tas.lk.poll != 0 ||                                             \
-          !__kmp_atomic_compare_store_acq(&lck->tas.lk.poll, 0, gtid + 1));    \
+      } while (lck->tas.lk.poll != 0 || !__kmp_atomic_compare_store_acq(       \
+                                            &lck->tas.lk.poll, 0, gtid + 1));  \
     }                                                                          \
     KMP_FSYNC_ACQUIRED(lck);                                                   \
   } else {                                                                     \
@@ -1136,7 +1128,7 @@ typedef enum {
   ((seq) >= KMP_FIRST_D_LOCK && (seq) <= KMP_LAST_D_LOCK)
 #define KMP_IS_I_LOCK(seq)                                                     \
   ((seq) >= KMP_FIRST_I_LOCK && (seq) <= KMP_LAST_I_LOCK)
-#define KMP_GET_I_TAG(seq) (kmp_indirect_locktag_t)((seq)-KMP_FIRST_I_LOCK)
+#define KMP_GET_I_TAG(seq) (kmp_indirect_locktag_t)((seq) - KMP_FIRST_I_LOCK)
 #define KMP_GET_D_TAG(seq) ((seq) << 1 | 1)
 
 // Enumerates direct lock tags starting from indirect tag.

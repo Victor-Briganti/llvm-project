@@ -343,10 +343,16 @@ public:
     num_leafs = 0;
     k = dims;
     alpha = 0.7;
-    __kmp_init_lock(&lock);
+    __kmp_init_rw_lock(&rw_lock);
   }
 
-  bool is_empty() { return root == nullptr; }
+  bool is_empty(kmp_int32 gtid) {
+    bool empty;
+    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
+    empty = (root == nullptr);
+    __kmp_release_rw_lock_read(&rw_lock, gtid);
+    return empty;
+  }
 
   kmp_int32 get_k() { return k; }
 
@@ -358,18 +364,18 @@ public:
     kmp_node_t *node = node_create(points, n_points, data, dtype);
     KMP_ASSERT2(node, "Could not allocate node");
 
-    __kmp_acquire_lock(&lock, gtid);
+    __kmp_acquire_rw_lock_write(&rw_lock, gtid);
     bool rebuild = false;
     root = insert_r(root, node, radius * radius, 0, rebuild);
     num_leafs++;
-    __kmp_release_lock(&lock, gtid);
+    __kmp_release_rw_lock_write(&rw_lock, gtid);
   }
 
   kmp_node_t *search_max_ref(double *points, int n_points, kmp_int32 radius,
                              kmp_int32 gtid) {
     KMP_ASSERT2(points, "Search points should not be NULL");
 
-    __kmp_acquire_lock(&lock, gtid);
+    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
     kmp_node_t *head = root;
     kmp_node_t *max_node = nullptr;
     kmp_int32 dept = 0;
@@ -391,7 +397,7 @@ public:
       dept++;
     }
 
-    __kmp_release_lock(&lock, gtid);
+    __kmp_release_rw_lock_read(&rw_lock, gtid);
     return max_node;
   }
 
@@ -399,19 +405,21 @@ public:
                            kmp_node_t **node_list, int max_nodes,
                            kmp_int32 gtid) {
     kmp_int32 idx = 0;
-    __kmp_acquire_lock(&lock, gtid);
+    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
     radius_search_r(point, num_points, root, radius * radius, node_list,
                     max_nodes, idx, 0);
-    __kmp_release_lock(&lock, gtid);
+    __kmp_release_rw_lock_read(&rw_lock, gtid);
     return idx;
   }
+
+  ~kmp_kd_tree_t() { __kmp_destroy_rw_lock(&rw_lock); }
 
 private:
   kmp_node_t *root;
   kmp_int32 num_leafs;
   kmp_int32 k;
   double alpha;
-  kmp_lock_t lock;
+  kmp_rw_lock_t rw_lock;
 
   static kmp_int32 g_axis;
 };
@@ -592,7 +600,7 @@ int __kmp_memo_in(kmp_int32 hashloc, double *points, kmp_int32 n_points,
   kmp_kd_tree_t *tree = map->get_or_create(hashloc, n_points, gtid);
   KMP_ASSERT2(tree, "Could not get or create tree");
 
-  if (tree->is_empty()) {
+  if (tree->is_empty(gtid)) {
     return 1;
   }
 
@@ -611,9 +619,8 @@ int __kmp_memo_in(kmp_int32 hashloc, double *points, kmp_int32 n_points,
     kmp_node_t **node_list =
         (kmp_node_t **)kmpc_malloc(max_nodes * sizeof(kmp_node_t *));
 
-    kmp_int32 count =
-        tree->kdtree_radius_search(points, n_points, radius, node_list,
-                                   max_nodes, gtid);
+    kmp_int32 count = tree->kdtree_radius_search(points, n_points, radius,
+                                                 node_list, max_nodes, gtid);
 
     if (count > 0) {
       memo_compute_mean(node_list, count, dtype, data);

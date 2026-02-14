@@ -3417,7 +3417,7 @@ void __kmp_init_dynamic_user_locks() {
   fill_table(__kmp_indirect_get_location, expand);
 #undef expand
 #define expand(l)                                                              \
-  (kmp_lock_flags_t(*)(kmp_user_lock_p)) __kmp_get_##l##_lock_flags
+  (kmp_lock_flags_t (*)(kmp_user_lock_p)) __kmp_get_##l##_lock_flags
   fill_table(__kmp_indirect_get_flags, expand);
 #undef expand
 
@@ -3585,7 +3585,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
     __kmp_user_lock_size = sizeof(kmp_tas_lock_t);
 
     __kmp_get_user_lock_owner_ =
-        (kmp_int32(*)(kmp_user_lock_p))(&__kmp_get_tas_lock_owner);
+        (kmp_int32 (*)(kmp_user_lock_p))(&__kmp_get_tas_lock_owner);
 
     if (__kmp_env_consistency_check) {
       KMP_BIND_USER_LOCK_WITH_CHECKS(tas);
@@ -3605,7 +3605,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
     __kmp_set_user_lock_location_ =
         (void (*)(kmp_user_lock_p, const ident_t *))NULL;
 
-    __kmp_get_user_lock_flags_ = (kmp_lock_flags_t(*)(kmp_user_lock_p))NULL;
+    __kmp_get_user_lock_flags_ = (kmp_lock_flags_t (*)(kmp_user_lock_p))NULL;
 
     __kmp_set_user_lock_flags_ =
         (void (*)(kmp_user_lock_p, kmp_lock_flags_t))NULL;
@@ -3618,7 +3618,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
     __kmp_user_lock_size = sizeof(kmp_futex_lock_t);
 
     __kmp_get_user_lock_owner_ =
-        (kmp_int32(*)(kmp_user_lock_p))(&__kmp_get_futex_lock_owner);
+        (kmp_int32 (*)(kmp_user_lock_p))(&__kmp_get_futex_lock_owner);
 
     if (__kmp_env_consistency_check) {
       KMP_BIND_USER_LOCK_WITH_CHECKS(futex);
@@ -3638,7 +3638,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
     __kmp_set_user_lock_location_ =
         (void (*)(kmp_user_lock_p, const ident_t *))NULL;
 
-    __kmp_get_user_lock_flags_ = (kmp_lock_flags_t(*)(kmp_user_lock_p))NULL;
+    __kmp_get_user_lock_flags_ = (kmp_lock_flags_t (*)(kmp_user_lock_p))NULL;
 
     __kmp_set_user_lock_flags_ =
         (void (*)(kmp_user_lock_p, kmp_lock_flags_t))NULL;
@@ -3651,7 +3651,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
     __kmp_user_lock_size = sizeof(kmp_ticket_lock_t);
 
     __kmp_get_user_lock_owner_ =
-        (kmp_int32(*)(kmp_user_lock_p))(&__kmp_get_ticket_lock_owner);
+        (kmp_int32 (*)(kmp_user_lock_p))(&__kmp_get_ticket_lock_owner);
 
     if (__kmp_env_consistency_check) {
       KMP_BIND_USER_LOCK_WITH_CHECKS(ticket);
@@ -3674,7 +3674,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
         kmp_user_lock_p, const ident_t *))(&__kmp_set_ticket_lock_location);
 
     __kmp_get_user_lock_flags_ =
-        (kmp_lock_flags_t(*)(kmp_user_lock_p))(&__kmp_get_ticket_lock_flags);
+        (kmp_lock_flags_t (*)(kmp_user_lock_p))(&__kmp_get_ticket_lock_flags);
 
     __kmp_set_user_lock_flags_ = (void (*)(kmp_user_lock_p, kmp_lock_flags_t))(
         &__kmp_set_ticket_lock_flags);
@@ -3685,7 +3685,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
     __kmp_user_lock_size = sizeof(kmp_queuing_lock_t);
 
     __kmp_get_user_lock_owner_ =
-        (kmp_int32(*)(kmp_user_lock_p))(&__kmp_get_queuing_lock_owner);
+        (kmp_int32 (*)(kmp_user_lock_p))(&__kmp_get_queuing_lock_owner);
 
     if (__kmp_env_consistency_check) {
       KMP_BIND_USER_LOCK_WITH_CHECKS(queuing);
@@ -3708,7 +3708,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
         kmp_user_lock_p, const ident_t *))(&__kmp_set_queuing_lock_location);
 
     __kmp_get_user_lock_flags_ =
-        (kmp_lock_flags_t(*)(kmp_user_lock_p))(&__kmp_get_queuing_lock_flags);
+        (kmp_lock_flags_t (*)(kmp_user_lock_p))(&__kmp_get_queuing_lock_flags);
 
     __kmp_set_user_lock_flags_ = (void (*)(kmp_user_lock_p, kmp_lock_flags_t))(
         &__kmp_set_queuing_lock_flags);
@@ -3720,7 +3720,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
     __kmp_user_lock_size = sizeof(kmp_adaptive_lock_t);
 
     __kmp_get_user_lock_owner_ =
-        (kmp_int32(*)(kmp_user_lock_p))(&__kmp_get_queuing_lock_owner);
+        (kmp_int32 (*)(kmp_user_lock_p))(&__kmp_get_queuing_lock_owner);
 
     if (__kmp_env_consistency_check) {
       KMP_BIND_USER_LOCK_WITH_CHECKS(adaptive);
@@ -3741,7 +3741,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
         kmp_user_lock_p, const ident_t *))(&__kmp_set_queuing_lock_location);
 
     __kmp_get_user_lock_flags_ =
-        (kmp_lock_flags_t(*)(kmp_user_lock_p))(&__kmp_get_queuing_lock_flags);
+        (kmp_lock_flags_t (*)(kmp_user_lock_p))(&__kmp_get_queuing_lock_flags);
 
     __kmp_set_user_lock_flags_ = (void (*)(kmp_user_lock_p, kmp_lock_flags_t))(
         &__kmp_set_queuing_lock_flags);
@@ -3754,7 +3754,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
     __kmp_user_lock_size = sizeof(kmp_drdpa_lock_t);
 
     __kmp_get_user_lock_owner_ =
-        (kmp_int32(*)(kmp_user_lock_p))(&__kmp_get_drdpa_lock_owner);
+        (kmp_int32 (*)(kmp_user_lock_p))(&__kmp_get_drdpa_lock_owner);
 
     if (__kmp_env_consistency_check) {
       KMP_BIND_USER_LOCK_WITH_CHECKS(drdpa);
@@ -3777,7 +3777,7 @@ void __kmp_set_user_lock_vptrs(kmp_lock_kind_t user_lock_kind) {
         kmp_user_lock_p, const ident_t *))(&__kmp_set_drdpa_lock_location);
 
     __kmp_get_user_lock_flags_ =
-        (kmp_lock_flags_t(*)(kmp_user_lock_p))(&__kmp_get_drdpa_lock_flags);
+        (kmp_lock_flags_t (*)(kmp_user_lock_p))(&__kmp_get_drdpa_lock_flags);
 
     __kmp_set_user_lock_flags_ = (void (*)(kmp_user_lock_p, kmp_lock_flags_t))(
         &__kmp_set_drdpa_lock_flags);
@@ -3955,7 +3955,7 @@ void __kmp_cleanup_user_locks(void) {
 
 #define IS_CRITICAL(lck)                                                       \
   ((__kmp_get_user_lock_flags_ != NULL) &&                                     \
-   ((*__kmp_get_user_lock_flags_)(lck)&kmp_lf_critical_section))
+   ((*__kmp_get_user_lock_flags_)(lck) & kmp_lf_critical_section))
 
   // Loop through lock table, free all locks.
   // Do not free item [0], it is reserved for lock tables list.
@@ -4054,118 +4054,40 @@ void __kmp_cleanup_user_locks(void) {
 
 #endif // KMP_USE_DYNAMIC_LOCK
 
-// ----------------------------------------------------------------------------
-// Read-Write locks.
-
 void __kmp_init_rw_lock(kmp_rw_lock_t *lck) {
-  std::atomic_store(&lck->lk.reader_count, 0);
-  std::atomic_store(&lck->lk.waiting_writers, 0);
-  std::atomic_store(&lck->lk.writer_active, 0);
-  __kmp_init_tas_lock(&lck->lk.write_lock);
+  lck->lk.reader_count.store(0);
+  __kmp_init_ticket_lock(&lck->lk.write_lock);
 }
 
 void __kmp_destroy_rw_lock(kmp_rw_lock_t *lck) {
-  __kmp_destroy_tas_lock(&lck->lk.write_lock);
+  __kmp_destroy_ticket_lock(&lck->lk.write_lock);
 }
 
 int __kmp_acquire_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid) {
-  kmp_uint32 spins;
-  kmp_uint64 time;
-
-  while (TRUE) {
-    if (!std::atomic_load(&lck->lk.writer_active) ||
-        std::atomic_load(&lck->lk.waiting_writers) > 0) {
-      KMP_YIELD_OVERSUB_ELSE_SPIN(spins, time);
-    }
-
-    std::atomic_fetch_add(&lck->lk.reader_count, 1);
-
-    // Double check for active writers
-    if (std::atomic_load(&lck->lk.writer_active)) {
-      KMP_FSYNC_ACQUIRED(lck);
-      return KMP_LOCK_ACQUIRED_FIRST;
-    }
-
-    std::atomic_fetch_sub(&lck->lk.reader_count, 1);
-    KMP_YIELD_OVERSUB_ELSE_SPIN(spins, time);
-  }
-}
-
-int __kmp_acquire_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid) {
-  kmp_uint32 spins;
-  kmp_uint64 time;
-
-  std::atomic_fetch_add(&lck->lk.waiting_writers, 1);
-  __kmp_acquire_tas_lock(&lck->lk.write_lock, gtid);
-
-  std::atomic_store(&lck->lk.writer_active, 1);
-  std::atomic_fetch_sub(&lck->lk.waiting_writers, 1);
-
-  KMP_INIT_YIELD(spins);
-  KMP_INIT_BACKOFF(time);
-
-  while (std::atomic_load(&lck->lk.reader_count) > 0) {
-    KMP_YIELD_OVERSUB_ELSE_SPIN(spins, time);
-  }
-
-  KMP_FSYNC_ACQUIRED(lck);
-  return KMP_LOCK_ACQUIRED_FIRST;
-}
-
-int __kmp_test_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid) {
-  KMP_MB();
-  KMP_FSYNC_ACQUIRED(lck);
-  std::atomic_fetch_sub(&lck->lk.reader_count, 1);
-  KMP_YIELD_OVERSUB();
-  return KMP_LOCK_RELEASED;
-}
-
-int __kmp_test_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid) {
-  if (std::atomic_load(&lck->lk.reader_count) > 0 ||
-      std::atomic_load(&lck->lk.writer_active)) {
-    return FALSE;
-  }
-
-  if (!__kmp_test_tas_lock(&lck->lk.write_lock, gtid)) {
-    return FALSE;
-  }
-
-  std::atomic_store(&lck->lk.writer_active, 1);
-  if (std::atomic_load(&lck->lk.reader_count) > 0) {
-    std::atomic_store(&lck->lk.writer_active, 0);
-    __kmp_release_tas_lock(&lck->lk.write_lock, gtid);
-    return FALSE;
-  }
-
-  KMP_FSYNC_ACQUIRED(lck);
-  return TRUE;
+  __kmp_acquire_ticket_lock(&lck->lk.write_lock, gtid);
+  lck->lk.reader_count.fetch_add(1);
+  return __kmp_release_ticket_lock(&lck->lk.write_lock, gtid);
 }
 
 int __kmp_release_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid) {
-  if (!std::atomic_load(&lck->lk.writer_active) ||
-      std::atomic_load(&lck->lk.waiting_writers) > 0) {
-    return FALSE;
+  __kmp_acquire_ticket_lock(&lck->lk.write_lock, gtid);
+  lck->lk.reader_count.fetch_sub(1);
+  return __kmp_release_ticket_lock(&lck->lk.write_lock, gtid);
+}
+
+int __kmp_acquire_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid) {
+  int res;
+  while (TRUE) {
+    res = __kmp_acquire_ticket_lock(&lck->lk.write_lock, gtid);
+    if (lck->lk.reader_count.load() > 0) {
+      __kmp_release_ticket_lock(&lck->lk.write_lock, gtid);
+    } else {
+      break;
+    }
   }
-
-  std::atomic_fetch_add(&lck->lk.reader_count, 1);
-
-  // Double check for active writers
-  if (std::atomic_load(&lck->lk.writer_active) > 0) {
-    KMP_FSYNC_ACQUIRED(lck);
-    return TRUE;
-  }
-
-  std::atomic_fetch_sub(&lck->lk.reader_count, 1);
-  return FALSE;
+  return res;
 }
 
 int __kmp_release_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid) {
-  KMP_MB();
-  KMP_FSYNC_RELEASING(lck);
-
-  std::atomic_store(&lck->lk.writer_active, 0);
-  __kmp_release_tas_lock(&lck->lk.write_lock, gtid);
-
-  KMP_YIELD_OVERSUB();
-  return KMP_LOCK_RELEASED;
+  return __kmp_release_ticket_lock(&lck->lk.write_lock, gtid);
 }
