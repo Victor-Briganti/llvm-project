@@ -12132,16 +12132,10 @@ static OpenMPMemoNumType getMemoNumType(const BuiltinType *BT) {
 void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
                                            const RegionCodeGenTy &ApproxOpGen,
                                            SourceLocation Loc,
-                                           ArrayRef<const VarDecl *> InputVars,
                                            const VarDecl *OutputVar,
                                            llvm::Value *RadiusSearch) {
   if (!CGF.HaveInsertPoint())
     return;
-
-  if (InputVars.empty()) {
-    emitInlinedDirective(CGF, OMPD_approx, ApproxOpGen);
-    return;
-  }
 
   ASTContext &C = CGM.getContext();
   llvm::Value *Ident = emitUpdateLocation(CGF, Loc);
@@ -12162,49 +12156,21 @@ void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
   llvm::Value *OutPtr =
       CGF.Builder.CreatePointerCast(OutAddr.getBasePointer(), CGM.VoidPtrTy);
 
-  // Build memo args vector in the form: T0, V0, T1, V1, ...
-  // Where T is the type and V is the variable per se.
-  llvm::SmallVector<llvm::Value *, 16> MemoArgs;
-  for (const VarDecl *IV : InputVars) {
-    QualType QT = IV->getType();
-    assert(QT->isScalarType() &&
-           "Only scalar type are supported in the generation of memo code");
-
-    const BuiltinType *BT = QT->getAs<BuiltinType>();
-    OpenMPMemoNumType MT = getMemoNumType(BT);
-    MemoArgs.push_back(CGF.Builder.getInt32(static_cast<int>(MT)));
-
-    Address InAddr = CGF.GetAddrOfLocalVar(IV);
-    LValue LV = CGF.MakeAddrLValue(InAddr, QT, AlignmentSource::Decl);
-    MemoArgs.push_back(CGF.EmitLoadOfScalar(LV, IV->getLocation()));
-  }
-
-  // Build the size of the variables
-  Address ArgcAddr = Address::invalid();
-  // int32 argc = 0;
-  ArgcAddr = CGF.CreateMemTemp(KmpInt32Ty, ".omp.memo.argc");
-  CGF.Builder.CreateStore(CGF.Builder.getInt32(MemoArgs.size()), ArgcAddr);
-  llvm::Value *Argc = CGF.Builder.CreateLoad(ArgcAddr);
-
   // Build arguments to botch calls
-  llvm::Value *Args[] = {Ident, ThreadID,     LocHash, OutPtr,
-                         OutTy, RadiusSearch, Argc};
-  llvm::SmallVector<llvm::Value *, 16> RealArgs;
-  RealArgs.append(std::begin(Args), std::end(Args));
-  RealArgs.append(MemoArgs.begin(), MemoArgs.end());
+  llvm::Value *Args[] = {Ident, ThreadID, LocHash, RadiusSearch, OutPtr, OutTy};
 
-  // if (__kmpc_memo_in(ident_t *, kmp_int32, kmp_int32 , void *, kmp_int32 ,
-  // double , kmp_int32 , ...)) {
+  // if (__kmpc_memo_in(ident_t *, kmp_int32, kmp_int32, kmp_int32, void *,
+  // kmp_int32) {
   //    ApproxOpGen();
-  //    __kmpc_memo_out(ident_t *, kmp_int32, kmp_int32 , void *, kmp_int32 ,
-  //    double , kmp_int32 , ...)
+  //    __kmpc_memo_out(ident_t *, kmp_int32, kmp_int32, kmp_int32, void *,
+  //    kmp_int32)
   // }
   CommonActionTy Action(OMPBuilder.getOrCreateRuntimeFunction(
                             CGM.getModule(), OMPRTL___kmpc_memo_in),
-                        RealArgs,
+                        Args,
                         OMPBuilder.getOrCreateRuntimeFunction(
                             CGM.getModule(), OMPRTL___kmpc_memo_out),
-                        RealArgs,
+                        Args,
                         /*Conditional=*/true);
   ApproxOpGen.setAction(Action);
   emitInlinedDirective(CGF, OMPD_approx, ApproxOpGen);
@@ -12523,8 +12489,7 @@ void CGOpenMPSIMDRuntime::emitDoacrossOrdered(CodeGenFunction &CGF,
 
 void CGOpenMPSIMDRuntime::emitApproxMemoRegion(
     CodeGenFunction &CGF, const RegionCodeGenTy &ApproxOpGen,
-    SourceLocation Loc, ArrayRef<const VarDecl *> InputVars,
-    const VarDecl *OutputVar, llvm::Value *RadiusSearch) {
+    SourceLocation Loc, const VarDecl *OutputVar, llvm::Value *RadiusSearch) {
   llvm_unreachable("Not supported in SIMD-only mode");
 }
 

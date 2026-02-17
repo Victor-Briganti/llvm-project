@@ -1436,12 +1436,6 @@ public:
                                    SourceLocation LParenLoc,
                                    SourceLocation EndLoc);
 
-  /// Called on well-formed 'input' clause.
-  OMPClause *ActOnOpenMPInputClause(ArrayRef<Expr *> VarList,
-                                    SourceLocation StartLoc,
-                                    SourceLocation LParenLoc,
-                                    SourceLocation EndLoc);
-
   /// Called on well-formed 'output' clause.
   OMPClause *ActOnOpenMPOutputClause(ArrayRef<Expr *> VarList,
                                      SourceLocation StartLoc,

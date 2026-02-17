@@ -4107,12 +4107,6 @@ bool RecursiveASTVisitor<Derived>::VisitOMPMemoClause(OMPMemoClause *C) {
 }
 
 template <typename Derived>
-bool RecursiveASTVisitor<Derived>::VisitOMPInputClause(OMPInputClause *C) {
-  TRY_TO(VisitOMPClauseList(C));
-  return true;
-}
-
-template <typename Derived>
 bool RecursiveASTVisitor<Derived>::VisitOMPOutputClause(OMPOutputClause *C) {
   TRY_TO(VisitOMPClauseList(C));
   return true;

@@ -1703,13 +1703,13 @@ public:
   /// Emit approximated region.
   /// \param ApproxOpGen Generator for the statement associated with the
   /// given approximated region.
-  /// \param InputVars Input variables that are going to be inserted.
   /// \param OutputVar Output variable that is going to receive the memoization.
   /// \param RadiusSearch Radius of the search during the median calculation.
-  virtual void
-  emitApproxMemoRegion(CodeGenFunction &CGF, const RegionCodeGenTy &ApproxOpGen,
-                       SourceLocation Loc, ArrayRef<const VarDecl *> InputVars,
-                       const VarDecl *OutputVar, llvm::Value *RadiusSearch);
+  virtual void emitApproxMemoRegion(CodeGenFunction &CGF,
+                                    const RegionCodeGenTy &ApproxOpGen,
+                                    SourceLocation Loc,
+                                    const VarDecl *OutputVar,
+                                    llvm::Value *RadiusSearch);
 };
 
 /// Class supports emissionof SIMD-only code.
@@ -2320,13 +2320,11 @@ public:
   /// Emit approximated region.
   /// \param ApproxOpGen Generator for the statement associated with the
   /// given approximated region.
-  /// \param InputVars Input variables that are going to be inserted.
   /// \param OutputVar Output variable that is going to receive the memoization.
   /// \param RadiusSearch Radius of the search during the median calculation.
   virtual void emitApproxMemoRegion(CodeGenFunction &CGF,
                                     const RegionCodeGenTy &ApproxOpGen,
                                     SourceLocation Loc,
-                                    ArrayRef<const VarDecl *> InputVars,
                                     const VarDecl *OutputVar,
                                     llvm::Value *RadiusSearch) override;
 

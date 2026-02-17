@@ -974,9 +974,6 @@ void OMPClauseProfiler::VisitOMPMemoClause(const OMPMemoClause *C) {
   if (C->getRadiusSearch())
     Profiler->VisitStmt(C->getRadiusSearch());
 }
-void OMPClauseProfiler::VisitOMPInputClause(const OMPInputClause *C) {
-  VisitOMPClauseList(C);
-}
 void OMPClauseProfiler::VisitOMPOutputClause(const OMPOutputClause *C) {
   VisitOMPClauseList(C);
 }

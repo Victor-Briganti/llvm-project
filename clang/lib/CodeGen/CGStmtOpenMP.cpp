@@ -8785,36 +8785,6 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
   }
 
   if (MM) {
-    llvm::SmallVector<const VarDecl *, 8> InputDecls;
-    bool HasInput = false;
-    for (auto *CS : S.getClausesOfKind<OMPInputClause>()) {
-      for (auto *RefExpr : CS->varlist()) {
-        auto *VD = cast<DeclRefExpr>(RefExpr)->getDecl();
-
-        // All values need to be an scalar to be memoized
-        if (!VD->getType()->isScalarType() ||
-            VD->getType()->isAnyPointerType()) {
-          unsigned DiagID = CGM.getDiags().getCustomDiagID(
-              DiagnosticsEngine::Error,
-              "'input' clause supports only scalar values.");
-          this->CGM.getDiags().Report(DiagID);
-          return;
-        }
-
-        InputDecls.push_back(
-            cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl()));
-      }
-      HasInput = true;
-    }
-
-    if (!HasInput) {
-      unsigned DiagID = CGM.getDiags().getCustomDiagID(
-          DiagnosticsEngine::Error,
-          "'memo' clause needs to be used alongisde 'input' clause.");
-      this->CGM.getDiags().Report(DiagID);
-      return;
-    }
-
     const VarDecl *OutDecl = nullptr;
     if (auto *CS = S.getSingleClause<OMPOutputClause>()) {
       int VarCount = 0;
@@ -8859,7 +8829,7 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
     llvm::Value *RadiusSearch =
         EmitScalarExpr(MM->getRadiusSearch(), /*IgnoreResultAssign=*/true);
     CGM.getOpenMPRuntime().emitApproxMemoRegion(
-        *this, CodeGen, S.getBeginLoc(), InputDecls, OutDecl, RadiusSearch);
+        *this, CodeGen, S.getBeginLoc(), OutDecl, RadiusSearch);
     return;
   }
 

@@ -2825,9 +2825,6 @@ void OMPClauseEnqueue::VisitOMPMemoClause(const OMPMemoClause *C) {
   VisitOMPClauseWithPreInit(C);
   Visitor->AddStmt(C->getRadiusSearch());
 }
-void OMPClauseEnqueue::VisitOMPInputClause(const OMPInputClause *C) {
-  VisitOMPClauseList(C);
-}
 void OMPClauseEnqueue::VisitOMPOutputClause(const OMPOutputClause *C) {
   VisitOMPClauseList(C);
 }

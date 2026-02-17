@@ -4427,13 +4427,11 @@ typedef enum memo_num_t {
 } memo_num_t;
 
 KMP_EXPORT kmp_int32 __kmpc_memo_in(ident_t *loc, kmp_int32 global_tid,
-                                    kmp_int32 hashloc, void *output,
-                                    kmp_int32 type_out, kmp_int32 radius,
-                                    kmp_int32 argc, ...);
+                                    kmp_int32 hashloc, kmp_int32 radius,
+                                    void *output, kmp_int32 type_out);
 KMP_EXPORT void __kmpc_memo_out(ident_t *loc, kmp_int32 global_tid,
-                                kmp_int32 hashloc, void *output,
-                                kmp_int32 type_out, kmp_int32 radius,
-                                kmp_int32 argc, ...);
+                                kmp_int32 hashloc, kmp_int32 radius,
+                                void *output, kmp_int32 type_out);
 
 /* ------------------------------------------------------------------------ */
 

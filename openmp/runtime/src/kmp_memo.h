@@ -19,12 +19,10 @@
 extern "C" {
 #endif
 
-int __kmp_memo_in(kmp_int32 hashloc, double *points, kmp_int32 n_points,
-                  void *data, memo_num_t dtype, kmp_int32 radius,
-                  kmp_int32 gtid);
-void __kmp_memo_out(kmp_int32 hashloc, double *points, kmp_int32 n_points,
-                    void *data, memo_num_t dtype, kmp_int32 radius,
-                    kmp_int32 gtid);
+int __kmp_memo_in(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 radius,
+                  void *data, memo_num_t dtype);
+void __kmp_memo_out(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 radius,
+                    void *data, memo_num_t dtype);
 
 #ifdef __cplusplus
 }

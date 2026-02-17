@@ -580,9 +580,6 @@ def OMPC_Fastmath : Clause<[Spelling<"fastmath">]> {
 def OMPC_Memo : Clause<[Spelling<"memo">]> {
   let clangClass = "OMPMemoClause";
 }
-def OMPC_Input : Clause<[Spelling<"input">]> {
-  let clangClass = "OMPInputClause";
-}
 def OMPC_Output : Clause<[Spelling<"output">]> {
   let clangClass = "OMPOutputClause";
 }
@@ -1338,9 +1335,6 @@ def OMP_Approx : Directive<[Spelling<"approx">]> {
     VersionedClause<OMPC_Fastmath>,
     VersionedClause<OMPC_Memo>,
     VersionedClause<OMPC_Output>,
-  ];
-  let allowedClauses = [
-    VersionedClause<OMPC_Input>,
   ];
   let association = AS_Block;
   let category = CA_Executable;
