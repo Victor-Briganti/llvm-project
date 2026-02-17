@@ -301,6 +301,7 @@ extern void __kmp_destroy_nested_ticket_lock(kmp_ticket_lock_t *lck);
 struct kmp_base_rw_lock {
   std::atomic<kmp_int32> reader_count;
   kmp_ticket_lock_t write_lock;
+  kmp_ticket_lock_t read_lock;
 };
 
 typedef struct kmp_base_rw_lock kmp_base_rw_lock_t;
