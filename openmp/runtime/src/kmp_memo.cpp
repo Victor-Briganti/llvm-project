@@ -12,8 +12,10 @@
 
 #include "kmp.h"
 #include "kmp_debug.h"
-#include "kmp_lock.h"
 #include "kmp_memo.h"
+
+#define MAX_MISSES 4096
+#define MAX_NODE_LIST 64
 
 /* ------------------------------------------------------------------------ */
 struct kmp_node_t {
@@ -343,14 +345,11 @@ public:
     num_leafs = 0;
     k = dims;
     alpha = 0.7;
-    __kmp_init_rw_lock(&rw_lock);
   }
 
   bool is_empty(kmp_int32 gtid) {
     bool empty;
-    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
     empty = (root == nullptr);
-    __kmp_release_rw_lock_read(&rw_lock, gtid);
     return empty;
   }
 
@@ -364,18 +363,15 @@ public:
     kmp_node_t *node = node_create(points, n_points, data, dtype);
     KMP_ASSERT2(node, "Could not allocate node");
 
-    __kmp_acquire_rw_lock_write(&rw_lock, gtid);
     bool rebuild = false;
     root = insert_r(root, node, radius * radius, 0, rebuild);
     num_leafs++;
-    __kmp_release_rw_lock_write(&rw_lock, gtid);
   }
 
   kmp_node_t *search_max_ref(double *points, int n_points, kmp_int32 radius,
                              kmp_int32 gtid) {
     KMP_ASSERT2(points, "Search points should not be NULL");
 
-    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
     kmp_node_t *head = root;
     kmp_node_t *max_node = nullptr;
     kmp_int32 dept = 0;
@@ -397,7 +393,6 @@ public:
       dept++;
     }
 
-    __kmp_release_rw_lock_read(&rw_lock, gtid);
     return max_node;
   }
 
@@ -405,21 +400,16 @@ public:
                            kmp_node_t **node_list, int max_nodes,
                            kmp_int32 gtid) {
     kmp_int32 idx = 0;
-    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
     radius_search_r(point, num_points, root, radius * radius, node_list,
                     max_nodes, idx, 0);
-    __kmp_release_rw_lock_read(&rw_lock, gtid);
     return idx;
   }
-
-  ~kmp_kd_tree_t() { __kmp_destroy_rw_lock(&rw_lock); }
 
 private:
   kmp_node_t *root;
   kmp_int32 num_leafs;
   kmp_int32 k;
   double alpha;
-  kmp_rw_lock_t rw_lock;
 
   static kmp_int32 g_axis;
 };
@@ -437,6 +427,7 @@ class kmp_map_t {
 
   struct kmp_bucket_t {
     kmp_int32 key;
+    kmp_int32 misses;
     kmp_kd_tree_t *tree;
     bucket_state_t state;
   };
@@ -450,7 +441,6 @@ class kmp_map_t {
     size = 32;
     buckets = (kmp_bucket_t *)kmpc_calloc(size, sizeof(kmp_bucket_t));
     load_factor = 0.75;
-    __kmp_init_rw_lock(&rw_lock);
   }
 
   void resize(kmp_int32 gtid) {
@@ -473,28 +463,24 @@ class kmp_map_t {
   bool insert_helper(kmp_int32 hashloc, kmp_kd_tree_t *tree, kmp_int32 gtid) {
     kmp_int32 idx = hash_func(hashloc);
     kmp_int32 start_idx = idx;
-    __kmp_acquire_rw_lock_write(&rw_lock, gtid);
     do {
       switch (buckets[idx].state) {
-        case DELETED:
-        case EMPTY:
+      case DELETED:
+      case EMPTY:
         buckets[idx].key = hashloc;
         buckets[idx].tree = tree;
         buckets[idx].state = OCCUPIED;
         entries++;
-        __kmp_release_rw_lock_write(&rw_lock, gtid);
         return true;
-        case OCCUPIED:
+      case OCCUPIED:
         if (buckets[idx].key == hashloc) {
           buckets[idx].tree = tree;
-          __kmp_release_rw_lock_write(&rw_lock, gtid);
           return true;
         }
         idx = (idx + 1) % size;
       }
     } while (idx != start_idx);
-    
-    __kmp_release_rw_lock_write(&rw_lock, gtid);
+
     return false;
   }
 
@@ -504,30 +490,42 @@ public:
   kmp_map_t &operator=(const kmp_map_t &) = delete;
 
   static kmp_map_t *get() {
-    __kmp_acquire_bootstrap_lock(&mutex);
     if (!singleton) {
       singleton = (kmp_map_t *)kmpc_malloc(sizeof(kmp_map_t));
       singleton->init();
     }
-    __kmp_release_bootstrap_lock(&mutex);
 
     return singleton;
   }
 
   kmp_kd_tree_t *get_or_create(kmp_int32 hashloc, kmp_int32 dims,
                                kmp_int32 gtid) {
-    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
 
     kmp_int32 idx = hash_func(hashloc);
     kmp_int32 start_idx = idx;
     do {
       switch (buckets[idx].state) {
-      case EMPTY:
-        goto create_new;
+      case EMPTY: {
+        kmp_kd_tree_t *new_tree =
+            (kmp_kd_tree_t *)kmpc_malloc(sizeof(kmp_kd_tree_t));
+        new_tree->init(dims);
+
+        while (!insert_helper(hashloc, new_tree, gtid)) {
+          if (size >= 4096) {
+            return new_tree;
+          }
+          resize(gtid);
+        }
+
+        return new_tree;
+      }
       case OCCUPIED:
+        if (buckets[idx].key == hashloc && buckets[idx].key >= MAX_MISSES) {
+          return nullptr;
+        }
+
         if (buckets[idx].key == hashloc) {
           kmp_kd_tree_t *tree = buckets[idx].tree;
-          __kmp_release_rw_lock_read(&rw_lock, gtid);
           return tree;
         }
         [[fallthrough]];
@@ -536,46 +534,53 @@ public:
       }
     } while (idx != start_idx);
 
-  create_new:
-    __kmp_release_rw_lock_read(&rw_lock, gtid);
-    kmp_kd_tree_t *new_tree =
-    (kmp_kd_tree_t *)kmpc_malloc(sizeof(kmp_kd_tree_t));
-    new_tree->init(dims);
-    
-    while (!insert_helper(hashloc, new_tree, gtid)) {
-      if (size >= 4096) {
-        return new_tree;
-      }
-      resize(gtid);
-    }
-
-    return new_tree;
+    return nullptr;
   }
 
   kmp_kd_tree_t *get(kmp_int32 hashloc, kmp_int32 gtid) {
     kmp_kd_tree_t *tree = nullptr;
-    __kmp_acquire_rw_lock_read(&rw_lock, gtid);
-    
+
     kmp_int32 idx = hash_func(hashloc);
     kmp_int32 start_idx = idx;
     do {
       switch (buckets[idx].state) {
-        case EMPTY:
-        goto out;
-        case OCCUPIED:
+      case EMPTY:
+        return tree;
+      case OCCUPIED:
+        if (buckets[idx].key == hashloc && buckets[idx].key >= MAX_MISSES) {
+          return nullptr;
+        }
+
         if (buckets[idx].key == hashloc) {
           tree = buckets[idx].tree;
-          goto out;
+          return tree;
         }
         [[fallthrough]];
-        case DELETED:
+      case DELETED:
         idx = (idx + 1) % size;
       }
     } while (idx != start_idx);
-    
-  out:
-    __kmp_release_rw_lock_read(&rw_lock, gtid);
+
     return tree;
+  }
+
+  void increase_misses(kmp_int32 hashloc) {
+    kmp_int32 idx = hash_func(hashloc);
+    kmp_int32 start_idx = idx;
+    do {
+      switch (buckets[idx].state) {
+      case EMPTY:
+        return;
+      case OCCUPIED:
+        if (buckets[idx].key == hashloc) {
+          buckets[idx].misses++;
+          return;
+        }
+        [[fallthrough]];
+      case DELETED:
+        idx = (idx + 1) % size;
+      }
+    } while (idx != start_idx);
   }
 
 private:
@@ -583,15 +588,11 @@ private:
   kmp_int32 size;
   kmp_bucket_t *buckets;
   double load_factor;
-  kmp_rw_lock_t rw_lock;
 
-  static kmp_bootstrap_lock_t mutex;
-  static kmp_map_t *singleton;
+  static thread_local kmp_map_t *singleton;
 };
 
-kmp_map_t *kmp_map_t::singleton = nullptr;
-kmp_bootstrap_lock_t kmp_map_t::mutex =
-    KMP_BOOTSTRAP_LOCK_INITIALIZER(kmp_map_t::mutex);
+thread_local kmp_map_t *kmp_map_t::singleton = nullptr;
 
 /* ------------------------------------------------------------------------ */
 
@@ -601,14 +602,15 @@ int __kmp_memo_in(kmp_int32 hashloc, double *points, kmp_int32 n_points,
   kmp_map_t *map = kmp_map_t::get();
 
   kmp_kd_tree_t *tree = map->get_or_create(hashloc, n_points, gtid);
-  KMP_ASSERT2(tree, "Could not get or create tree");
+  if (!tree) {
+    return 1;
+  }
 
   if (tree->is_empty(gtid)) {
     return 1;
   }
 
   kmp_node_t *max_node = tree->search_max_ref(points, n_points, radius, gtid);
-
   if (max_node == nullptr) {
     return 1;
   }
@@ -616,31 +618,30 @@ int __kmp_memo_in(kmp_int32 hashloc, double *points, kmp_int32 n_points,
   // Check if n_refs >= 2^k (threshold)
   kmp_int32 k = tree->get_k();
   kmp_int32 threshold = 1 << k;
-
-  if (max_node->n_refs >= threshold) {
-    const kmp_int32 max_nodes = 64;
-    kmp_node_t **node_list =
-        (kmp_node_t **)kmpc_malloc(max_nodes * sizeof(kmp_node_t *));
-
-    kmp_int32 count = tree->kdtree_radius_search(points, n_points, radius,
-                                                 node_list, max_nodes, gtid);
-
-    if (count > 0) {
-      memo_compute_mean(node_list, count, dtype, data);
-    }
-
-    kmpc_free(node_list);
-    return 0;
+  if (max_node->n_refs < threshold) {
+    return 1;
   }
-  return 1;
+
+  kmp_node_t *node_list[MAX_NODE_LIST];
+  kmp_int32 count = tree->kdtree_radius_search(points, n_points, radius,
+                                               node_list, MAX_NODE_LIST, gtid);
+  if (count > 0) {
+    memo_compute_mean(node_list, count, dtype, data);
+  } else {
+    map->increase_misses(hashloc);
+  }
+
+  return 0;
 }
 
 void __kmp_memo_out(kmp_int32 hashloc, double *points, kmp_int32 n_points,
                     void *data, memo_num_t dtype, kmp_int32 radius,
                     kmp_int32 gtid) {
   kmp_map_t *map = kmp_map_t::get();
-
   kmp_kd_tree_t *tree = map->get(hashloc, gtid);
-  KMP_ASSERT2(tree, "Tree should exist in memo_out");
+  if (!tree) {
+    return;
+  }
+
   tree->insert(points, n_points, data, dtype, radius, gtid);
 }

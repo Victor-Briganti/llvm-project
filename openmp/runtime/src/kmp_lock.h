@@ -296,33 +296,6 @@ extern void __kmp_init_nested_ticket_lock(kmp_ticket_lock_t *lck);
 extern void __kmp_destroy_nested_ticket_lock(kmp_ticket_lock_t *lck);
 
 // ----------------------------------------------------------------------------
-// Read-Write locks.
-
-struct kmp_base_rw_lock {
-  std::atomic<kmp_int32> reader_count;
-  kmp_ticket_lock_t write_lock;
-  kmp_ticket_lock_t read_lock;
-};
-
-typedef struct kmp_base_rw_lock kmp_base_rw_lock_t;
-
-union KMP_ALIGN_CACHE kmp_rw_lock {
-  kmp_base_rw_lock_t lk;
-  char lk_pad[KMP_PAD(kmp_base_rw_lock_t, CACHE_LINE)];
-};
-
-typedef union kmp_rw_lock kmp_rw_lock_t;
-
-extern void __kmp_init_rw_lock(kmp_rw_lock_t *lck);
-extern void __kmp_destroy_rw_lock(kmp_rw_lock_t *lck);
-
-extern int __kmp_acquire_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
-extern int __kmp_release_rw_lock_read(kmp_rw_lock_t *lck, kmp_int32 gtid);
-
-extern int __kmp_acquire_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
-extern int __kmp_release_rw_lock_write(kmp_rw_lock_t *lck, kmp_int32 gtid);
-
-// ----------------------------------------------------------------------------
 // Queuing locks.
 
 #if KMP_USE_ADAPTIVE_LOCKS
