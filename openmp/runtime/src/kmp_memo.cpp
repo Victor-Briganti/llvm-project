@@ -15,6 +15,9 @@
 #include "kmp_debug.h"
 #include "kmp_os.h"
 
+#define MAP_SIZE 42
+#define MAX_BUCKET_SIZE 4096
+
 static size_t memo_sizeof(memo_num_t dtype) {
   switch (dtype) {
   case memo_num_bool:
@@ -170,6 +173,8 @@ class kmp_map_t {
     kmp_int32 key;
     kmp_int32 size;
     kmp_int32 pos;
+    kmp_int32 refs;
+    kmp_int32 max_refs;
     bool is_full;
     memo_num_t dtype;
     void *data;
@@ -179,14 +184,13 @@ class kmp_map_t {
   // <http://www.cse.yorku.ca/~oz/hash.html#djb2>
   kmp_int32 hash_func(kmp_int32 key) { return (5381 * 33 + key) % size; }
 
-  void init(kmp_int32 dsize, memo_num_t dtype) {
+  void init(memo_num_t dtype) {
     entries = 0;
-    size = 32;
-    load_factor = 0.75;
+    size = MAP_SIZE;
     buckets = (bucket_t *)kmpc_calloc(size, sizeof(bucket_t));
-    
+
     for (kmp_int32 i = 0; i < size; i++) {
-      buckets[i].data = kmpc_calloc(dsize, memo_sizeof(dtype));
+      buckets[i].data = kmpc_calloc(MAX_BUCKET_SIZE, memo_sizeof(dtype));
       KMP_ASSERT2(buckets[i].data != NULL,
                   "Could not allocate memory for the data in the buckets");
     }
@@ -259,19 +263,19 @@ public:
   kmp_map_t(const kmp_map_t &) = delete;
   kmp_map_t &operator=(const kmp_map_t &) = delete;
 
-  static kmp_map_t *create(kmp_int32 size, memo_num_t dtype) {
-    KMP_ASSERT2(size > 0, "Size of the map must be greater than 0");
+  static kmp_map_t *create(memo_num_t dtype) {
     if (!singleton) {
       singleton = (kmp_map_t *)kmpc_malloc(sizeof(kmp_map_t));
       KMP_ASSERT2(singleton != NULL,
                   "Could not allocate memory for the map structure");
-      singleton->init(size, dtype);
+      singleton->init(dtype);
     }
 
     return singleton;
   }
 
-  bool insert(kmp_int32 hashloc, void *data, memo_num_t dtype) {
+  bool insert(kmp_int32 hashloc, void *data, memo_num_t dtype,
+              kmp_int32 max_refs) {
     kmp_int32 idx = hash_func(hashloc);
     kmp_int32 start_idx = idx;
     do {
@@ -281,6 +285,7 @@ public:
         buckets[idx].key = hashloc;
         buckets[idx].state = BUCKET_FULL;
         buckets[idx].dtype = dtype;
+        buckets[idx].max_refs = max_refs;
         buckets[idx].size = memo_sizeof(dtype);
         insert_data(buckets[idx], data, dtype);
         entries++;
@@ -308,6 +313,12 @@ public:
             return FALSE;
           }
 
+          buckets[idx].refs++;
+          if (buckets[idx].refs >= buckets[idx].max_refs) {
+            buckets[idx].is_full = FALSE;
+            buckets[idx].refs = 0;
+          }
+
           out_size = buckets[idx].size;
           return buckets[idx].data;
         }
@@ -325,7 +336,6 @@ private:
   bucket_t *buckets;
   kmp_int32 entries;
   kmp_int32 size;
-  double load_factor;
 
   static thread_local kmp_map_t *singleton;
 };
@@ -334,9 +344,9 @@ thread_local kmp_map_t *kmp_map_t::singleton = nullptr;
 
 /* ------------------------------------------------------------------------ */
 
-int __kmp_memo_in(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 size, void *data,
-                  memo_num_t dtype) {
-  kmp_map_t *map = kmp_map_t::create(size, dtype);
+int __kmp_memo_in(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 max_refs,
+                  void *data, memo_num_t dtype) {
+  kmp_map_t *map = kmp_map_t::create(dtype);
   kmp_int32 out_size = 0;
   void *out_data = map->get(hashloc, out_size);
   if (out_data == NULL) {
@@ -347,8 +357,8 @@ int __kmp_memo_in(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 size, void *data,
   return 0;
 }
 
-void __kmp_memo_out(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 size,
+void __kmp_memo_out(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 max_refs,
                     void *data, memo_num_t dtype) {
-  kmp_map_t *map = kmp_map_t::create(size, dtype);
-  map->insert(hashloc, data, dtype);
+  kmp_map_t *map = kmp_map_t::create(dtype);
+  map->insert(hashloc, data, dtype, max_refs);
 }
