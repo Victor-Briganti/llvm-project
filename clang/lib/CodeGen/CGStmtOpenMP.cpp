@@ -19,12 +19,12 @@
 #include "TargetInfo.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Attr.h"
+#include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclOpenMP.h"
 #include "clang/AST/OpenMPClause.h"
 #include "clang/AST/Stmt.h"
 #include "clang/AST/StmtOpenMP.h"
 #include "clang/AST/StmtVisitor.h"
-#include "clang/AST/DeclCXX.h"
 #include "clang/Basic/OpenMPKinds.h"
 #include "clang/Basic/PrettyStackTrace.h"
 #include "clang/Basic/SourceManager.h"
@@ -1245,10 +1245,10 @@ void CodeGenFunction::EmitOMPLastprivateClauseFinal(
         // Get the address of the private variable.
         Address PrivateAddr = GetAddrOfLocalVar(PrivateVD);
         if (const auto *RefTy = PrivateVD->getType()->getAs<ReferenceType>())
-          PrivateAddr = Address(
-              Builder.CreateLoad(PrivateAddr),
-              CGM.getTypes().ConvertTypeForMem(RefTy->getPointeeType()),
-              CGM.getNaturalTypeAlignment(RefTy->getPointeeType()));
+          PrivateAddr =
+              Address(Builder.CreateLoad(PrivateAddr),
+                      CGM.getTypes().ConvertTypeForMem(RefTy->getPointeeType()),
+                      CGM.getNaturalTypeAlignment(RefTy->getPointeeType()));
         // Store the last value to the private copy in the last iteration.
         if (C->getKind() == OMPC_LASTPRIVATE_conditional)
           CGM.getOpenMPRuntime().emitLastprivateConditionalFinalUpdate(
@@ -1413,7 +1413,8 @@ void CodeGenFunction::EmitOMPReductionClauseInit(
                        .getTaskReductionRefExpr();
       break;
     case OMPD_parallel_for_approx:
-      TaskRedRef = cast<OMPParallelForApproxDirective>(D).getTaskReductionRefExpr();
+      TaskRedRef =
+          cast<OMPParallelForApproxDirective>(D).getTaskReductionRefExpr();
       break;
     case OMPD_simd:
     // TODO: I think that 'for approx' could use task reduction, but need to
@@ -3247,7 +3248,7 @@ void CodeGenFunction::EmitOMPForOuterLoop(
   if (DynamicOrOrdered) {
     uint64_t DropRate = 0;
     CGOpenMPRuntime::OpenMPPerfoType PerfoType =
-                  CGOpenMPRuntime::OMP_perfo_unknown;
+        CGOpenMPRuntime::OMP_perfo_unknown;
     if (InApproximatedAttributedStmt) {
       auto *C = S.getSingleClause<OMPPerfoClause>();
       if (C && (C->getPerfoKind() == OMPC_PERFO_init ||
@@ -3269,7 +3270,7 @@ void CodeGenFunction::EmitOMPForOuterLoop(
   } else {
     uint64_t DropRate = 0;
     CGOpenMPRuntime::OpenMPPerfoType PerfoType =
-                  CGOpenMPRuntime::OMP_perfo_unknown;
+        CGOpenMPRuntime::OMP_perfo_unknown;
     if (InApproximatedAttributedStmt) {
       auto *C = S.getSingleClause<OMPPerfoClause>();
       if (C && (C->getPerfoKind() == OMPC_PERFO_init ||
@@ -3783,8 +3784,7 @@ bool CodeGenFunction::EmitOMPWorksharingLoop(
           IfCond = createApproxCallExpr(*this, Perfo->getBeginLoc());
         }
         if (IfCond) {
-          CGM.getOpenMPRuntime().emitIfClause(*this, IfCond, ThenGen,
-                                                  ElseGen);
+          CGM.getOpenMPRuntime().emitIfClause(*this, IfCond, ThenGen, ElseGen);
         } else {
           RegionCodeGenTy ThenRCG(ThenGen);
           ThenRCG(*this);
@@ -4261,7 +4261,7 @@ static void emitOMPForDirective(const OMPLoopDirective &S, CodeGenFunction &CGF,
   {
     auto LPCRegion =
         CGOpenMPRuntime::LastprivateConditionalRAII::disable(CGF, S);
-    
+
     OMPLexicalScope Scope(CGF, S, OMPD_unknown);
     CGM.getOpenMPRuntime().emitInlinedDirective(CGF, OMPD_for, CodeGen,
                                                 HasCancel);
@@ -4802,7 +4802,8 @@ void CodeGenFunction::EmitOMPParallelForDirective(
       OMPLoopScope LoopScope(CGF, S);
       return CGF.EmitScalarExpr(S.getNumIterations());
     };
-    bool IsInscan = llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
+    bool IsInscan =
+        llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
                      [](const OMPReductionClause *C) {
                        return C->getModifier() == OMPC_REDUCTION_inscan;
                      });
@@ -4836,7 +4837,8 @@ void CodeGenFunction::EmitOMPParallelForApproxDirective(
       OMPLoopScope LoopScope(CGF, S);
       return CGF.EmitScalarExpr(S.getNumIterations());
     };
-    bool IsInscan = llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
+    bool IsInscan =
+        llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
                      [](const OMPReductionClause *C) {
                        return C->getModifier() == OMPC_REDUCTION_inscan;
                      });
@@ -4870,7 +4872,8 @@ void CodeGenFunction::EmitOMPParallelForSimdDirective(
       OMPLoopScope LoopScope(CGF, S);
       return CGF.EmitScalarExpr(S.getNumIterations());
     };
-    bool IsInscan = llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
+    bool IsInscan =
+        llvm::any_of(S.getClausesOfKind<OMPReductionClause>(),
                      [](const OMPReductionClause *C) {
                        return C->getModifier() == OMPC_REDUCTION_inscan;
                      });
@@ -7762,8 +7765,8 @@ void CodeGenFunction::EmitOMPUseDeviceAddrClause(
     // correct mapping, since the pointer to the data was passed to the runtime.
     if (isa<DeclRefExpr>(Ref->IgnoreParenImpCasts()) ||
         MatchingVD->getType()->isArrayType()) {
-      QualType PtrTy = getContext().getPointerType(
-          OrigVD->getType().getNonReferenceType());
+      QualType PtrTy =
+          getContext().getPointerType(OrigVD->getType().getNonReferenceType());
       PrivAddr =
           EmitLoadOfPointer(PrivAddr.withElementType(ConvertTypeForMem(PtrTy)),
                             PtrTy->castAs<PointerType>());
@@ -8718,7 +8721,6 @@ static const llvm::StringMap<StringRef> MathFuncTable = {
     {"tanf", "__kmpc_omp_tanf"},     {"tan", "__kmpc_omp_tan"},
     {"asinf", "__kmpc_omp_asinf"},   {"asin", "__kmpc_omp_asin"},
     {"acosf", "__kmpc_omp_acosf"},   {"acos", "__kmpc_omp_acos"},
-    {"atanf", "__kmpc_omp_atanf"},   {"atan", "__kmpc_omp_atan"},
     {"sinhf", "__kmpc_omp_sinhf"},   {"sinh", "__kmpc_omp_sinh"},
     {"coshf", "__kmpc_omp_coshf"},   {"cosh", "__kmpc_omp_cosh"},
     {"tanhf", "__kmpc_omp_tanhf"},   {"tanh", "__kmpc_omp_tanh"},
@@ -8828,8 +8830,8 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
 
     llvm::Value *RadiusSearch =
         EmitScalarExpr(MM->getRadiusSearch(), /*IgnoreResultAssign=*/true);
-    CGM.getOpenMPRuntime().emitApproxMemoRegion(
-        *this, CodeGen, S.getBeginLoc(), OutDecl, RadiusSearch);
+    CGM.getOpenMPRuntime().emitApproxMemoRegion(*this, CodeGen, S.getBeginLoc(),
+                                                OutDecl, RadiusSearch);
     return;
   }
 

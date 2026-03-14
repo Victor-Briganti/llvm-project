@@ -4390,8 +4390,6 @@ KMP_EXPORT float __kmpc_omp_asinf(float);
 KMP_EXPORT double __kmpc_omp_asin(double);
 KMP_EXPORT float __kmpc_omp_acosf(float);
 KMP_EXPORT double __kmpc_omp_acos(double);
-KMP_EXPORT float __kmpc_omp_atanf(float);
-KMP_EXPORT double __kmpc_omp_atan(double);
 KMP_EXPORT float __kmpc_omp_sinhf(float);
 KMP_EXPORT double __kmpc_omp_sinh(double);
 KMP_EXPORT float __kmpc_omp_coshf(float);

@@ -69,38 +69,10 @@ template <typename T> static T kernel_asin(T x) {
     return (x < 0) ? -pi2 : pi2;
 
   if constexpr (std::is_same_v<T, float>) {
-    return __kmpc_omp_atanf(x / frac);
+    return atanf(x / frac);
   } else if constexpr (std::is_same_v<T, double>) {
-    return __kmpc_omp_atan(x / frac);
+    return atan(x / frac);
   }
-}
-
-template <typename T> static T kernel_atan(T x) {
-  constexpr T pi2 = static_cast<T>(M_PI_2);
-  constexpr T one = static_cast<T>(1.0);
-  constexpr T c1 = static_cast<T>(0.33288950512027);
-  constexpr T c2 = static_cast<T>(-0.08467922817644);
-  constexpr T c3 = static_cast<T>(0.03252232640125);
-  constexpr T c4 = static_cast<T>(-0.00749305860992);
-
-  T offset = 0.0;
-  x = -one / x;
-
-  if (x > one) {
-    offset = pi2;
-  } else if (x < -one) {
-    offset = -pi2;
-  }
-
-  T x2 = x * x;
-  T poly = 1.0;
-  poly += c1 * x2;
-  T x4 = x2 * x2;
-  poly += c2 * x4;
-  poly += c3 * (x4 * x2);
-  poly += c4 * (x4 * x4);
-
-  return offset + (x / poly);
 }
 
 template <typename T> static T kernel_cos_pi(T x) {
@@ -294,9 +266,13 @@ float __kmpc_omp_cosf(float x) {
 
 double __kmpc_omp_cos(double x) { return kernel_cos_pi<double>(M_1_PI * x); }
 
-float __kmpc_omp_tanf(float x) { return __kmpc_omp_sinf(x) / __kmpc_omp_cosf(x); }
+float __kmpc_omp_tanf(float x) {
+  return __kmpc_omp_sinf(x) / __kmpc_omp_cosf(x);
+}
 
-double __kmpc_omp_tan(double x) { return __kmpc_omp_sin(x) / __kmpc_omp_cos(x); }
+double __kmpc_omp_tan(double x) {
+  return __kmpc_omp_sin(x) / __kmpc_omp_cos(x);
+}
 
 float __kmpc_omp_asinf(float x) { return kernel_asin<float>(x); }
 
@@ -307,10 +283,6 @@ float __kmpc_omp_acosf(float x) {
 }
 
 double __kmpc_omp_acos(double x) { return M_PI_2 - __kmpc_omp_asin(x); }
-
-float __kmpc_omp_atanf(float x) { return kernel_atan<float>(x); }
-
-double __kmpc_omp_atan(double x) { return kernel_atan<double>(x); }
 
 float __kmpc_omp_sinhf(float x) {
   const float ex = __kmpc_omp_expf(x);
