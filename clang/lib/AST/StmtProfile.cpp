@@ -971,8 +971,8 @@ void OMPClauseProfiler::VisitOMPPerfoClause(const OMPPerfoClause *C) {
 void OMPClauseProfiler::VisitOMPFastmathClause(const OMPFastmathClause *C) {}
 void OMPClauseProfiler::VisitOMPMemoClause(const OMPMemoClause *C) {
   VistOMPClauseWithPreInit(C);
-  if (C->getRadiusSearch())
-    Profiler->VisitStmt(C->getRadiusSearch());
+  if (C->getThreshold())
+    Profiler->VisitStmt(C->getThreshold());
 }
 void OMPClauseProfiler::VisitOMPOutputClause(const OMPOutputClause *C) {
   VisitOMPClauseList(C);

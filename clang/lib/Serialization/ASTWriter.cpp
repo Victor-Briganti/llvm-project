@@ -8621,7 +8621,7 @@ void OMPClauseWriter::VisitOMPFastmathClause(OMPFastmathClause *C) {}
 
 void OMPClauseWriter::VisitOMPMemoClause(OMPMemoClause *C) {
   VisitOMPClauseWithPreInit(C);
-  Record.AddStmt(C->getRadiusSearch());
+  Record.AddStmt(C->getThreshold());
   Record.AddSourceLocation(C->getLParenLoc());
 }
 

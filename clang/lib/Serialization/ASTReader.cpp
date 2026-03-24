@@ -12632,7 +12632,7 @@ void OMPClauseReader::VisitOMPFastmathClause(OMPFastmathClause *) {}
 
 void OMPClauseReader::VisitOMPMemoClause(OMPMemoClause *C) {
   VisitOMPClauseWithPreInit(C);
-  C->setRadiusSearch(Record.readSubExpr());
+  C->setThreshold(Record.readSubExpr());
   C->setLParenLoc(Record.readSourceLocation());
 }
 

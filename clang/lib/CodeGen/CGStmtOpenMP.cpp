@@ -8828,10 +8828,10 @@ void CodeGenFunction::EmitOMPApproxDirective(const OMPApproxDirective &S) {
       CGF.EmitStmt(S.getAssociatedStmt());
     };
 
-    llvm::Value *RadiusSearch =
-        EmitScalarExpr(MM->getRadiusSearch(), /*IgnoreResultAssign=*/true);
+    llvm::Value *Threshold =
+        EmitScalarExpr(MM->getThreshold(), /*IgnoreResultAssign=*/true);
     CGM.getOpenMPRuntime().emitApproxMemoRegion(*this, CodeGen, S.getBeginLoc(),
-                                                OutDecl, RadiusSearch);
+                                                OutDecl, Threshold);
     return;
   }
 

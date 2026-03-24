@@ -1432,7 +1432,7 @@ public:
                                        SourceLocation EndLoc);
 
   /// Called on well-formed 'memo' clause.
-  OMPClause *ActOnOpenMPMemoClause(Expr *RadiusSearch, SourceLocation StartLoc,
+  OMPClause *ActOnOpenMPMemoClause(Expr *Threshold, SourceLocation StartLoc,
                                    SourceLocation LParenLoc,
                                    SourceLocation EndLoc);
 

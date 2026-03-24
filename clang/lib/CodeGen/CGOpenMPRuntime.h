@@ -1704,12 +1704,12 @@ public:
   /// \param ApproxOpGen Generator for the statement associated with the
   /// given approximated region.
   /// \param OutputVar Output variable that is going to receive the memoization.
-  /// \param RadiusSearch Radius of the search during the median calculation.
+  /// \param Threshold Threshold used to limit the approximation of the region.
   virtual void emitApproxMemoRegion(CodeGenFunction &CGF,
                                     const RegionCodeGenTy &ApproxOpGen,
                                     SourceLocation Loc,
                                     const VarDecl *OutputVar,
-                                    llvm::Value *RadiusSearch);
+                                    llvm::Value *Threshold);
 };
 
 /// Class supports emissionof SIMD-only code.
@@ -2321,12 +2321,12 @@ public:
   /// \param ApproxOpGen Generator for the statement associated with the
   /// given approximated region.
   /// \param OutputVar Output variable that is going to receive the memoization.
-  /// \param RadiusSearch Radius of the search during the median calculation.
+  /// \param Threshold Threshold used to limit the approximation of the region.
   virtual void emitApproxMemoRegion(CodeGenFunction &CGF,
                                     const RegionCodeGenTy &ApproxOpGen,
                                     SourceLocation Loc,
                                     const VarDecl *OutputVar,
-                                    llvm::Value *RadiusSearch) override;
+                                    llvm::Value *Threshold) override;
 
   /// Translates the native parameter of outlined function if this is required
   /// for target.

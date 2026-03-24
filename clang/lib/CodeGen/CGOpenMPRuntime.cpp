@@ -12133,7 +12133,7 @@ void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
                                            const RegionCodeGenTy &ApproxOpGen,
                                            SourceLocation Loc,
                                            const VarDecl *OutputVar,
-                                           llvm::Value *RadiusSearch) {
+                                           llvm::Value *Threshold) {
   if (!CGF.HaveInsertPoint())
     return;
 
@@ -12157,7 +12157,7 @@ void CGOpenMPRuntime::emitApproxMemoRegion(CodeGenFunction &CGF,
       CGF.Builder.CreatePointerCast(OutAddr.getBasePointer(), CGM.VoidPtrTy);
 
   // Build arguments to botch calls
-  llvm::Value *Args[] = {Ident, ThreadID, LocHash, RadiusSearch, OutPtr, OutTy};
+  llvm::Value *Args[] = {Ident, ThreadID, LocHash, Threshold, OutPtr, OutTy};
 
   // if (__kmpc_memo_in(ident_t *, kmp_int32, kmp_int32, kmp_int32, void *,
   // kmp_int32) {
@@ -12489,7 +12489,7 @@ void CGOpenMPSIMDRuntime::emitDoacrossOrdered(CodeGenFunction &CGF,
 
 void CGOpenMPSIMDRuntime::emitApproxMemoRegion(
     CodeGenFunction &CGF, const RegionCodeGenTy &ApproxOpGen,
-    SourceLocation Loc, const VarDecl *OutputVar, llvm::Value *RadiusSearch) {
+    SourceLocation Loc, const VarDecl *OutputVar, llvm::Value *Threshold) {
   llvm_unreachable("Not supported in SIMD-only mode");
 }
 

@@ -17296,11 +17296,11 @@ OMPClause *SemaOpenMP::ActOnOpenMPFastmathClause(SourceLocation StartLoc,
   return new (getASTContext()) OMPFastmathClause(StartLoc, EndLoc);
 }
 
-OMPClause *SemaOpenMP::ActOnOpenMPMemoClause(Expr *RadiusSearch,
+OMPClause *SemaOpenMP::ActOnOpenMPMemoClause(Expr *Threshold,
                                              SourceLocation StartLoc,
                                              SourceLocation LParenLoc,
                                              SourceLocation EndLoc) {
-  Expr *ValExpr = RadiusSearch;
+  Expr *ValExpr = Threshold;
   Stmt *HelperValStmt = nullptr;
 
   // OpenMP [2.5, Restrictions]

@@ -13,10 +13,16 @@
 #include "kmp_memo.h"
 #include "kmp.h"
 #include "kmp_debug.h"
-#include "kmp_os.h"
+#include <cmath>
+#include <cstring>
 
-#define MAP_SIZE 42
-#define MAX_BUCKET_SIZE 4096
+#define MAP_SIZE 43
+#define MAX_BUCKET_SIZE 512
+#define MAX_WINDOW_SIZE (1 << 20)
+
+#define MEMO_WARMUP_THRESHOLD 10
+#define MEMO_OVERHEAD_CHECK_INTERVAL 100
+#define MEMO_OVERHEAD_TOLERANCE 1.05
 
 static size_t memo_sizeof(memo_num_t dtype) {
   switch (dtype) {
@@ -163,23 +169,125 @@ static void memo_interpolate(void *data, kmp_int32 size, memo_num_t dtype,
   }
 }
 
+static double calculate_error(void *predicted, void *real, memo_num_t dtype) {
+  double p = 0.0, r = 0.0;
+  switch (dtype) {
+  case memo_num_bool:
+    p = *(bool *)predicted ? 1.0 : 0.0;
+    r = *(bool *)real ? 1.0 : 0.0;
+    break;
+  case memo_num_char:
+  case memo_num_char8:
+    p = *(char *)predicted;
+    r = *(char *)real;
+    break;
+  case memo_num_uchar:
+    p = *(unsigned char *)predicted;
+    r = *(unsigned char *)real;
+    break;
+  case memo_num_short:
+    p = *(short *)predicted;
+    r = *(short *)real;
+    break;
+  case memo_num_ushort:
+    p = *(unsigned short *)predicted;
+    r = *(unsigned short *)real;
+    break;
+  case memo_num_int:
+    p = *(int *)predicted;
+    r = *(int *)real;
+    break;
+  case memo_num_uint:
+    p = *(unsigned int *)predicted;
+    r = *(unsigned int *)real;
+    break;
+  case memo_num_long:
+    p = *(long *)predicted;
+    r = *(long *)real;
+    break;
+  case memo_num_ulong:
+    p = *(unsigned long *)predicted;
+    r = *(unsigned long *)real;
+    break;
+  case memo_num_longlong:
+    p = *(long long *)predicted;
+    r = *(long long *)real;
+    break;
+  case memo_num_ulonglong:
+    p = *(unsigned long long *)predicted;
+    r = *(unsigned long long *)real;
+    break;
+  case memo_num_float:
+    p = *(float *)predicted;
+    r = *(float *)real;
+    break;
+  case memo_num_double:
+    p = *(double *)predicted;
+    r = *(double *)real;
+    break;
+  case memo_num_longdouble:
+    p = *(long double *)predicted;
+    r = *(long double *)real;
+    break;
+  case memo_num_wuchar:
+  case memo_num_wchar:
+    p = *(wchar_t *)predicted;
+    r = *(wchar_t *)real;
+    break;
+  case memo_num_char16:
+    p = *(char16_t *)predicted;
+    r = *(char16_t *)real;
+    break;
+  case memo_num_char32:
+    p = *(char32_t *)predicted;
+    r = *(char32_t *)real;
+    break;
+  default:
+    KMP_ASSERT2(0, "Invalid data type for error calc");
+  }
+
+  if (r == 0.0)
+    return (p == 0.0) ? 0.0 : 100.0;
+  return (std::abs(p - r) / std::abs(r)) * 100.0;
+}
+
 /* ------------------------------------------------------------------------ */
 
 class kmp_map_t {
-  enum bucket_state_t { BUCKET_EMPTY = 0, BUCKET_FULL = 1, BUCKET_DELETED = 2 };
+public:
+  enum bucket_state_t {
+    BUCKET_EMPTY = 0,
+    BUCKET_WARMUP = 1,
+    BUCKET_COMPUTING = 2,
+    BUCKET_PREDICTING = 3,
+    BUCKET_VALIDATING = 4,
+    BUCKET_DISABLED = 5
+  };
 
   struct bucket_t {
     bucket_state_t state;
     kmp_int32 key;
     kmp_int32 size;
     kmp_int32 pos;
-    kmp_int32 refs;
-    kmp_int32 max_refs;
-    bool is_full;
+    kmp_int32 history_count;
+
+    kmp_int32 window_size;
+    kmp_int32 predict_count;
+    double threshold;
+
     memo_num_t dtype;
     void *data;
+    void *predicted_data;
+    kmp_int32 failed_count;
+
+    kmp_uint64 baseline_ticks;
+    kmp_uint64 memo_ticks;
+    kmp_uint64 start_ticks;
+    kmp_int32 warmup_calls;
+    kmp_int32 memo_calls;
   };
 
+private:
   // Based on the hash algorithm:
   // <http://www.cse.yorku.ca/~oz/hash.html#djb2>
   kmp_int32 hash_func(kmp_int32 key) { return (5381 * 33 + key) % size; }
@@ -190,13 +298,61 @@ class kmp_map_t {
     buckets = (bucket_t *)kmpc_calloc(size, sizeof(bucket_t));
 
     for (kmp_int32 i = 0; i < size; i++) {
+      buckets[i].state = BUCKET_EMPTY;
       buckets[i].data = kmpc_calloc(MAX_BUCKET_SIZE, memo_sizeof(dtype));
+      buckets[i].predicted_data = kmpc_calloc(1, memo_sizeof(dtype));
+      buckets[i].failed_count = 0;
+      buckets[i].baseline_ticks = 0;
+      buckets[i].memo_ticks = 0;
+      buckets[i].warmup_calls = 0;
+      buckets[i].memo_calls = 0;
       KMP_ASSERT2(buckets[i].data != NULL,
                   "Could not allocate memory for the data in the buckets");
+      KMP_ASSERT2(buckets[i].predicted_data != NULL,
+                  "Could not allocate memory for the predicted data in the buckets");
     }
 
     KMP_ASSERT2(buckets != NULL,
                 "Could not allocate memory for the map buckets");
+  }
+
+public:
+  kmp_map_t() = delete;
+  kmp_map_t(const kmp_map_t &) = delete;
+  kmp_map_t &operator=(const kmp_map_t &) = delete;
+
+  static kmp_map_t *create(memo_num_t dtype) {
+    if (!singleton) {
+      singleton = (kmp_map_t *)kmpc_malloc(sizeof(kmp_map_t));
+      KMP_ASSERT2(singleton != NULL,
+                  "Could not allocate memory for the map structure");
+      singleton->init(dtype);
+    }
+    return singleton;
+  }
+
+  bucket_t *get_bucket(kmp_int32 hashloc, double thresh, memo_num_t dtype) {
+    kmp_int32 idx = hash_func(hashloc);
+    kmp_int32 start_idx = idx;
+    do {
+      if (buckets[idx].state == BUCKET_EMPTY) {
+        buckets[idx].key = hashloc;
+        buckets[idx].state = BUCKET_WARMUP;
+        buckets[idx].dtype = dtype;
+        buckets[idx].threshold = thresh;
+        buckets[idx].size = memo_sizeof(dtype);
+        buckets[idx].history_count = 0;
+        buckets[idx].pos = 0;
+        entries++;
+        return &buckets[idx];
+      }
+      if (buckets[idx].key == hashloc) {
+        return &buckets[idx];
+      }
+      idx = (idx + 1) % size;
+    } while (idx != start_idx);
+
+    return NULL; // Map full
   }
 
   void insert_data(bucket_t &bucket, void *data, memo_num_t dtype) {
@@ -207,14 +363,12 @@ class kmp_map_t {
       break;
     case memo_num_char:
     case memo_num_uchar:
+    case memo_num_char8:
       ((char *)bucket.data)[bucket.pos] = *(char *)data;
       break;
     case memo_num_wuchar:
     case memo_num_wchar:
       ((wchar_t *)bucket.data)[bucket.pos] = *(wchar_t *)data;
-      break;
-    case memo_num_char8:
-      ((char *)bucket.data)[bucket.pos] = *(char *)data;
       break;
     case memo_num_char16:
       ((char16_t *)bucket.data)[bucket.pos] = *(char16_t *)data;
@@ -251,85 +405,10 @@ class kmp_map_t {
       KMP_ASSERT2(0, "Invalid data type for memoization");
     }
 
-    if (bucket.pos == bucket.size - 1) {
-      bucket.is_full = TRUE;
+    bucket.pos = (bucket.pos + 1) % MAX_BUCKET_SIZE;
+    if (bucket.history_count < MAX_BUCKET_SIZE) {
+      bucket.history_count++;
     }
-
-    bucket.pos = (bucket.pos + 1) % bucket.size;
-  }
-
-public:
-  kmp_map_t() = delete;
-  kmp_map_t(const kmp_map_t &) = delete;
-  kmp_map_t &operator=(const kmp_map_t &) = delete;
-
-  static kmp_map_t *create(memo_num_t dtype) {
-    if (!singleton) {
-      singleton = (kmp_map_t *)kmpc_malloc(sizeof(kmp_map_t));
-      KMP_ASSERT2(singleton != NULL,
-                  "Could not allocate memory for the map structure");
-      singleton->init(dtype);
-    }
-
-    return singleton;
-  }
-
-  bool insert(kmp_int32 hashloc, void *data, memo_num_t dtype,
-              kmp_int32 max_refs) {
-    kmp_int32 idx = hash_func(hashloc);
-    kmp_int32 start_idx = idx;
-    do {
-      switch (buckets[idx].state) {
-      case BUCKET_DELETED:
-      case BUCKET_EMPTY:
-        buckets[idx].key = hashloc;
-        buckets[idx].state = BUCKET_FULL;
-        buckets[idx].dtype = dtype;
-        buckets[idx].max_refs = max_refs;
-        buckets[idx].size = memo_sizeof(dtype);
-        insert_data(buckets[idx], data, dtype);
-        entries++;
-        return true;
-      case BUCKET_FULL:
-        if (buckets[idx].key == hashloc) {
-          insert_data(buckets[idx], data, dtype);
-          return true;
-        }
-        idx = (idx + 1) % size;
-      }
-    } while (idx != start_idx);
-
-    return false;
-  }
-
-  void *get(kmp_int32 hashloc, kmp_int32 &out_size) {
-    kmp_int32 idx = hash_func(hashloc);
-    kmp_int32 start_idx = idx;
-    do {
-      switch (buckets[idx].state) {
-      case BUCKET_FULL:
-        if (buckets[idx].key == hashloc) {
-          if (!buckets[idx].is_full) {
-            return FALSE;
-          }
-
-          buckets[idx].refs++;
-          if (buckets[idx].refs >= buckets[idx].max_refs) {
-            buckets[idx].is_full = FALSE;
-            buckets[idx].refs = 0;
-          }
-
-          out_size = buckets[idx].size;
-          return buckets[idx].data;
-        }
-        [[fallthrough]];
-      case BUCKET_DELETED:
-      case BUCKET_EMPTY:
-        idx = (idx + 1) % size;
-      }
-    } while (idx != start_idx);
-
-    return NULL;
   }
 
 private:
@@ -344,21 +423,105 @@ thread_local kmp_map_t *kmp_map_t::singleton = nullptr;
 
 /* ------------------------------------------------------------------------ */
 
-int __kmp_memo_in(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 max_refs,
+int __kmp_memo_in(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 threshold,
                   void *data, memo_num_t dtype) {
   kmp_map_t *map = kmp_map_t::create(dtype);
-  kmp_int32 out_size = 0;
-  void *out_data = map->get(hashloc, out_size);
-  if (out_data == NULL) {
+  kmp_map_t::bucket_t *bucket =
+      map->get_bucket(hashloc, (double)threshold, dtype);
+
+  if (bucket == NULL) {
     return 1;
   }
 
-  memo_interpolate(out_data, out_size, dtype, data);
-  return 0;
+  bucket->start_ticks = KMP_NOW();
+
+  if (bucket->state == kmp_map_t::BUCKET_DISABLED ||
+      bucket->state == kmp_map_t::BUCKET_WARMUP) {
+    return 1;
+  }
+
+  if (bucket->state == kmp_map_t::BUCKET_COMPUTING ||
+      bucket->state == kmp_map_t::BUCKET_VALIDATING) {
+    return 1;
+  }
+
+  if (bucket->state == kmp_map_t::BUCKET_PREDICTING) {
+    if (bucket->predict_count < bucket->window_size) {
+      bucket->predict_count++;
+      std::memcpy(data, bucket->predicted_data, bucket->size);
+      bucket->memo_ticks += (KMP_NOW() - bucket->start_ticks);
+      bucket->memo_calls++;
+      return 0;
+    }
+
+    bucket->state = kmp_map_t::BUCKET_VALIDATING;
+    return 1;
+  }
+  return 1;
 }
 
-void __kmp_memo_out(kmp_int32 hashloc, kmp_int32 gtid, kmp_int32 max_refs,
-                    void *data, memo_num_t dtype) {
+void __kmp_memo_out(kmp_int32 hashloc, kmp_int32 gtid,
+                    kmp_int32 threshold, void *data, memo_num_t dtype) {
   kmp_map_t *map = kmp_map_t::create(dtype);
-  map->insert(hashloc, data, dtype, max_refs);
+  kmp_map_t::bucket_t *bucket =
+      map->get_bucket(hashloc, (double)threshold, dtype);
+
+  if (bucket == NULL || bucket->state == kmp_map_t::BUCKET_DISABLED) {
+    return;
+  }
+
+  kmp_uint64 elapsed = KMP_NOW() - bucket->start_ticks;
+
+  if (bucket->state == kmp_map_t::BUCKET_WARMUP) {
+    bucket->baseline_ticks += elapsed;
+    bucket->warmup_calls++;
+    if (bucket->warmup_calls >= MEMO_WARMUP_THRESHOLD) {
+      bucket->state = kmp_map_t::BUCKET_COMPUTING;
+    }
+  } else {
+    bucket->memo_ticks += elapsed;
+    bucket->memo_calls++;
+
+    if (bucket->memo_calls >= MEMO_OVERHEAD_CHECK_INTERVAL) {
+      double avg_baseline = (double)bucket->baseline_ticks / bucket->warmup_calls;
+      double avg_memo = (double)bucket->memo_ticks / bucket->memo_calls;
+      if (avg_memo > avg_baseline * MEMO_OVERHEAD_TOLERANCE) {
+        bucket->state = kmp_map_t::BUCKET_DISABLED;
+        return;
+      }
+    }
+  }
+
+  if (bucket->state == kmp_map_t::BUCKET_COMPUTING) {
+    map->insert_data(*bucket, data, dtype);
+    bucket->state = kmp_map_t::BUCKET_PREDICTING;
+    bucket->window_size = 10;
+    bucket->predict_count = 0;
+    memo_interpolate(bucket->data, bucket->history_count, dtype,
+                     bucket->predicted_data);
+  } else if (bucket->state == kmp_map_t::BUCKET_VALIDATING) {
+    double error = calculate_error(bucket->predicted_data, data, dtype);
+
+    if (error <= bucket->threshold) {
+      if (bucket->window_size < MAX_WINDOW_SIZE) {
+        bucket->window_size *= 2;
+      }
+      bucket->failed_count = 0;
+    } else {
+      bucket->window_size = 1;
+      bucket->failed_count++;
+      // Disable memoization if it fails too many times relative to threshold
+      if (bucket->failed_count >
+          (kmp_int32)(100.0 / (bucket->threshold + 1.0))) {
+        bucket->state = kmp_map_t::BUCKET_DISABLED;
+        return;
+      }
+    }
+
+    map->insert_data(*bucket, data, dtype);
+    bucket->state = kmp_map_t::BUCKET_PREDICTING;
+    bucket->predict_count = 0;
+    memo_interpolate(bucket->data, bucket->history_count, dtype,
+                     bucket->predicted_data);
+  }
 }

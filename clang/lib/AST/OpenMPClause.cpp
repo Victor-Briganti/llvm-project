@@ -2803,8 +2803,8 @@ void OMPClausePrinter::VisitOMPFastmathClause(OMPFastmathClause *Node) {
 }
 
 void OMPClausePrinter::VisitOMPMemoClause(OMPMemoClause *Node) {
-  OS << "num_threads(";
-  Node->getRadiusSearch()->printPretty(OS, nullptr, Policy, 0);
+  OS << "memo(";
+  Node->getThreshold()->printPretty(OS, nullptr, Policy, 0);
   OS << ")";
 }
 

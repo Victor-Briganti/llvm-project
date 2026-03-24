@@ -2823,7 +2823,7 @@ void OMPClauseEnqueue::VisitOMPPerfoClause(const OMPPerfoClause *C) {
 void OMPClauseEnqueue::VisitOMPFastmathClause(const OMPFastmathClause *C) {}
 void OMPClauseEnqueue::VisitOMPMemoClause(const OMPMemoClause *C) {
   VisitOMPClauseWithPreInit(C);
-  Visitor->AddStmt(C->getRadiusSearch());
+  Visitor->AddStmt(C->getThreshold());
 }
 void OMPClauseEnqueue::VisitOMPOutputClause(const OMPOutputClause *C) {
   VisitOMPClauseList(C);

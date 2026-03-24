@@ -2468,11 +2468,11 @@ public:
   ///
   /// By default, performs semantic analysis to build the new OpenMP clause.
   /// Subclasses may override this routine to provide different behavior.
-  OMPClause *RebuildOMPMemoClause(Expr *RadiusSearch, SourceLocation StartLoc,
+  OMPClause *RebuildOMPMemoClause(Expr *Threshold, SourceLocation StartLoc,
                                   SourceLocation LParenLoc,
                                   SourceLocation EndLoc) {
     return getSema().OpenMP().ActOnOpenMPMemoClause(
-        RadiusSearch, StartLoc, LParenLoc, EndLoc);
+        Threshold, StartLoc, LParenLoc, EndLoc);
   }
 
   /// Build a new OpenMP 'output' clause.
@@ -10898,10 +10898,10 @@ TreeTransform<Derived>::TransformOMPOutputClause(OMPOutputClause *C) {
 
 template <typename Derived>
 OMPClause *TreeTransform<Derived>::TransformOMPMemoClause(OMPMemoClause *C) {
-  ExprResult RadiusSearch = getDerived().TransformExpr(C->getRadiusSearch());
-  if (RadiusSearch.isInvalid())
+  ExprResult Threshold = getDerived().TransformExpr(C->getThreshold());
+  if (Threshold.isInvalid())
     return nullptr;
-  return getDerived().RebuildOMPMemoClause(RadiusSearch.get(), C->getBeginLoc(),
+  return getDerived().RebuildOMPMemoClause(Threshold.get(), C->getBeginLoc(),
                                            C->getLParenLoc(), C->getEndLoc());
 }
 

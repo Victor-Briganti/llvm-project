@@ -4102,7 +4102,7 @@ bool RecursiveASTVisitor<Derived>::VisitOMPFastmathClause(OMPFastmathClause *C) 
 template <typename Derived>
 bool RecursiveASTVisitor<Derived>::VisitOMPMemoClause(OMPMemoClause *C) {
   TRY_TO(VisitOMPClauseWithPreInit(C));
-  TRY_TO(TraverseStmt(C->getRadiusSearch()));
+  TRY_TO(TraverseStmt(C->getThreshold()));
   return true;
 }
 

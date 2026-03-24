@@ -10110,39 +10110,39 @@ public:
 /// #pragma omp approx memo(10)
 /// \endcode
 /// In this example directive '#pragma omp approx' has clause 'memo'
-/// with the radius '10'.
+/// with the threshold '10'.
 class OMPMemoClause final
     : public OMPOneStmtClause<llvm::omp::OMPC_memo, OMPClause>,
       public OMPClauseWithPreInit {
   friend class OMPClauseReader;
 
-  /// Set radius search.
-  void setRadiusSearch(Expr *RadiusSearch) { setStmt(RadiusSearch); }
+  /// Set threshold search.
+  void setThreshold(Expr *Threshold) { setStmt(Threshold); }
 
 public:
-  /// Build 'memo' clause with condition \a RadiusSearch.
+  /// Build 'memo' clause with condition \a Threshold.
   ///
-  /// \param RadiusSearch Radius search for the construct.
-  /// \param HelperRadiusSearch Helper radius search for the construct.
+  /// \param Threshold Threshold for the construct.
+  /// \param HelperThreshold Helper threshold for the construct.
   /// \param CaptureRegion Innermost OpenMP region where expressions in this
   /// clause must be captured.
   /// \param StartLoc Starting location of the clause.
   /// \param LParenLoc Location of '('.
   /// \param ModifierLoc Modifier location.
   /// \param EndLoc Ending location of the clause.
-  OMPMemoClause(Expr *RadiusSearch, Stmt *HelperRadiusSearch,
+  OMPMemoClause(Expr *Threshold, Stmt *HelperThreshold,
                 OpenMPDirectiveKind CaptureRegion, SourceLocation StartLoc,
                 SourceLocation LParenLoc, SourceLocation EndLoc)
-      : OMPOneStmtClause(RadiusSearch, StartLoc, LParenLoc, EndLoc),
+      : OMPOneStmtClause(Threshold, StartLoc, LParenLoc, EndLoc),
         OMPClauseWithPreInit(this) {
-    setPreInitStmt(HelperRadiusSearch, CaptureRegion);
+    setPreInitStmt(HelperThreshold, CaptureRegion);
   }
 
   /// Build an empty clause.
   OMPMemoClause() : OMPOneStmtClause(), OMPClauseWithPreInit(this) {}
 
-  /// Returns the radius of the search.
-  Expr *getRadiusSearch() const { return getStmtAs<Expr>(); }
+  /// Returns the threshold of the region.
+  Expr *getThreshold() const { return getStmtAs<Expr>(); }
 };
 
 /// This represents clause 'output' in the '#pragma omp approx memo(10)...'
