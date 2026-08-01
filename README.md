@@ -1,44 +1,50 @@
-# The LLVM Compiler Infrastructure
+# OpenMP `approx` Extension
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/llvm/llvm-project/badge)](https://securityscorecards.dev/viewer/?uri=github.com/llvm/llvm-project)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8273/badge)](https://www.bestpractices.dev/projects/8273)
-[![libc++](https://github.com/llvm/llvm-project/actions/workflows/libcxx-build-and-test.yaml/badge.svg?branch=main&event=schedule)](https://github.com/llvm/llvm-project/actions/workflows/libcxx-build-and-test.yaml?query=event%3Aschedule)
+This repository contains the reference implementation of the **OpenMP Approx construct** proposed in the paper **"Multithread Approximation: An OpenMP Construct"**.
 
-Welcome to the LLVM project!
+The project extends the LLVM/Clang compiler and the OpenMP runtime to support approximation-aware parallel execution through a new OpenMP construct that enables programmers to annotate regions of code that can tolerate controlled accuracy loss in exchange for improved performance.
 
-This repository contains the source code for LLVM, a toolkit for the
-construction of highly optimized compilers, optimizers, and run-time
-environments.
+## Features
 
-The LLVM project has multiple components. The core of the project is
-itself called "LLVM". This contains all of the tools, libraries, and header
-files needed to process intermediate representations and convert them into
-object files. Tools include an assembler, disassembler, bitcode analyzer, and
-bitcode optimizer.
+The current implementation supports multiple approximation techniques, including:
 
-C-like languages use the [Clang](https://clang.llvm.org/) frontend. This
-component compiles C, C++, Objective-C, and Objective-C++ code into LLVM bitcode
--- and from there into object files, using LLVM.
+- Loop Perforation (`perfo`)
+- Memoization (`memo`)
+- Floating-point Relaxation (`fastmath`)
 
-Other components include:
-the [libc++ C++ standard library](https://libcxx.llvm.org),
-the [LLD linker](https://lld.llvm.org), and more.
+Each technique is implemented as an OpenMP clause and can be applied to appropriate parallel regions.
 
-## Getting the Source Code and Building LLVM
+**OBS.:** Currently only one approximation technique can be active within a single `approx` region.
 
-Consult the
-[Getting Started with LLVM](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
-page for information on building and running LLVM.
+## Building
 
-For information on how to contribute to the LLVM project, please take a look at
-the [Contributing to LLVM](https://llvm.org/docs/Contributing.html) guide.
+To build the project use the following command:
 
-## Getting in touch
+```bash 
+cmake --preset omp-approx -S llvm
+cmake --build build
+```
 
-Join the [LLVM Discourse forums](https://discourse.llvm.org/), [Discord
-chat](https://discord.gg/xS7Z362),
-[LLVM Office Hours](https://llvm.org/docs/GettingInvolved.html#office-hours) or
-[Regular sync-ups](https://llvm.org/docs/GettingInvolved.html#online-sync-ups).
+## Examples
 
-The LLVM project has adopted a [code of conduct](https://llvm.org/docs/CodeOfConduct.html) for
-participants to all modes of communication within the project.
+For code examples of how to use the annotations, please refer to the code on the repository: https://github.com/Victor-Briganti/approx-benchmark.
+
+## Citation
+
+If you use this software in academic work, please cite the corresponding paper.
+
+```bibtex
+@article{https://doi.org/10.1002/cpe.70584,
+  author = {Oliveira, João Briganti and Aparecido Gonçalves, Rogério and Fabrício Filho, João},
+  title = {Multithread Approximation: An OpenMP Constructor},
+  journal = {Concurrency and Computation: Practice and Experience},
+  volume = {38},
+  number = {4},
+  pages = {e70584},
+  keywords = {approximation, energy efficiency, floating-point relaxation, high-performance computing, loop perforation, memoization, OpenMP, parallel context, task dropping},
+  doi = {https://doi.org/10.1002/cpe.70584},
+  url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/cpe.70584},
+  year = {2026}
+}
+```
+

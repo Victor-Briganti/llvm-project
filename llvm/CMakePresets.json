@@ -1,0 +1,37 @@
+{
+  "version": 4,
+  "configurePresets": [
+    {
+      "name": "omp-approx",
+      "displayName": "OpenMP Approx",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/../build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "LLVM_USE_LINKER": "lld",
+        "LLVM_ENABLE_ASSERTIONS": true,
+        "LLVM_ENABLE_PROJECTS": "clang",
+        "LLVM_ENABLE_RUNTIMES": "openmp",
+        "LLVM_CCACHE_BUILD": true,
+        "LLVM_OPTIMIZED_TABLEGEN": true,
+        "LLVM_TARGETS_TO_BUILD": "X86",
+        "LLVM_APPEND_VC_REV": false,
+        "CLANG_BUILD_EXAMPLES": false,
+        "CLANG_ENABLE_STATIC_ANALYZER": false,
+        "CLANG_ENABLE_OBJC_REWRITER": false,
+        "CLANG_INCLUDE_DOCS": false,
+        "LLVM_INCLUDE_EXAMPLES": false,
+        "LLVM_INCLUDE_BENCHMARKS": false,
+        "LLVM_INCLUDE_TESTS": false
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "omp-approx",
+      "configurePreset": "omp-approx"
+    }
+  ]
+}
